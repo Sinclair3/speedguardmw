@@ -395,6 +395,9 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
   <div class="sos-sent-title">SOS Alert Sent!</div>
   <div class="sos-sent-sub">Your emergency contact has been notified with your GPS location. Stay calm and stay visible.</div>
   <div class="sos-sent-detail" id="sos-sent-detail"></div>
+  <a id="sos-sms-fallback" href="#" target="_blank" style="display:none;width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15);font-size:13px;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;margin-bottom:10px;display:block">
+    💬 Also send via SMS (backup)
+  </a>
   <button class="btn-sos-close" onclick="closeSosSent()">Back to Map</button>
 </div>
 
@@ -415,9 +418,7 @@ var SUPA_KEY = 'sb_publishable_6GSg9fQ2tCMJ9vZTaOFcCQ_SYviH_KR';
 // ═══════════════════════════════════════════
 var VOTES_TO_VERIFY  = 3;
 var VOTES_TO_REMOVE  = 3;
-var EXPIRY_MOBILE    = 2  * 60 * 60 * 1000;
-var EXPIRY_CHECKPOINT= 8  * 60 * 60 * 1000;
-var EXPIRY_CAMERA    = null;
+var EXPIRY_ALL_COMMUNITY = 2 * 60 * 60 * 1000; // ALL community traps expire in 2 hours
 var votingTrap = null;
 var votedTraps = JSON.parse(lsGet('sg_voted') || '{}');
 
@@ -435,7 +436,11 @@ function supaFetch(path, method, body){
     method:method||'GET',
     headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':method==='POST'?'return=representation':''},
     body:body?JSON.stringify(body):undefined
-  }).then(function(r){return r.json();}).catch(function(){return null;});
+  }).then(function(r){
+    // DELETE returns 204 No Content — don't try to parse JSON
+    if(r.status===204||method==='DELETE')return null;
+    return r.json();
+  }).catch(function(){return null;});
 }
 function loadCommunityTraps(){
   supaFetch('sg_traps?select=*&order=created_at.desc').then(function(rows){
@@ -443,7 +448,12 @@ function loadCommunityTraps(){
     rows.forEach(function(row){
       if(traps.find(function(t){return t.supaId===row.id;}))return;
       var trap={id:nextTrapId++,supaId:row.id,name:row.name,lat:row.lat,lng:row.lng,limit:row.limit_kmh,type:row.type,km:row.km,community:true,yes_votes:row.yes_votes||0,no_votes:row.no_votes||0,created_at:new Date(row.created_at).getTime(),verified:(row.yes_votes||0)>=VOTES_TO_VERIFY};
-      if(!isExpired(trap)&&(row.no_votes||0)<VOTES_TO_REMOVE){traps.push(trap);renderTrapMarker(trap);}
+      if(!isExpired(trap)&&(row.no_votes||0)<VOTES_TO_REMOVE){
+        traps.push(trap);renderTrapMarker(trap);
+      } else {
+        // Already expired or rejected — clean up from DB silently
+        supaFetch('sg_traps?id=eq.'+row.id,'DELETE');
+      }
     });
   });
 }
@@ -462,10 +472,20 @@ function submitVoteToSupabase(supaId,isYes){
 // ═══════════════════════════════════════════
 // EXPIRY
 // ═══════════════════════════════════════════
-function getExpiry(type){if(type==='mobile')return EXPIRY_MOBILE;if(type==='checkpoint')return EXPIRY_CHECKPOINT;return EXPIRY_CAMERA;}
+function getExpiry(type){return EXPIRY_ALL_COMMUNITY;} // all community traps: 2 hours
 function isExpired(trap){if(!trap.community||!trap.created_at)return false;var e=getExpiry(trap.type);if(!e)return false;return(Date.now()-trap.created_at)>e;}
 function expiryLabel(trap){if(!trap.community)return '';var e=getExpiry(trap.type);if(!e)return '';var r=e-(Date.now()-(trap.created_at||Date.now()));if(r<=0)return 'Expired';var m=Math.floor(r/60000);if(m<60)return 'Expires in '+m+'m';return 'Expires in '+Math.floor(m/60)+'h '+(m%60)+'m';}
-setInterval(function(){traps=traps.filter(function(t){if(isExpired(t)||(t.no_votes>=VOTES_TO_REMOVE)){if(trapMk[t.id]){map.removeLayer(trapMk[t.id]);delete trapMk[t.id];}return false;}return true;});},60000);
+setInterval(function(){
+  traps=traps.filter(function(t){
+    var remove = isExpired(t) || (t.no_votes>=VOTES_TO_REMOVE);
+    if(remove){
+      if(trapMk[t.id]){map.removeLayer(trapMk[t.id]);delete trapMk[t.id];}
+      // Also delete from Supabase so it doesn't reload on refresh
+      if(t.supaId) supaFetch('sg_traps?id=eq.'+t.supaId,'DELETE');
+    }
+    return !remove;
+  });
+},60000);
 
 // ═══════════════════════════════════════════
 // TRAP MARKERS
@@ -770,11 +790,18 @@ function fireSOS(){
 
   // Encode for URL
   var encoded = encodeURIComponent(msg);
-  // Clean number — remove leading + for WhatsApp URL if needed
-  var waNum = sosContact.number.replace(/^\+/,'');
+  // Clean number — strip spaces/dashes, keep + prefix
+  var waNum = sosContact.number.replace(/[\s\-\(\)]/g,'').replace(/^\+/,'');
   var waUrl = 'https://wa.me/' + waNum + '?text=' + encoded;
-  // Open WhatsApp (falls back to SMS on devices without WhatsApp)
-  window.open(waUrl, '_blank');
+  // Use anchor click — works on iPhone Safari even from timers
+  // window.open() is blocked by Safari popup blocker from setInterval
+  var a = document.createElement('a');
+  a.href = waUrl;
+  a.target = '_blank';
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ document.body.removeChild(a); }, 500);
 
   // Show sent confirmation screen
   var detail = document.getElementById('sos-sent-detail');
@@ -782,6 +809,11 @@ function fireSOS(){
                    + '<div>📍 <b>Location:</b> ' + locStr + nearestName + '</div>'
                    + '<div>🕐 <b>Time:</b> ' + time + '</div>'
                    + '<div>🔗 <b>Map:</b> <span style="color:#5ddb8a;word-break:break-all">' + mapsUrl + '</span></div>';
+  // SMS fallback link on sent screen
+  var smsBody = encodeURIComponent('EMERGENCY: '+myNickname+' needs help. Location: '+mapsUrl);
+  var sosNum  = sosContact.number.replace(/[\s]/g,'');
+  document.getElementById('sos-sms-fallback').href = 'sms:'+sosNum+'?body='+smsBody;
+  document.getElementById('sos-sms-fallback').style.display = 'inline-block';
   document.getElementById('sos-sent').classList.add('show');
 
   // Voice confirmation
