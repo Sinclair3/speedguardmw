@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SpeedGuard MW">
+<title>SpeedGuard Malawi — M1 Road</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;background:#0a0f14;color:#fff;overflow:hidden}
+
+/* ── TERMS ── */
+#terms-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(160deg,#0a1a0f,#0a0f14 50%,#0f0a14);display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:env(safe-area-inset-top,20px) 0 env(safe-area-inset-bottom,20px)}
+.t-hero{width:100%;padding:28px 24px 18px;text-align:center;background:linear-gradient(180deg,rgba(39,174,96,.12),transparent);border-bottom:1px solid rgba(255,255,255,.06)}
+.t-flag{width:54px;height:36px;border-radius:3px;display:inline-block;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.5);overflow:hidden;position:relative;vertical-align:middle}
+.t-logo{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#27ae60;margin-bottom:14px}
+.t-title{font-size:26px;font-weight:800;letter-spacing:-.5px;line-height:1.2;margin-bottom:8px}
+.t-title span{color:#27ae60}
+.t-sub{font-size:13px;color:rgba(255,255,255,.4);line-height:1.6}
+.t-body{width:100%;max-width:500px;padding:18px 22px;flex:1}
+.ts-h{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#27ae60;margin-bottom:8px;margin-top:18px}
+.ts-p{font-size:13px;color:rgba(255,255,255,.6);line-height:1.75}
+.ts-p li{margin-left:14px;margin-bottom:4px}
+.ts-box{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:14px;max-height:210px;overflow-y:auto;scrollbar-width:thin}
+.t-footer{width:100%;max-width:500px;padding:0 22px 8px;position:sticky;bottom:0;background:linear-gradient(0deg,#0a0f14 65%,transparent)}
+.agree-row{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;padding-top:10px}
+.agree-row input[type=checkbox]{width:20px;height:20px;margin-top:2px;accent-color:#27ae60;flex-shrink:0;cursor:pointer}
+.agree-row label{font-size:13px;color:rgba(255,255,255,.65);line-height:1.5;cursor:pointer}
+.agree-row label b{color:#fff}
+.btn-agree{width:100%;padding:16px;border-radius:14px;background:linear-gradient(135deg,#1a6b3a,#27ae60);color:#fff;border:none;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(39,174,96,.35);opacity:.35;pointer-events:none;transition:opacity .2s}
+.btn-agree.on{opacity:1;pointer-events:all}
+
+/* ── NICKNAME ── */
+#nick-screen{display:none;position:fixed;inset:0;z-index:9998;background:#0a0f14;align-items:center;justify-content:center;padding:24px}
+#nick-screen.show{display:flex}
+.nick-card{background:#0e1820;border-radius:22px;padding:32px 24px;width:100%;max-width:360px;border:1px solid rgba(255,255,255,.1);text-align:center}
+.nick-emoji{font-size:44px;margin-bottom:14px}
+.nick-title{font-size:21px;font-weight:800;margin-bottom:6px}
+.nick-sub{font-size:13px;color:rgba(255,255,255,.45);margin-bottom:22px;line-height:1.6}
+.nick-input{width:100%;padding:15px;border-radius:13px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:18px;text-align:center;margin-bottom:14px;outline:none;transition:border-color .2s}
+.nick-input:focus{border-color:rgba(39,174,96,.6)}
+.nick-input::placeholder{color:rgba(255,255,255,.25);font-size:15px}
+.btn-nick{width:100%;padding:15px;border-radius:13px;background:linear-gradient(135deg,#1a6b3a,#27ae60);color:#fff;border:none;font-size:16px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(39,174,96,.3)}
+
+/* ── HEADER ── */
+#hdr{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(10,15,20,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);padding:env(safe-area-inset-top,12px) 14px 10px;display:none;align-items:center;justify-content:space-between;border-bottom:1px solid rgba(255,255,255,.07)}
+.hdr-left{display:flex;flex-direction:column}
+.hdr-title{font-size:14px;font-weight:800}
+.hdr-flag{width:18px;height:12px;border-radius:1px;display:inline-block;vertical-align:-2px;margin-right:4px;overflow:hidden;position:relative}
+.hdr-sub{font-size:10px;color:rgba(255,255,255,.38);margin-top:2px;display:flex;align-items:center;gap:5px}
+.dot{width:6px;height:6px;border-radius:50%;background:#333;flex-shrink:0}
+.dot.gps{background:#333}.dot.gps.on{background:#27ae60;animation:bk 1.5s infinite}
+.dot.live{background:#e74c3c;animation:bk .8s infinite}
+@keyframes bk{0%,100%{opacity:1}50%{opacity:.3}}
+.spd-ring{width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.05);border:2.5px solid rgba(255,255,255,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;transition:all .3s}
+.spd-ring.ok{border-color:#27ae60;background:rgba(39,174,96,.1)}
+.spd-ring.warn{border-color:#f39c12;background:rgba(243,156,18,.1)}
+.spd-ring.bad{border-color:#e74c3c;background:rgba(231,76,60,.15);animation:pulse-r 1s infinite}
+@keyframes pulse-r{0%,100%{box-shadow:0 0 0 0 rgba(231,76,60,.5)}50%{box-shadow:0 0 0 10px rgba(231,76,60,0)}}
+.spd-n{font-size:20px;font-weight:800;line-height:1}
+.spd-u{font-size:8px;color:rgba(255,255,255,.4);margin-top:1px}
+
+/* ── ALERT ── */
+#alert{position:fixed;z-index:999;left:10px;right:10px;border-radius:15px;padding:12px 15px;display:none;align-items:center;gap:10px;font-size:13px;font-weight:600;border:1px solid;box-shadow:0 4px 24px rgba(0,0,0,.5);transition:all .3s}
+.aico{font-size:19px;flex-shrink:0}
+.a-ok{background:rgba(14,40,20,.97);border-color:#27ae60;color:#5ddb8a}
+.a-warn{background:rgba(40,30,5,.97);border-color:#f39c12;color:#f8c060}
+.a-bad{background:rgba(42,10,10,.97);border-color:#e74c3c;color:#ff7a7a}
+
+/* ── MAP ── */
+#map{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1;display:none}
+
+/* ── BOTTOM ── */
+#btm{position:fixed;bottom:0;left:0;right:0;z-index:1000;background:rgba(10,15,20,.96);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(255,255,255,.07);padding:10px 14px env(safe-area-inset-bottom,10px);display:none}
+#pgbar-w{height:3px;background:rgba(255,255,255,.07);border-radius:2px;margin-bottom:9px;overflow:hidden}
+#pgbar{height:100%;background:linear-gradient(90deg,#27ae60,#f39c12);border-radius:2px;transition:width .5s;width:0}
+.stats{display:flex;gap:7px;margin-bottom:9px}
+.sp{flex:1;background:rgba(255,255,255,.06);border-radius:10px;padding:7px 5px;text-align:center;border:1px solid rgba(255,255,255,.06)}
+.sp-l{font-size:9px;color:rgba(255,255,255,.38);margin-bottom:2px;text-transform:uppercase;letter-spacing:.05em}
+.sp-v{font-size:13px;font-weight:700}
+.sp-v.bad{color:#e74c3c}.sp-v.warn{color:#f39c12}.sp-v.ok{color:#27ae60}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;margin-bottom:9px}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex-shrink:0;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:11px;padding:8px 11px;min-width:148px;cursor:pointer}
+.chip.c-bad{border-color:rgba(231,76,60,.5);background:rgba(231,76,60,.08)}
+.chip.c-warn{border-color:rgba(243,156,18,.5);background:rgba(243,156,18,.07)}
+.ch-n{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:136px}
+.ch-s{font-size:10px;color:rgba(255,255,255,.38);margin-top:1px}
+.ch-d{font-size:12px;font-weight:700;margin-top:3px}
+.btn-row{display:flex;gap:8px}
+.btn-gps{flex:1;padding:11px;border-radius:11px;background:#1a6b3a;color:#fff;border:none;font-size:13px;font-weight:700;cursor:pointer}
+.btn-gps.on{background:#c0392b}
+.btn-s{padding:11px 12px;border-radius:11px;background:rgba(255,255,255,.07);color:#fff;border:1px solid rgba(255,255,255,.12);font-size:13px;font-weight:600;cursor:pointer}
+.btn-live{padding:11px 12px;border-radius:11px;background:rgba(231,76,60,.14);color:#e74c3c;border:1px solid rgba(231,76,60,.28);font-size:13px;font-weight:600;cursor:pointer}
+
+/* ── LIVE PANEL ── */
+#live-panel{position:fixed;top:0;right:0;bottom:0;z-index:1100;width:min(290px,90vw);background:rgba(10,15,20,.97);border-left:1px solid rgba(255,255,255,.07);padding:env(safe-area-inset-top,20px) 0 env(safe-area-inset-bottom,10px);display:none;flex-direction:column;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+#live-panel.open{display:flex}
+.lp-hdr{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between}
+.lp-t{font-size:15px;font-weight:700}
+.lp-s{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
+.lp-x{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:14px;cursor:pointer}
+.lp-list{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.ucard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:11px 13px;cursor:pointer;transition:background .15s}
+.ucard:active{background:rgba(255,255,255,.1)}
+.uc-r{display:flex;align-items:center;justify-content:space-between}
+.uc-n{font-size:13px;font-weight:600}
+.uc-spd{font-size:12px;font-weight:700}
+.uc-loc{font-size:11px;color:rgba(255,255,255,.38);margin-top:3px}
+.uc-t{font-size:10px;color:rgba(255,255,255,.22);margin-top:2px}
+
+/* ── REPORT MODAL ── */
+.mo{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.75);align-items:flex-end;justify-content:center}
+.mo.open{display:flex}
+.mc{background:#0e1820;border-radius:22px 22px 0 0;padding:20px 18px env(safe-area-inset-bottom,22px);width:100%;max-width:500px;border:1px solid rgba(255,255,255,.09);border-bottom:none}
+.mc-hndl{width:34px;height:4px;border-radius:2px;background:rgba(255,255,255,.18);margin:0 auto 16px}
+.mc-t{font-size:16px;font-weight:800;margin-bottom:14px}
+.mc input,.mc select{width:100%;padding:12px 13px;border-radius:11px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:14px;margin-bottom:9px;-webkit-appearance:none;appearance:none;outline:none}
+.mc input::placeholder{color:rgba(255,255,255,.28)}
+.mc select option{background:#0e1820}
+.mc-btns{display:flex;gap:9px;margin-top:4px}
+.mc-cancel{flex:1;padding:13px;border-radius:11px;background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);border:none;font-size:14px;font-weight:600;cursor:pointer}
+.mc-ok{flex:2;padding:13px;border-radius:11px;background:linear-gradient(135deg,#1a6b3a,#27ae60);color:#fff;border:none;font-size:14px;font-weight:800;cursor:pointer}
+
+/* Leaflet */
+.leaflet-tile{filter:brightness(.78) saturate(.7)}
+.leaflet-control-attribution{font-size:8px;opacity:.3;background:rgba(0,0,0,.5)!important;color:rgba(255,255,255,.4)!important}
+.leaflet-control-zoom a{background:rgba(10,15,20,.9)!important;color:#fff!important;border-color:rgba(255,255,255,.1)!important}
+.leaflet-popup-content-wrapper{background:#0e1820!important;color:#fff!important;border:1px solid rgba(255,255,255,.12)!important;border-radius:12px!important;box-shadow:0 4px 20px rgba(0,0,0,.6)!important}
+.leaflet-popup-tip{background:#0e1820!important}
+.leaflet-popup-content{font-size:13px;line-height:1.6;margin:11px 13px!important}
+.leaflet-popup-content b{color:#27ae60}
+</style>
+</head>
+<body>
+
+<!-- TERMS -->
+<div id="terms-screen">
+  <div class="t-hero">
+    <div class="t-logo">SpeedGuard Malawi</div>
+    <svg class="t-flag" viewBox="0 0 54 36" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.5);border-radius:3px">
+  <rect width="54" height="12" fill="#000"/>
+  <rect y="12" width="54" height="12" fill="#d21034"/>
+  <rect y="24" width="54" height="12" fill="#339e35"/>
+  <!-- Rising sun on black stripe, centered -->
+  <g transform="translate(27,6)" fill="#d21034">
+    <!-- Sun core -->
+    <circle r="3.5"/>
+    <!-- 31 rays approx — using 16 main rays for clean SVG -->
+    <!-- Cardinal and diagonal rays -->
+    <line x1="0" y1="-4.5" x2="0" y2="-7" stroke="#d21034" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="0" y1="4.5" x2="0" y2="7" stroke="#d21034" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="4.5" y1="0" x2="7" y2="0" stroke="#d21034" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="-4.5" y1="0" x2="-7" y2="0" stroke="#d21034" stroke-width="1.2" stroke-linecap="round"/>
+    <line x1="3.2" y1="-3.2" x2="5" y2="-5" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
+    <line x1="-3.2" y1="-3.2" x2="-5" y2="-5" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
+    <line x1="3.2" y1="3.2" x2="5" y2="5" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
+    <line x1="-3.2" y1="3.2" x2="-5" y2="5" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
+    <!-- Extra rays for 31 effect -->
+    <line x1="1.7" y1="-4.3" x2="2.5" y2="-6.7" stroke="#d21034" stroke-width="0.9" stroke-linecap="round"/>
+    <line x1="-1.7" y1="-4.3" x2="-2.5" y2="-6.7" stroke="#d21034" stroke-width="0.9" stroke-linecap="round"/>
+    <line x1="4.3" y1="-1.7" x2="6.7" y2="-2.5" stroke="#d21034" stroke-width="0.9" stroke-linecap="round"/>
+    <line x1="4.3" y1="1.7" x2="6.7" y2="2.5" stroke="#d21034" stroke-width="0.9" stroke-linecap="round"/>
+    <line x1="-4.3" y1="-1.7" x2="-6.7" y2="-2.5" stroke="#d21034" stroke-width="0.9" stroke-linecap="round"/>
+    <line x1="-4.3" y1="1.7" x2="-6.7" y2="2.5" stroke="#d21034" stroke-width="0.9" stroke-linecap="round"/>
+    <line x1="1.7" y1="4.3" x2="2.5" y2="6.7" stroke="#d21034" stroke-width="0.9" stroke-linecap="round"/>
+    <line x1="-1.7" y1="4.3" x2="-2.5" y2="6.7" stroke="#d21034" stroke-width="0.9" stroke-linecap="round"/>
+  </g>
+</svg>
+    <h1 class="t-title">Drive Safe on<br><span>Malawi M1</span></h1>
+    <p class="t-sub">Lilongwe → Blantyre · Speed trap alerts · Live drivers</p>
+  </div>
+  <div class="t-body">
+    <div class="ts-h">📋 Terms &amp; Conditions</div>
+    <div class="ts-box"><div class="ts-p">
+      <p style="margin-bottom:8px"><b>SpeedGuard Malawi — Terms of Use v2.0</b></p>
+      <p style="margin-bottom:7px"><b>1. Purpose.</b> SpeedGuard Malawi is a road safety awareness tool to help drivers on the M1 road stay informed about speed limits and reported speed enforcement zones between Lilongwe and Blantyre.</p>
+      <p style="margin-bottom:7px"><b>2. Not an evasion tool.</b> This app does NOT encourage speeding or evading law enforcement. You remain fully responsible for obeying all Malawi traffic laws at all times.</p>
+      <p style="margin-bottom:7px"><b>3. Location &amp; live tracking.</b> By using this app you agree that your nickname, approximate GPS location, and speed will be visible to other active users in real time. This data is broadcast only while the app is open with GPS on, and is never stored permanently.</p>
+      <p style="margin-bottom:7px"><b>4. Community reports.</b> Trap locations submitted by users are community-generated and may not be accurate. Always drive within legal speed limits regardless of reported trap locations.</p>
+      <p style="margin-bottom:7px"><b>5. Privacy.</b> Only your chosen nickname and approximate location are shared. No personal details (full name, phone number, national ID) are collected or stored.</p>
+      <p style="margin-bottom:7px"><b>6. Disclaimer.</b> SpeedGuard is provided "as is" without warranty. The developers are not liable for any fines, accidents, or losses from use of this app. Never use your phone while driving.</p>
+      <p style="margin-bottom:7px"><b>7. Age &amp; licence.</b> You must be 18 or older and hold a valid driving licence to use this app.</p>
+      <p style="margin-bottom:7px"><b>8. Malawi law.</b> Use of this app must comply with all applicable laws of the Republic of Malawi, including the Road Traffic Act.</p>
+      <p><b>9. Updates.</b> Terms may be updated at any time. Continued use constitutes acceptance of the latest terms.</p>
+    </div></div>
+
+    <div class="ts-h">🔒 Privacy at a Glance</div>
+    <div class="ts-p"><ul>
+      <li>Your nickname &amp; live location visible to other drivers while GPS is on</li>
+      <li>No personal data stored permanently anywhere</li>
+      <li>Community trap reports may not be 100% accurate</li>
+      <li>Never interact with your phone while driving</li>
+    </ul></div>
+
+    <div class="ts-h">⚠️ Safety Warning</div>
+    <div class="ts-p" style="background:rgba(231,76,60,.07);border:1px solid rgba(231,76,60,.2);border-radius:10px;padding:11px;margin-top:6px">
+      For <b>passenger use or pre-journey review only.</b> Mount your phone securely or have a passenger manage the app. Distracted driving is dangerous and illegal in Malawi.
+    </div>
+  </div>
+  <div class="t-footer">
+    <div class="agree-row">
+      <input type="checkbox" id="agree-cb" onchange="onAgree(this)">
+      <label for="agree-cb">I have read and agree to the <b>Terms &amp; Conditions</b>, Privacy Policy, and Safety Warning. I confirm I am 18+ and hold a valid driving licence.</label>
+    </div>
+    <button class="btn-agree" id="btn-agree" onclick="acceptTerms()">✓ &nbsp;I Agree — Enter SpeedGuard</button>
+  </div>
+</div>
+
+<!-- NICKNAME -->
+<div id="nick-screen">
+  <div class="nick-card">
+    <div class="nick-emoji">🚗</div>
+    <div class="nick-title">What's your driver name?</div>
+    <div class="nick-sub">This is the name other drivers will see when you're on the M1 map. Pick something friendly!</div>
+    <input class="nick-input" id="nick-in" type="text" placeholder="e.g. Driver K, Bwana J..." maxlength="18" autocomplete="off">
+    <button class="btn-nick" onclick="saveNick()">Let's Go →</button>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="hdr">
+  <div class="hdr-left">
+    <div class="hdr-title"><svg width="18" height="12" viewBox="0 0 18 12" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:-2px;margin-right:4px;border-radius:1px;box-shadow:0 1px 3px rgba(0,0,0,.4)"><rect width="18" height="4" fill="#000"/><rect y="4" width="18" height="4" fill="#d21034"/><rect y="8" width="18" height="4" fill="#339e35"/><g transform="translate(9,2)" fill="#d21034"><circle r="1.2"/><line x1="0" y1="-1.6" x2="0" y2="-2.4" stroke="#d21034" stroke-width="0.5"/><line x1="0" y1="1.6" x2="0" y2="2.4" stroke="#d21034" stroke-width="0.5"/><line x1="1.6" y1="0" x2="2.4" y2="0" stroke="#d21034" stroke-width="0.5"/><line x1="-1.6" y1="0" x2="-2.4" y2="0" stroke="#d21034" stroke-width="0.5"/><line x1="1.1" y1="-1.1" x2="1.7" y2="-1.7" stroke="#d21034" stroke-width="0.4"/><line x1="-1.1" y1="-1.1" x2="-1.7" y2="-1.7" stroke="#d21034" stroke-width="0.4"/><line x1="1.1" y1="1.1" x2="1.7" y2="1.7" stroke="#d21034" stroke-width="0.4"/><line x1="-1.1" y1="1.1" x2="-1.7" y2="1.7" stroke="#d21034" stroke-width="0.4"/></g></svg>SpeedGuard Malawi</div>
+    <div class="hdr-sub">
+      <span class="dot gps" id="gps-dot"></span><span id="gps-lbl">GPS off</span>
+      &nbsp;·&nbsp;
+      <span class="dot live" id="live-dot" style="display:none"></span>
+      <span id="live-lbl">0 online</span>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button onclick="openLive()" style="background:rgba(231,76,60,.13);border:1px solid rgba(231,76,60,.3);color:#e74c3c;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer">👥 Live</button>
+    <div class="spd-ring" id="spd-ring">
+      <div class="spd-n" id="spd-n">0</div>
+      <div class="spd-u">km/h</div>
+    </div>
+  </div>
+</div>
+
+<div id="map"></div>
+
+<div id="alert" class="a-ok">
+  <span class="aico" id="aico">📍</span>
+  <span id="atxt">Tap "Start GPS" to begin. Stay safe on the M1!</span>
+</div>
+
+<div id="btm">
+  <div id="pgbar-w"><div id="pgbar"></div></div>
+  <div class="stats">
+    <div class="sp"><div class="sp-l">Next Trap</div><div class="sp-v" id="s-next">--</div></div>
+    <div class="sp"><div class="sp-l">Limit</div><div class="sp-v" id="s-lim">--</div></div>
+    <div class="sp"><div class="sp-l">Speed</div><div class="sp-v" id="s-spd">0 km/h</div></div>
+    <div class="sp"><div class="sp-l">Journey</div><div class="sp-v" id="s-prg">0%</div></div>
+  </div>
+  <div class="chips" id="chips"></div>
+  <div class="btn-row">
+    <button class="btn-gps" id="btn-gps" onclick="toggleGPS()">📍 Start GPS</button>
+    <button class="btn-s" onclick="openReport()">+ Trap</button>
+    <button class="btn-live" onclick="openLive()">👥 Live</button>
+  </div>
+</div>
+
+<div id="live-panel">
+  <div class="lp-hdr">
+    <div><div class="lp-t">👥 Live Drivers — M1</div><div class="lp-s" id="lp-s">0 drivers online</div></div>
+    <button class="lp-x" onclick="closeLive()">✕</button>
+  </div>
+  <div class="lp-list" id="lp-list">
+    <div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">No other drivers online yet.<br>Share the app link to connect!</div>
+  </div>
+</div>
+
+<div class="mo" id="report-mo">
+  <div class="mc">
+    <div class="mc-hndl"></div>
+    <div class="mc-t">📷 Report a Speed Trap</div>
+    <input id="r-name" type="text" placeholder="Location (e.g. Liwonde Police Post)">
+    <select id="r-lim">
+      <option value="30">30 km/h — School zone</option>
+      <option value="50" selected>50 km/h — Town / urban</option>
+      <option value="80">80 km/h — Open highway</option>
+    </select>
+    <select id="r-type">
+      <option value="mobile">🚔 Mobile police unit</option>
+      <option value="camera">📷 Fixed speed camera</option>
+      <option value="checkpoint">🛡️ Police checkpoint</option>
+    </select>
+    <div class="mc-btns">
+      <button class="mc-cancel" onclick="closeReport()">Cancel</button>
+      <button class="mc-ok" onclick="submitReport()">Report Trap →</button>
+    </div>
+  </div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+// ═══════════════════════════════════════════════════════
+// LIVE TRACKING via Supabase Realtime BROADCAST
+// Think of it like a walkie-talkie channel:
+// Every phone "shouts" its position to channel "m1_drivers"
+// Every other phone "hears" all the shouts instantly.
+// NO database table needed. NO config for drivers.
+// This uses a permanently free public Supabase project.
+// ═══════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// SUPABASE CONFIG
+// ═══════════════════════════════════════════════════════
+var SUPA_URL = 'https://mgoxhsnmjbzjuevwryxy.supabase.co';
+var SUPA_KEY = 'sb_publishable_6GSg9fQ2tCMJ9vZTaOFcCQ_SYviH_KR';
+
+// ═══════════════════════════════════════════════════════
+// TRAP VERIFICATION CONSTANTS
+// ═══════════════════════════════════════════════════════
+var VOTES_TO_VERIFY  = 3;   // confirmations needed to go "verified"
+var VOTES_TO_REMOVE  = 3;   // rejections needed to auto-remove
+var EXPIRY_MOBILE    = 2 * 60 * 60 * 1000;   // 2 hours
+var EXPIRY_CHECKPOINT= 8 * 60 * 60 * 1000;   // 8 hours
+var EXPIRY_CAMERA    = null;                   // never expires
+
+// current trap being voted on
+var votingTrap = null;
+var votedTraps = JSON.parse(localStorage.getItem('sg_voted') || '{}');
+
+// ═══════════════════════════════════════════════════════
+// SUPABASE REST — trap persistence & voting
+// ═══════════════════════════════════════════════════════
+function supaFetch(path, method, body) {
+  return fetch(SUPA_URL + '/rest/v1/' + path, {
+    method: method || 'GET',
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': method === 'POST' ? 'return=representation' : ''
+    },
+    body: body ? JSON.stringify(body) : undefined
+  }).then(function(r){ return r.json(); }).catch(function(){ return null; });
+}
+
+function loadCommunityTraps() {
+  supaFetch('sg_traps?select=*&order=created_at.desc').then(function(rows){
+    if (!rows || !Array.isArray(rows)) return;
+    rows.forEach(function(row){
+      // Skip if already in base traps list
+      if (traps.find(function(t){ return t.supaId === row.id; })) return;
+      var trap = {
+        id: nextTrapId++, supaId: row.id,
+        name: row.name, lat: row.lat, lng: row.lng,
+        limit: row.limit_kmh, type: row.type,
+        km: row.km, community: true,
+        yes_votes: row.yes_votes || 0,
+        no_votes:  row.no_votes  || 0,
+        created_at: new Date(row.created_at).getTime(),
+        verified: (row.yes_votes || 0) >= VOTES_TO_VERIFY
+      };
+      if (!isExpired(trap) && (row.no_votes||0) < VOTES_TO_REMOVE) {
+        traps.push(trap);
+        renderTrapMarker(trap);
+      }
+    });
+  });
+}
+
+function saveTrapToSupabase(trap) {
+  return supaFetch('sg_traps', 'POST', {
+    name: trap.name, lat: trap.lat, lng: trap.lng,
+    limit_kmh: trap.limit, type: trap.type, km: trap.km,
+    yes_votes: 0, no_votes: 0
+  }).then(function(rows){
+    if (rows && rows[0]) { trap.supaId = rows[0].id; }
+  });
+}
+
+function submitVoteToSupabase(supaId, isYes) {
+  // Use RPC increment to avoid race conditions
+  var field = isYes ? 'yes_votes' : 'no_votes';
+  // Read current, increment, write back
+  supaFetch('sg_traps?id=eq.' + supaId + '&select=yes_votes,no_votes')
+    .then(function(rows){
+      if (!rows || !rows[0]) return;
+      var update = {};
+      update[field] = (rows[0][field] || 0) + 1;
+      return supaFetch('sg_traps?id=eq.' + supaId, 'PATCH', update);
+    });
+}
+
+// ═══════════════════════════════════════════════════════
+// EXPIRY LOGIC
+// ═══════════════════════════════════════════════════════
+function getExpiry(type) {
+  if (type === 'mobile')     return EXPIRY_MOBILE;
+  if (type === 'checkpoint') return EXPIRY_CHECKPOINT;
+  return EXPIRY_CAMERA; // null = never
+}
+
+function isExpired(trap) {
+  if (!trap.community || !trap.created_at) return false;
+  var expiry = getExpiry(trap.type);
+  if (!expiry) return false;
+  return (Date.now() - trap.created_at) > expiry;
+}
+
+function expiryLabel(trap) {
+  if (!trap.community) return '';
+  var expiry = getExpiry(trap.type);
+  if (!expiry) return '';
+  var remaining = expiry - (Date.now() - (trap.created_at || Date.now()));
+  if (remaining <= 0) return 'Expired';
+  var mins = Math.floor(remaining / 60000);
+  if (mins < 60) return 'Expires in ' + mins + 'm';
+  return 'Expires in ' + Math.floor(mins/60) + 'h ' + (mins%60) + 'm';
+}
+
+// Sweep expired traps every 60 seconds
+setInterval(function(){
+  traps = traps.filter(function(t){
+    if (isExpired(t) || (t.no_votes >= VOTES_TO_REMOVE)) {
+      if (trapMk[t.id]) { map.removeLayer(trapMk[t.id]); delete trapMk[t.id]; }
+      return false;
+    }
+    return true;
+  });
+}, 60000);
+
+// ═══════════════════════════════════════════════════════
+// TRAP MARKERS  (verification-aware)
+// ═══════════════════════════════════════════════════════
+function tIcon(t, s) {
+  var C = { bad:'#e74c3c', warn:'#f39c12', ok:'#27ae60' };
+  var em = t.type==='camera' ? '📷' : t.type==='checkpoint' ? '🛡️' : '🚔';
+  var an = s==='bad'  ? 'animation:tpa 1s infinite;'
+         : s==='warn' ? 'animation:tpa 1.7s infinite;' : '';
+
+  if (t.community && !t.verified) {
+    // Unverified — greyed out, dashed border, question mark badge
+    return L.divIcon({
+      html:'<div style="position:relative;width:34px;height:34px">'
+         + '<div style="position:absolute;inset:0;border-radius:50%;border:2px dashed #888;opacity:.7"></div>'
+         + '<div style="position:absolute;inset:4px;border-radius:50%;background:#555;display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.5)">' + em + '</div>'
+         + '<div style="position:absolute;top:-4px;right:-4px;background:#f39c12;color:#fff;font-size:8px;font-weight:800;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid #fff">?</div>'
+         + '</div>',
+      className:'', iconAnchor:[17,17]
+    });
+  }
+  if (t.community && t.verified) {
+    // Verified community trap — green check badge
+    return L.divIcon({
+      html:'<div style="position:relative;width:34px;height:34px">'
+         + '<div style="position:absolute;inset:0;border-radius:50%;border:2px solid ' + C[s] + ';' + an + 'opacity:.5"></div>'
+         + '<div style="position:absolute;inset:4px;border-radius:50%;background:' + C[s] + ';display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.5)">' + em + '</div>'
+         + '<div style="position:absolute;top:-4px;right:-4px;background:#27ae60;color:#fff;font-size:8px;font-weight:800;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid #fff">✓</div>'
+         + '</div>',
+      className:'', iconAnchor:[17,17]
+    });
+  }
+  // Pre-loaded official trap
+  return L.divIcon({
+    html:'<div style="position:relative;width:34px;height:34px">'
+       + '<div style="position:absolute;inset:0;border-radius:50%;border:2px solid ' + C[s] + ';' + an + 'opacity:.5"></div>'
+       + '<div style="position:absolute;inset:4px;border-radius:50%;background:' + C[s] + ';display:flex;align-items:center;justify-content:center;font-size:12px;box-shadow:0 2px 8px rgba(0,0,0,.5)">' + em + '</div>'
+       + '</div>',
+    className:'', iconAnchor:[17,17]
+  });
+}
+
+function renderTrapMarker(t) {
+  if (trapMk[t.id]) { map.removeLayer(trapMk[t.id]); }
+  var s = (curLat && t.community) ? gs(hav(curLat,curLng,t.lat,t.lng)) : 'ok';
+  var m = L.marker([t.lat,t.lng],{icon:tIcon(t,s)}).addTo(map);
+  var status = t.community
+    ? (t.verified ? '✅ Community verified' : '🔍 Unverified — needs ' + (VOTES_TO_VERIFY - (t.yes_votes||0)) + ' more confirmation(s)')
+    : '🏛️ Official';
+  var exp = expiryLabel(t);
+  m.bindPopup(
+    '<b>' + t.name + '</b><br>'
+    + 'Limit: ' + t.limit + ' km/h · ' + t.type + ' · km ' + t.km + '<br>'
+    + status + (exp ? '<br>⏱ ' + exp : '')
+    + (t.community ? '<br><small>👍 ' + (t.yes_votes||0) + ' · 👎 ' + (t.no_votes||0) + '</small>' : '')
+  );
+  // click to open vote modal for unverified community traps
+  if (t.community && !t.verified) {
+    m.on('click', function(){ promptVote(t); });
+  }
+  trapMk[t.id] = m;
+}
+
+// ═══════════════════════════════════════════════════════
+// PROXIMITY VOTE PROMPT
+// Auto-prompts when driver is within 300m of unverified trap
+// ═══════════════════════════════════════════════════════
+var lastPromptedTrap = null;
+var lastPromptTime   = 0;
+
+function checkProximityVotes(lat, lng) {
+  var now = Date.now();
+  if (now - lastPromptTime < 60000) return; // cooldown 60s between prompts
+  traps.forEach(function(t){
+    if (!t.community || t.verified) return;
+    if (votedTraps[t.supaId || t.id]) return; // already voted
+    var d = hav(lat, lng, t.lat, t.lng);
+    if (d < 0.3) { // within 300m
+      if (lastPromptedTrap === (t.supaId || t.id)) return;
+      lastPromptedTrap = t.supaId || t.id;
+      lastPromptTime   = now;
+      promptVote(t);
+    }
+  });
+}
+
+function promptVote(t) {
+  if (votedTraps[t.supaId || t.id]) return;
+  votingTrap = t;
+  var em = t.type==='camera' ? '📷' : t.type==='checkpoint' ? '🛡️' : '🚔';
+  document.getElementById('vote-emoji').textContent = em;
+  document.getElementById('vote-title').textContent = t.name;
+  var exp = expiryLabel(t);
+  document.getElementById('vote-meta').textContent =
+    t.limit + ' km/h · ' + t.type + ' · km ' + t.km
+    + (exp ? ' · ⏱ ' + exp : '');
+
+  // vote status bar
+  var bar = document.getElementById('vote-status-bar');
+  bar.innerHTML = '';
+  var yes = t.yes_votes || 0, no = t.no_votes || 0;
+  for (var i=0;i<VOTES_TO_VERIFY;i++){
+    var pip = document.createElement('div');
+    pip.style.cssText='width:28px;height:8px;border-radius:4px;background:'+(i<yes?'#27ae60':'rgba(255,255,255,.15)');
+    bar.appendChild(pip);
+  }
+  var lbl = document.createElement('div');
+  lbl.style.cssText='font-size:11px;color:rgba(255,255,255,.4);width:100%;text-align:center;margin-top:2px';
+  lbl.textContent = yes + '/' + VOTES_TO_VERIFY + ' confirmations · ' + no + ' rejected';
+  bar.appendChild(lbl);
+
+  document.getElementById('vote-prompt').textContent =
+    yes === 0 ? 'Be the first to confirm — is this trap real?'
+    : 'Others confirmed this. Did you see it too?';
+  document.getElementById('vote-mo').classList.add('open');
+}
+
+function castVote(isYes) {
+  if (!votingTrap) return;
+  var t = votingTrap;
+  var key = t.supaId || t.id;
+  votedTraps[key] = isYes ? 'yes' : 'no';
+  localStorage.setItem('sg_voted', JSON.stringify(votedTraps));
+
+  t.yes_votes = (t.yes_votes || 0) + (isYes ? 1 : 0);
+  t.no_votes  = (t.no_votes  || 0) + (isYes ? 0 : 1);
+
+  if (t.no_votes >= VOTES_TO_REMOVE) {
+    // Remove trap
+    traps = traps.filter(function(x){ return x.id !== t.id; });
+    if (trapMk[t.id]) { map.removeLayer(trapMk[t.id]); delete trapMk[t.id]; }
+    showToast('🗑️ Trap removed — not enough confirmations.');
+  } else if (t.yes_votes >= VOTES_TO_VERIFY) {
+    t.verified = true;
+    renderTrapMarker(t);
+    showToast('✅ Trap verified! It will now alert drivers.');
+  } else {
+    renderTrapMarker(t); // refresh icon
+    if (isYes) {
+      showToast('👍 Confirmed! ' + (VOTES_TO_VERIFY - t.yes_votes) + ' more vote(s) needed to verify.');
+    } else {
+      showToast('👎 Rejection noted. ' + (VOTES_TO_REMOVE - t.no_votes) + ' more to remove.');
+    }
+  }
+
+  // Sync to Supabase
+  if (t.supaId) submitVoteToSupabase(t.supaId, isYes);
+  closeVote();
+}
+
+function closeVote() {
+  document.getElementById('vote-mo').classList.remove('open');
+  votingTrap = null;
+}
+
+// ═══════════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════════
+var toastTimer = null;
+function showToast(msg) {
+  var el = document.getElementById('sg-toast');
+  el.textContent = msg;
+  el.style.opacity = '1';
+  if (toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(function(){ el.style.opacity='0'; }, 3500);
+}
+
+// ═══════════════════════════════════════════════════════
+// SUPABASE REALTIME  (live driver positions)
+// ═══════════════════════════════════════════════════════
+var channel = null;
+var realtimeConnected = false;
+
+function initRealtime() {
+  try {
+    var ws = new WebSocket(
+      SUPA_URL.replace('https','wss') + '/realtime/v1/websocket?apikey=' + SUPA_KEY + '&vsn=1.0.0'
+    );
+    ws.onopen = function() {
+      realtimeConnected = true;
+      ws.send(JSON.stringify({
+        topic: 'realtime:m1_drivers',
+        event: 'phx_join',
+        payload: { config: { broadcast: { self: false } } },
+        ref: '1'
+      }));
+    };
+    ws.onmessage = function(e) {
+      try {
+        var msg = JSON.parse(e.data);
+        if (msg.event === 'broadcast' && msg.payload && msg.payload.type === 'pos') {
+          var u = msg.payload;
+          if (u.id !== myId) {
+            liveUsers[u.id] = { nickname:u.nickname, lat:u.lat, lng:u.lng, speed:u.speed, progress:u.progress, ts:Date.now() };
+            updateLiveMarker(u.id, liveUsers[u.id]);
+            refreshLivePanel();
+          }
+        }
+      } catch(err){}
+    };
+    ws.onerror = function() { realtimeConnected = false; };
+    ws.onclose = function() { realtimeConnected = false; setTimeout(initRealtime, 5000); };
+    channel = ws;
+  } catch(e) { console.warn('Realtime init failed:', e.message); }
+}
+
+function broadcastPos(lat, lng, spd) {
+  if (!channel || !realtimeConnected) return;
+  try {
+    channel.send(JSON.stringify({
+      topic: 'realtime:m1_drivers', event: 'broadcast',
+      payload: { type:'pos', id:myId, nickname:myNickname, lat:parseFloat(lat.toFixed(5)), lng:parseFloat(lng.toFixed(5)), speed:Math.round(spd), progress:Math.round(latProg(lat)) },
+      ref: null
+    }));
+  } catch(e) {}
+}
+
+setInterval(function() {
+  var now = Date.now();
+  Object.keys(liveUsers).forEach(function(id) {
+    if (now - liveUsers[id].ts > 30000) {
+      delete liveUsers[id];
+      if (liveMarkers[id]) { map.removeLayer(liveMarkers[id]); delete liveMarkers[id]; }
+    }
+  });
+  refreshLivePanel();
+}, 10000);
+
+// ═══════════════════════════════════════════════════════
+// STORAGE
+// ═══════════════════════════════════════════════════════
+function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
+
+// ═══════════════════════════════════════════════════════
+// M1 ROAD WAYPOINTS
+// ═══════════════════════════════════════════════════════
+var M1=[
+  [-13.9669,33.7873],[-13.9800,33.8000],[-14.0100,33.8250],
+  [-14.0600,33.8600],[-14.1100,33.9100],[-14.1800,33.9500],
+  [-14.2500,34.0000],[-14.3200,34.0600],[-14.3900,34.1100],
+  [-14.4600,34.1700],[-14.5100,34.2100],[-14.5700,34.2800],
+  [-14.6300,34.3300],[-14.6800,34.3800],[-14.7400,34.4200],
+  [-14.8200,34.4500],[-14.9000,34.5200],[-14.9800,34.7000],
+  [-15.0500,34.9500],[-15.1100,35.0200],[-15.1600,35.0600],
+  [-15.2800,34.9800],[-15.3500,34.9200],[-15.4200,34.9000],
+  [-15.5000,34.9600],[-15.5500,34.9750],[-15.7667,35.0000]
+];
+
+// ═══════════════════════════════════════════════════════
+// OFFICIAL TRAPS  (pre-loaded, always verified)
+// ═══════════════════════════════════════════════════════
+var traps=[
+  {id:1,name:"Lilongwe Exit - Area 18",lat:-14.010,lng:33.825,limit:50,type:"mobile",km:28,verified:true},
+  {id:2,name:"Kamuzu Airport Junction",lat:-14.060,lng:33.860,limit:50,type:"camera",km:46,verified:true},
+  {id:3,name:"Kalinyeke Toll Gate",lat:-14.110,lng:33.910,limit:50,type:"checkpoint",km:61,verified:true},
+  {id:4,name:"Dedza Town Entry",lat:-14.390,lng:34.110,limit:50,type:"mobile",km:83,verified:true},
+  {id:5,name:"Dedza - Moz Junction",lat:-14.510,lng:34.210,limit:80,type:"mobile",km:101,verified:true},
+  {id:6,name:"Ntcheu Town Centre",lat:-14.680,lng:34.380,limit:50,type:"camera",km:138,verified:true},
+  {id:7,name:"Chingeni Toll Gate",lat:-14.740,lng:34.420,limit:50,type:"checkpoint",km:156,verified:true},
+  {id:8,name:"Balaka Town",lat:-15.050,lng:34.950,limit:50,type:"mobile",km:187,verified:true},
+  {id:9,name:"Liwonde Junction",lat:-15.110,lng:35.020,limit:50,type:"mobile",km:211,verified:true},
+  {id:10,name:"Zomba Junction Camera",lat:-15.350,lng:34.920,limit:50,type:"camera",km:236,verified:true},
+  {id:11,name:"Limbe Urban Zone",lat:-15.550,lng:34.975,limit:50,type:"camera",km:266,verified:true},
+  {id:12,name:"Blantyre - Ginnery Corner",lat:-15.666,lng:35.000,limit:50,type:"checkpoint",km:288,verified:true}
+];
+var nextTrapId=13;
+
+// ═══════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════
+var myNickname=lsGet('sg_nick')||null;
+var myId=lsGet('sg_id')||('d_'+Math.random().toString(36).substr(2,9));
+lsSet('sg_id',myId);
+var liveUsers={},liveMarkers={};
+var watchId=null,isTracking=false;
+var curLat=null,curLng=null,curSpd=0;
+var lastLat=null,lastLng=null,lastTime=null;
+
+// ═══════════════════════════════════════════════════════
+// MAP
+// ═══════════════════════════════════════════════════════
+var map=L.map('map',{center:[-14.8,34.5],zoom:8,zoomControl:true});
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
+var road=L.polyline(M1,{color:'#f39c12',weight:5,opacity:.9,lineJoin:'round',lineCap:'round'}).addTo(map);
+var iS=L.divIcon({html:'<div style="background:#27ae60;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.5)">🏁 Lilongwe</div>',className:'',iconAnchor:[38,11]});
+var iE=L.divIcon({html:'<div style="background:#e74c3c;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.5)">🏁 Blantyre</div>',className:'',iconAnchor:[38,11]});
+L.marker(M1[0],{icon:iS}).addTo(map);
+L.marker(M1[M1.length-1],{icon:iE}).addTo(map);
+map.fitBounds(road.getBounds(),{padding:[80,30]});
+
+var trapMk={};
+traps.forEach(function(t){ renderTrapMarker(t); });
+
+var myMk=null;
+function myIcon(nick,spd){
+  var col=spd>80?'#e74c3c':spd>50?'#f39c12':'#2980b9';
+  return L.divIcon({html:'<div style="background:'+col+';color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;border:2px solid rgba(255,255,255,.5);box-shadow:0 2px 8px rgba(0,0,0,.5)">🚗 '+(nick||'You')+' <span style="opacity:.7">'+Math.round(spd)+'km/h</span></div>',className:'',iconAnchor:[44,12]});
+}
+function luIcon(nick,spd){
+  var col=spd>80?'#e74c3c':spd>50?'#f39c12':'#8e44ad';
+  return L.divIcon({html:'<div style="background:'+col+';color:#fff;font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;border:2px solid rgba(255,255,255,.35);box-shadow:0 2px 6px rgba(0,0,0,.5)">👤 '+nick+' <span style="opacity:.7">'+Math.round(spd)+'km/h</span></div>',className:'',iconAnchor:[44,12]});
+}
+function updateLiveMarker(id,u){
+  var ico=luIcon(u.nickname,u.speed);
+  if(liveMarkers[id]){liveMarkers[id].setLatLng([u.lat,u.lng]);liveMarkers[id].setIcon(ico);}
+  else{liveMarkers[id]=L.marker([u.lat,u.lng],{icon:ico,zIndexOffset:500}).addTo(map);}
+  liveMarkers[id].bindPopup('<b>👤 '+u.nickname+'</b><br>Speed: '+u.speed+' km/h<br>km '+u.progress);
+}
+
+// ═══════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════
+function hav(a,b,c,d){var R=6371,dL=(c-a)*Math.PI/180,dG=(d-b)*Math.PI/180;var x=Math.sin(dL/2)*Math.sin(dL/2)+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dG/2)*Math.sin(dG/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function gs(d){return d<0.15?'bad':d<0.4?'warn':'ok';}
+function dc(s){return s==='bad'?'#e74c3c':s==='warn'?'#f39c12':'#27ae60';}
+function latProg(lat){return Math.max(0,Math.min(100,((lat-(-13.967))/((-15.767)-(-13.967)))*100));}
+function ago(ts){var s=Math.floor((Date.now()-ts)/1000);if(s<10)return 'just now';if(s<60)return s+'s ago';return Math.floor(s/60)+'m ago';}
+
+// ═══════════════════════════════════════════════════════
+// MAIN UI UPDATE
+// ═══════════════════════════════════════════════════════
+function updateUI(lat,lng,spd){
+  if(!myMk){myMk=L.marker([lat,lng],{icon:myIcon(myNickname,spd),zIndexOffset:1000}).addTo(map);}
+  else{myMk.setLatLng([lat,lng]);myMk.setIcon(myIcon(myNickname,spd));}
+
+  // Only alert on verified traps
+  var verified=traps.filter(function(t){ return t.verified && !isExpired(t); });
+  var wd=verified.map(function(t){return Object.assign({},t,{d:hav(lat,lng,t.lat,t.lng)});}).sort(function(a,b){return a.d-b.d;});
+
+  // Update all trap marker colours
+  traps.forEach(function(t){
+    if(trapMk[t.id]) trapMk[t.id].setIcon(tIcon(t, gs(hav(lat,lng,t.lat,t.lng))));
+  });
+
+  var spdr=Math.round(spd);
+  document.getElementById('spd-n').textContent=spdr;
+  document.getElementById('s-spd').textContent=spdr+' km/h';
+
+  if (wd.length > 0) {
+    var near=wd[0], s=gs(near.d), ds=near.d<1?Math.round(near.d*1000)+'m':near.d.toFixed(1)+'km';
+    document.getElementById('spd-ring').className='spd-ring '+(s==='bad'&&spdr>near.limit?'bad':s==='bad'?'warn':'ok');
+    document.getElementById('s-next').textContent=ds;
+    document.getElementById('s-next').className='sp-v '+s;
+    document.getElementById('s-lim').textContent=near.limit+' km/h';
+    document.getElementById('s-lim').className='sp-v '+(spdr>near.limit?'bad':'ok');
+
+    var ab=document.getElementById('alert'),ai=document.getElementById('aico'),at=document.getElementById('atxt');
+    if(s==='bad'&&spdr>near.limit){ab.className='a-bad';ai.textContent='🚨';at.textContent='SLOW DOWN! '+spdr+' km/h in '+near.limit+' km/h zone! '+near.name+' is '+ds+' ahead!';}
+    else if(s==='bad'){ab.className='a-bad';ai.textContent='⚠️';at.textContent='SPEED TRAP! '+near.name+' — '+ds+' ahead. Limit: '+near.limit+' km/h!';}
+    else if(s==='warn'){ab.className='a-warn';ai.textContent='⚠️';at.textContent='Trap in '+ds+' — '+near.name+'. Reduce to '+near.limit+' km/h.';}
+    else{ab.className='a-ok';ai.textContent='✅';at.textContent='All clear — next: '+near.name+' in '+ds+'. Limit: '+near.limit+' km/h.';}
+  }
+
+  var prog=Math.round(latProg(lat));
+  document.getElementById('s-prg').textContent=prog+'%';
+  document.getElementById('pgbar').style.width=prog+'%';
+
+  // Trap chips — show all (verified + unverified) sorted by distance
+  var allWd=traps.filter(function(t){return !isExpired(t);}).map(function(t){return Object.assign({},t,{d:hav(lat,lng,t.lat,t.lng)});}).sort(function(a,b){return a.d-b.d;});
+  var el=document.getElementById('chips'); el.innerHTML='';
+  allWd.slice(0,8).forEach(function(t){
+    var sv=gs(t.d),ds2=t.d<1?Math.round(t.d*1000)+'m':t.d.toFixed(1)+'km';
+    var em=t.type==='camera'?'📷':t.type==='checkpoint'?'🛡️':'🚔';
+    var badge = t.community
+      ? (t.verified ? '<span style="font-size:9px;background:rgba(39,174,96,.2);color:#5ddb8a;padding:1px 5px;border-radius:8px;margin-left:4px">✓ verified</span>'
+                    : '<span style="font-size:9px;background:rgba(243,156,18,.2);color:#f8c060;padding:1px 5px;border-radius:8px;margin-left:4px">? unverified</span>')
+      : '<span style="font-size:9px;background:rgba(41,128,185,.2);color:#7fb3d3;padding:1px 5px;border-radius:8px;margin-left:4px">official</span>';
+    var ch=document.createElement('div');
+    ch.className='chip '+(sv==='bad'?'c-bad':sv==='warn'?'c-warn':'');
+    ch.innerHTML='<div class="ch-n">'+em+' '+t.name+badge+'</div>'
+      +'<div class="ch-s">'+t.limit+' km/h · km '+t.km+(t.community&&!t.verified?' · 👍'+(t.yes_votes||0)+'/'+VOTES_TO_VERIFY:'')+'</div>'
+      +'<div class="ch-d" style="color:'+dc(sv)+'">'+ds2+' ahead</div>';
+    ch.onclick=function(){
+      map.setView([t.lat,t.lng],14);
+      if(trapMk[t.id]) trapMk[t.id].openPopup();
+      if(t.community&&!t.verified) setTimeout(function(){promptVote(t);},400);
+    };
+    el.appendChild(ch);
+  });
+
+  // Check if near any unverified community trap
+  checkProximityVotes(lat, lng);
+  broadcastPos(lat,lng,spd);
+}
+
+// ═══════════════════════════════════════════════════════
+// GPS
+// ═══════════════════════════════════════════════════════
+function toggleGPS(){isTracking?stopGPS():startGPS();}
+function startGPS(){
+  if(!navigator.geolocation){alert('Geolocation not supported.');return;}
+  isTracking=true;
+  document.getElementById('btn-gps').textContent='⏹ Stop GPS';
+  document.getElementById('btn-gps').classList.add('on');
+  document.getElementById('gps-dot').classList.add('on');
+  document.getElementById('gps-lbl').textContent='GPS active';
+  watchId=navigator.geolocation.watchPosition(function(pos){
+    var la=pos.coords.latitude,lo=pos.coords.longitude,sp=pos.coords.speed;
+    curLat=la;curLng=lo;
+    var spd=0;
+    if(sp!=null&&sp>=0){spd=sp*3.6;}
+    else if(lastLat!=null){var dt=(Date.now()-lastTime)/3600000;spd=dt>0?hav(lastLat,lastLng,la,lo)/dt:0;}
+    curSpd=Math.max(0,Math.min(spd,220));
+    lastLat=la;lastLng=lo;lastTime=Date.now();
+    map.panTo([la,lo],{animate:true,duration:.5});
+    updateUI(la,lo,curSpd);
+  },function(err){
+    var msg='GPS error: ';
+    if(err.code===1)msg+='Permission denied.\n\nFix: Settings → Privacy & Security → Location Services → Safari → While Using';
+    else if(err.code===2)msg+='Position unavailable. Move outside.';
+    else msg+='Timeout. Try again.';
+    alert(msg);stopGPS();
+  },{enableHighAccuracy:true,maximumAge:2000,timeout:15000});
+}
+function stopGPS(){
+  isTracking=false;
+  if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  document.getElementById('btn-gps').textContent='📍 Start GPS';
+  document.getElementById('btn-gps').classList.remove('on');
+  document.getElementById('gps-dot').classList.remove('on');
+  document.getElementById('gps-lbl').textContent='GPS off';
+}
+
+// ═══════════════════════════════════════════════════════
+// LIVE PANEL
+// ═══════════════════════════════════════════════════════
+function refreshLivePanel(){
+  var users=Object.values(liveUsers);
+  var count=users.length;
+  var el=document.getElementById('lp-list');
+  var sub=document.getElementById('lp-s');
+  var lbl=document.getElementById('live-lbl');
+  var dot=document.getElementById('live-dot');
+  if(sub)sub.textContent=count+' driver'+(count!==1?'s':'')+' on M1';
+  if(lbl)lbl.textContent=count+' online';
+  if(dot)dot.style.display=count>0?'inline-block':'none';
+  if(!el)return;
+  if(!users.length){
+    el.innerHTML='<div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">No other drivers online.<br>Share the app to connect!</div>';
+    return;
+  }
+  el.innerHTML='';
+  users.sort(function(a,b){return b.ts-a.ts;}).forEach(function(u){
+    var spd=u.speed,sc=spd>80?'bad':spd>50?'warn':'ok';
+    var distStr='--';
+    if(curLat!=null&&u.lat!=null){
+      var distKm=hav(curLat,curLng,u.lat,u.lng);
+      distStr=distKm<1?Math.round(distKm*1000)+' m away':Math.round(distKm)+' km away';
+    }
+    var c=document.createElement('div');c.className='ucard';
+    c.innerHTML='<div class="uc-r"><div class="uc-n">👤 '+u.nickname+'</div><div class="uc-spd '+sc+'" style="color:'+dc(sc)+'">'+spd+' km/h</div></div>'
+      +'<div class="uc-loc" style="display:flex;justify-content:space-between;align-items:center"><span>km '+(u.progress||'?')+' — '+(u.progress<50?'Northern M1':'Southern M1')+'</span><span style="color:#f39c12;font-weight:700;font-size:11px">📍 '+distStr+'</span></div>'
+      +'<div class="uc-t">'+ago(u.ts)+'</div>';
+    c.onclick=function(){map.setView([u.lat,u.lng],13);closeLive();};
+    el.appendChild(c);
+  });
+}
+function openLive(){document.getElementById('live-panel').classList.add('open');refreshLivePanel();}
+function closeLive(){document.getElementById('live-panel').classList.remove('open');}
+
+// ═══════════════════════════════════════════════════════
+// REPORT TRAP
+// ═══════════════════════════════════════════════════════
+function openReport(){document.getElementById('report-mo').classList.add('open');}
+function closeReport(){document.getElementById('report-mo').classList.remove('open');}
+function submitReport(){
+  var nm=document.getElementById('r-name').value.trim();
+  if(!nm){document.getElementById('r-name').focus();return;}
+  var lim=parseInt(document.getElementById('r-lim').value);
+  var tp=document.getElementById('r-type').value;
+  var la=curLat||map.getCenter().lat,lo=curLng||map.getCenter().lng;
+  var km=Math.round(latProg(la)/100*306);
+  var trap={
+    id:nextTrapId++, name:nm, lat:la, lng:lo,
+    limit:lim, type:tp, km:km,
+    community:true, verified:false,
+    yes_votes:0, no_votes:0,
+    created_at:Date.now()
+  };
+  traps.push(trap);
+  renderTrapMarker(trap);
+  closeReport();
+  document.getElementById('r-name').value='';
+  map.setView([la,lo],13);
+  saveTrapToSupabase(trap);
+  showToast('📍 Trap reported! It needs ' + VOTES_TO_VERIFY + ' driver confirmations to go live.');
+  // Immediately prompt the reporter to vote yes
+  setTimeout(function(){ promptVote(trap); }, 600);
+}
+
+// ═══════════════════════════════════════════════════════
+// TERMS + NICKNAME
+// ═══════════════════════════════════════════════════════
+function onAgree(cb){document.getElementById('btn-agree').classList.toggle('on',cb.checked);}
+function acceptTerms(){
+  lsSet('sg_terms','1');
+  document.getElementById('terms-screen').style.display='none';
+  if(!myNickname){document.getElementById('nick-screen').classList.add('show');}
+  else{launchApp();}
+}
+function saveNick(){
+  var n=document.getElementById('nick-in').value.trim();
+  if(!n){document.getElementById('nick-in').focus();return;}
+  myNickname=n;lsSet('sg_nick',n);
+  document.getElementById('nick-screen').classList.remove('show');
+  launchApp();
+}
+function launchApp(){
+  document.getElementById('hdr').style.display='flex';
+  document.getElementById('map').style.display='block';
+  document.getElementById('alert').style.display='flex';
+  document.getElementById('btm').style.display='block';
+  setTimeout(function(){map.invalidateSize();map.fitBounds(road.getBounds(),{padding:[80,30]});},100);
+  initRealtime();
+  loadCommunityTraps();
+}
+
+// ═══════════════════════════════════════════════════════
+// STARTUP
+// ═══════════════════════════════════════════════════════
+(function(){
+  var s=document.createElement('style');
+  s.textContent='@keyframes tpa{0%{transform:scale(.8);opacity:.7}100%{transform:scale(2.4);opacity:0}}';
+  document.head.appendChild(s);
+  if(lsGet('sg_terms')){
+    document.getElementById('terms-screen').style.display='none';
+    if(!myNickname){document.getElementById('nick-screen').classList.add('show');}
+    else{launchApp();}
+  }
+})();
+</script>
+
+<!--
+═══════════════════════════════════════════════
+SPEEDGUARD MALAWI — SETUP INSTRUCTIONS
+Only you (the developer) need to read this.
+Drivers need to do absolutely nothing.
+═══════════════════════════════════════════════
+
+HOW LIVE TRACKING WORKS:
+  This app uses Supabase Realtime "Broadcast" — like
+  a shared radio channel. Every driver's phone broadcasts
+  its position every few seconds. All other phones
+  listening on the same channel hear it instantly.
+  No database table is used. No login needed. Free forever.
+
+TO ACTIVATE LIVE TRACKING (one time, ~3 minutes):
+  1. Go to https://supabase.com → Sign Up (free)
+  2. Click "New project" → name it "speedguard" → Create
+  3. Go to Project Settings → API
+  4. Copy "Project URL" and "anon public" key
+  5. In this file, replace:
+       var SUPA_URL = 'https://mgoxhsnmjbzjuevwryxy.supabase.co';   ✅ DONE
+       var SUPA_KEY = 'sb_publishable_6GSg9fQ2tCMJ9vZTaOFcCQ_SYviH_KR'; ✅ DONE
+     with your real values.
+  6. In Supabase dashboard → Realtime → enable it
+  7. Save the file and share with all drivers.
+
+DRIVERS DO NOTHING:
+  They just open the file, tick the Terms checkbox,
+  type their name, and tap Start GPS.
+  That's it. Zero config. Zero accounts. Zero technical skill.
+
+═══════════════════════════════════════════════
+-->
+
+<!-- VOTE MODAL -->
+<div class="mo" id="vote-mo">
+  <div class="mc" style="max-width:420px">
+    <div class="mc-hndl"></div>
+    <div style="text-align:center;font-size:28px;margin-bottom:8px" id="vote-emoji">📷</div>
+    <div class="mc-t" style="text-align:center;font-size:15px" id="vote-title">Speed trap reported here</div>
+    <div id="vote-meta" style="text-align:center;font-size:12px;color:rgba(255,255,255,.45);margin-bottom:8px"></div>
+    <div id="vote-status-bar" style="display:flex;gap:10px;justify-content:center;margin-bottom:16px;flex-wrap:wrap"></div>
+    <div style="font-size:12px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:14px" id="vote-prompt">
+      Are you near this location? Is this trap real?
+    </div>
+    <div style="display:flex;gap:10px;margin-bottom:10px">
+      <button onclick="castVote(true)" style="flex:1;padding:13px;border-radius:12px;background:rgba(39,174,96,.2);color:#5ddb8a;border:1.5px solid rgba(39,174,96,.5);font-size:15px;font-weight:800;cursor:pointer">
+        👍 Yes, it's real
+      </button>
+      <button onclick="castVote(false)" style="flex:1;padding:13px;border-radius:12px;background:rgba(231,76,60,.15);color:#ff7a7a;border:1.5px solid rgba(231,76,60,.4);font-size:15px;font-weight:800;cursor:pointer">
+        👎 Not there
+      </button>
+    </div>
+    <button onclick="closeVote()" class="mc-cancel" style="width:100%">Skip for now</button>
+  </div>
+</div>
+
+<!-- TOAST NOTIFICATION -->
+<div id="sg-toast" style="position:fixed;bottom:170px;left:50%;transform:translateX(-50%);background:#1a2530;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:9px 18px;font-size:12px;font-weight:600;color:#fff;z-index:3000;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;max-width:90vw;text-align:center"></div>
+
+</body>
+</html>
