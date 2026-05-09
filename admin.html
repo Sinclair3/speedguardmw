@@ -1,0 +1,830 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpeedGuard Malawi — Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;color:#fff;min-height:100vh}
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#080c10,#0a1a0f);display:flex;align-items:center;justify-content:center;padding:24px}
+.login-card{background:#0e1820;border:1px solid rgba(39,174,96,.25);border-radius:22px;padding:36px 28px;width:100%;max-width:380px;text-align:center}
+.login-logo{font-size:42px;margin-bottom:12px}
+.login-title{font-size:22px;font-weight:800;margin-bottom:4px}
+.login-title span{color:#27ae60}
+.login-sub{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px}
+.login-input{width:100%;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:#fff;font-size:16px;text-align:center;letter-spacing:3px;margin-bottom:12px;outline:none;transition:border-color .2s}
+.login-input:focus{border-color:rgba(39,174,96,.5)}
+.login-input::placeholder{letter-spacing:0;color:rgba(255,255,255,.25);font-size:14px}
+.btn-login{width:100%;padding:15px;border-radius:12px;background:linear-gradient(135deg,#1a6b3a,#27ae60);color:#fff;border:none;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(39,174,96,.3)}
+.login-err{font-size:12px;color:#e74c3c;margin-top:8px;min-height:18px}
+
+/* LAYOUT */
+#app{display:none}
+.top-bar{background:rgba(10,15,20,.98);border-bottom:1px solid rgba(255,255,255,.08);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.top-bar-left{display:flex;align-items:center;gap:12px}
+.tb-logo{font-size:20px;font-weight:800}
+.tb-logo span{color:#27ae60}
+.tb-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;background:rgba(231,76,60,.2);border:1px solid rgba(231,76,60,.4);color:#e74c3c;text-transform:uppercase;letter-spacing:.08em}
+.btn-logout{padding:7px 14px;border-radius:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);font-size:12px;font-weight:600;cursor:pointer}
+.btn-logout:hover{background:rgba(255,255,255,.1);color:#fff}
+
+/* SUMMARY STRIP */
+.stats-strip{display:flex;gap:10px;padding:14px 20px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid rgba(255,255,255,.06)}
+.stats-strip::-webkit-scrollbar{display:none}
+.strip-card{flex-shrink:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:12px 16px;min-width:120px;text-align:center}
+.strip-num{font-size:26px;font-weight:800;margin-bottom:2px}
+.strip-lbl{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em}
+
+/* TABS */
+.tab-bar{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);padding:0 20px;overflow-x:auto;scrollbar-width:none}
+.tab-bar::-webkit-scrollbar{display:none}
+.tab{flex-shrink:0;padding:12px 16px;font-size:13px;font-weight:600;color:rgba(255,255,255,.4);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
+.tab.active{color:#27ae60;border-bottom-color:#27ae60}
+.tab:hover:not(.active){color:rgba(255,255,255,.7)}
+
+/* CONTENT */
+.content{padding:16px 20px;max-width:1100px;margin:0 auto}
+.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.section-title{font-size:16px;font-weight:700}
+.section-sub{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
+.btn-refresh{padding:7px 14px;border-radius:9px;background:rgba(39,174,96,.13);border:1px solid rgba(39,174,96,.3);color:#5ddb8a;font-size:12px;font-weight:600;cursor:pointer}
+
+/* TRAP TABLE */
+.trap-table{width:100%;border-collapse:collapse}
+.trap-table th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.35);padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.trap-table td{padding:11px 10px;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px;vertical-align:middle}
+.trap-table tr:hover td{background:rgba(255,255,255,.03)}
+.trap-table tr:last-child td{border-bottom:none}
+.trap-name{font-weight:600;color:#fff}
+.trap-type{font-size:10px;font-weight:700;padding:2px 7px;border-radius:7px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.6)}
+.trap-type.mobile{background:rgba(231,76,60,.15);color:#ff8a7a}
+.trap-type.camera{background:rgba(41,128,185,.15);color:#7fb3d3}
+.trap-type.checkpoint{background:rgba(108,52,131,.15);color:#d2a8f5}
+.vbadge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:7px}
+.v-yes{background:rgba(39,174,96,.15);color:#5ddb8a}
+.v-no{background:rgba(243,156,18,.15);color:#f8c060}
+.v-exp{background:rgba(255,255,255,.07);color:rgba(255,255,255,.35)}
+.exp-lbl{font-size:11px;color:rgba(255,255,255,.35)}
+.exp-lbl.expired{color:#e74c3c}
+.btn-approve{padding:5px 11px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#5ddb8a;margin-right:5px}
+.btn-approve:hover{background:rgba(39,174,96,.3)}
+.btn-delete{padding:5px 11px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(231,76,60,.13);border:1px solid rgba(231,76,60,.35);color:#ff7a7a}
+.btn-delete:hover{background:rgba(231,76,60,.25)}
+.btn-reset{padding:5px 11px;border-radius:8px;font-size:11px;font-weight:700;cursor:pointer;background:rgba(243,156,18,.1);border:1px solid rgba(243,156,18,.3);color:#f8c060;margin-right:5px}
+
+/* FILTER */
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.f-pill{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:rgba(255,255,255,.55);transition:all .15s}
+.f-pill.active{background:#27ae60;border-color:#27ae60;color:#fff}
+
+/* BROADCAST */
+.bc-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:20px;margin-bottom:16px}
+.bc-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.4);margin-bottom:8px}
+.bc-input{width:100%;padding:12px 14px;border-radius:11px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:14px;margin-bottom:10px;outline:none;resize:none;font-family:inherit}
+.bc-input::placeholder{color:rgba(255,255,255,.25)}
+.bc-input:focus{border-color:rgba(39,174,96,.4)}
+.bc-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn-bc{padding:11px 20px;border-radius:11px;background:linear-gradient(135deg,#1a6b3a,#27ae60);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer}
+.btn-bc:disabled{opacity:.4;cursor:not-allowed}
+.bc-type{padding:11px 14px;border-radius:11px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:13px;cursor:pointer;outline:none;-webkit-appearance:none}
+.bc-type option{background:#0e1820}
+.bc-sent{background:rgba(39,174,96,.07);border:1px solid rgba(39,174,96,.15);border-radius:11px;padding:11px 14px;margin-bottom:8px;font-size:13px}
+.bc-sent-time{font-size:11px;color:rgba(255,255,255,.35);margin-top:3px}
+
+/* ── USAGE ANALYTICS ── */
+.analytics-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:20px}
+.an-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;text-align:center}
+.an-num{font-size:30px;font-weight:900;margin-bottom:3px}
+.an-lbl{font-size:11px;color:rgba(255,255,255,.4);line-height:1.4}
+.an-sub{font-size:10px;margin-top:4px}
+
+/* BAR CHART */
+.chart-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:18px;margin-bottom:14px}
+.chart-title{font-size:13px;font-weight:700;margin-bottom:14px;color:rgba(255,255,255,.8)}
+.bar-chart{display:flex;align-items:flex-end;gap:6px;height:120px;padding-bottom:4px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.bar-fill{width:100%;border-radius:5px 5px 0 0;background:linear-gradient(180deg,#27ae60,#1a6b3a);transition:height .4s;min-height:2px;position:relative}
+.bar-fill:hover{background:linear-gradient(180deg,#5ddb8a,#27ae60)}
+.bar-fill .bar-tip{position:absolute;top:-20px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:#5ddb8a;white-space:nowrap;display:none}
+.bar-fill:hover .bar-tip{display:block}
+.bar-label{font-size:9px;color:rgba(255,255,255,.35);text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+
+/* PERIOD TABS */
+.period-tabs{display:flex;gap:6px;margin-bottom:16px}
+.ptab{padding:5px 13px;border-radius:18px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);transition:all .15s}
+.ptab.active{background:#27ae60;border-color:#27ae60;color:#fff}
+
+/* PLATFORM ROW */
+.platform-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px}
+.plat-card{flex:1;min-width:100px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px;text-align:center}
+.plat-num{font-size:22px;font-weight:800}
+.plat-lbl{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px}
+
+/* USERS TABLE */
+.users-table{width:100%;border-collapse:collapse}
+.users-table th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.35);padding:8px 10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.users-table td{padding:10px 10px;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px;vertical-align:middle}
+.users-table tr:last-child td{border-bottom:none}
+.users-table tr:hover td{background:rgba(255,255,255,.03)}
+.first-seen{font-size:11px;color:rgba(255,255,255,.3)}
+
+/* SETTINGS */
+.set-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:20px;margin-bottom:14px}
+.set-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.4);margin-bottom:10px}
+
+/* EMPTY / SPINNER */
+.empty{text-align:center;padding:40px 20px;color:rgba(255,255,255,.3);font-size:14px;line-height:2}
+.spinner{display:inline-block;width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.1);border-top-color:#27ae60;animation:spin .7s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* CONFIRM */
+#confirm-overlay{display:none;position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:24px}
+#confirm-overlay.show{display:flex}
+.confirm-card{background:#0e1820;border:1px solid rgba(231,76,60,.3);border-radius:18px;padding:24px;width:100%;max-width:360px;text-align:center}
+.confirm-icon{font-size:36px;margin-bottom:12px}
+.confirm-title{font-size:17px;font-weight:800;margin-bottom:6px}
+.confirm-msg{font-size:13px;color:rgba(255,255,255,.55);margin-bottom:20px;line-height:1.6}
+.confirm-btns{display:flex;gap:10px}
+.btn-cn{flex:1;padding:12px;border-radius:11px;background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.6);font-size:14px;font-weight:600;cursor:pointer}
+.btn-cy{flex:1;padding:12px;border-radius:11px;background:linear-gradient(135deg,#922b21,#e74c3c);border:none;color:#fff;font-size:14px;font-weight:700;cursor:pointer}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2530;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:9px 18px;font-size:12px;font-weight:600;color:#fff;z-index:9000;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🛡️</div>
+    <div class="login-title">SpeedGuard <span>Admin</span></div>
+    <div class="login-sub">M1 Road Safety · Control Panel<br>Enter your admin password to continue</div>
+    <input class="login-input" type="password" id="pw-input" placeholder="Admin password">
+    <button class="btn-login" onclick="tryLogin()">Enter Dashboard →</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <div class="tb-logo">SpeedGuard <span>Malawi</span></div>
+      <div class="tb-badge">Admin</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span id="live-count" style="font-size:12px;color:rgba(255,255,255,.4)">👥 0 online</span>
+      <button class="btn-logout" onclick="logout()">Logout</button>
+    </div>
+  </div>
+
+  <!-- SUMMARY STRIP -->
+  <div class="stats-strip">
+    <div class="strip-card"><div class="strip-num" id="st-users-today" style="color:#27ae60">--</div><div class="strip-lbl">Users Today</div></div>
+    <div class="strip-card"><div class="strip-num" id="st-users-week"  style="color:#5ddb8a">--</div><div class="strip-lbl">This Week</div></div>
+    <div class="strip-card"><div class="strip-num" id="st-users-month" style="color:#7fb3d3">--</div><div class="strip-lbl">This Month</div></div>
+    <div class="strip-card"><div class="strip-num" id="st-users-total" style="color:rgba(255,255,255,.6)">--</div><div class="strip-lbl">All Time</div></div>
+    <div class="strip-card"><div class="strip-num" id="st-traps"  style="color:#f39c12">--</div><div class="strip-lbl">Active Traps</div></div>
+    <div class="strip-card"><div class="strip-num" id="st-live"   style="color:#e74c3c">--</div><div class="strip-lbl">Live Now</div></div>
+  </div>
+
+  <!-- TABS -->
+  <div class="tab-bar">
+    <div class="tab active" onclick="switchTab('usage',this)">📈 Usage</div>
+    <div class="tab" onclick="switchTab('traps',this)">🚔 Trap Reports</div>
+    <div class="tab" onclick="switchTab('broadcast',this)">📢 Broadcast</div>
+    <div class="tab" onclick="switchTab('settings',this)">⚙️ Settings</div>
+  </div>
+
+  <!-- ══ TAB: USAGE ══ -->
+  <div id="tab-usage" class="content">
+    <div class="section-hdr">
+      <div><div class="section-title">App Usage Analytics</div>
+        <div class="section-sub">Sessions logged when drivers open the app · one per device per day</div>
+      </div>
+      <button class="btn-refresh" onclick="loadUsage()">↻ Refresh</button>
+    </div>
+
+    <!-- Period selector -->
+    <div class="period-tabs">
+      <div class="ptab active" onclick="setPeriod(7,this)">7 Days</div>
+      <div class="ptab" onclick="setPeriod(14,this)">2 Weeks</div>
+      <div class="ptab" onclick="setPeriod(30,this)">30 Days</div>
+      <div class="ptab" onclick="setPeriod(90,this)">3 Months</div>
+    </div>
+
+    <!-- Summary cards -->
+    <div class="analytics-grid">
+      <div class="an-card">
+        <div class="an-num" id="an-today" style="color:#27ae60">--</div>
+        <div class="an-lbl">Sessions Today</div>
+      </div>
+      <div class="an-card">
+        <div class="an-num" id="an-yesterday" style="color:#5ddb8a">--</div>
+        <div class="an-lbl">Yesterday</div>
+      </div>
+      <div class="an-card">
+        <div class="an-num" id="an-week" style="color:#7fb3d3">--</div>
+        <div class="an-lbl">This Week</div>
+      </div>
+      <div class="an-card">
+        <div class="an-num" id="an-month" style="color:#f8c060">--</div>
+        <div class="an-lbl">This Month</div>
+      </div>
+      <div class="an-card">
+        <div class="an-num" id="an-total" style="color:rgba(255,255,255,.6)">--</div>
+        <div class="an-lbl">All Time</div>
+      </div>
+      <div class="an-card">
+        <div class="an-num" id="an-avg" style="color:#d2a8f5">--</div>
+        <div class="an-lbl">Daily Average<br>(selected period)</div>
+      </div>
+    </div>
+
+    <!-- Bar chart -->
+    <div class="chart-card">
+      <div class="chart-title" id="chart-title">Daily Sessions — Last 7 Days</div>
+      <div id="bar-chart" class="bar-chart">
+        <div style="color:rgba(255,255,255,.3);font-size:13px;text-align:center;width:100%;padding-top:40px">
+          <span class="spinner"></span> Loading chart...
+        </div>
+      </div>
+    </div>
+
+    <!-- Platform breakdown -->
+    <div class="chart-card">
+      <div class="chart-title">Platform Breakdown</div>
+      <div class="platform-row" id="platform-row">
+        <div class="plat-card"><div class="plat-num" id="pl-ios" style="color:#7fb3d3">--</div><div class="plat-lbl">📱 iOS</div></div>
+        <div class="plat-card"><div class="plat-num" id="pl-android" style="color:#5ddb8a">--</div><div class="plat-lbl">🤖 Android</div></div>
+        <div class="plat-card"><div class="plat-num" id="pl-windows" style="color:#f8c060">--</div><div class="plat-lbl">💻 Windows</div></div>
+        <div class="plat-card"><div class="plat-num" id="pl-other" style="color:rgba(255,255,255,.4)">--</div><div class="plat-lbl">🔲 Other</div></div>
+      </div>
+    </div>
+
+    <!-- Recent users table -->
+    <div class="section-hdr" style="margin-top:8px">
+      <div><div class="section-title">Recent Driver Sessions</div>
+        <div class="section-sub">Most recent app opens — one row per device per day</div>
+      </div>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Nickname</th>
+            <th>Platform</th>
+            <th>Version</th>
+            <th>First Seen</th>
+            <th>Last Seen</th>
+            <th>Sessions</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody">
+          <tr><td colspan="7" style="text-align:center;padding:24px;color:rgba(255,255,255,.3)"><span class="spinner"></span> Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </div><!-- end tab-usage -->
+
+  <!-- ══ TAB: TRAPS ══ -->
+  <div id="tab-traps" class="content" style="display:none">
+    <div class="section-hdr">
+      <div><div class="section-title">Community Trap Reports</div>
+        <div class="section-sub">Approve, delete, or reset votes on driver-reported traps</div>
+      </div>
+      <button class="btn-refresh" onclick="loadTraps()">↻ Refresh</button>
+    </div>
+    <div class="filter-row">
+      <div class="f-pill active" onclick="setTrapFilter('all',this)">All</div>
+      <div class="f-pill" onclick="setTrapFilter('pending',this)">⏳ Pending</div>
+      <div class="f-pill" onclick="setTrapFilter('verified',this)">✅ Verified</div>
+      <div class="f-pill" onclick="setTrapFilter('expired',this)">⏱ Expired</div>
+      <div class="f-pill" onclick="setTrapFilter('mobile',this)">🚔 Mobile</div>
+      <div class="f-pill" onclick="setTrapFilter('camera',this)">📷 Camera</div>
+      <div class="f-pill" onclick="setTrapFilter('checkpoint',this)">🛡️ Checkpoint</div>
+    </div>
+    <div id="traps-loading" style="text-align:center;padding:30px;color:rgba(255,255,255,.3)"><span class="spinner"></span> Loading...</div>
+    <div id="traps-wrap" style="display:none;overflow-x:auto">
+      <table class="trap-table">
+        <thead><tr>
+          <th>Location</th><th>Type</th><th>Limit</th><th>km</th>
+          <th>Votes</th><th>Status</th><th>Expires</th><th>Actions</th>
+        </tr></thead>
+        <tbody id="traps-tbody"></tbody>
+      </table>
+    </div>
+    <div id="traps-empty" class="empty" style="display:none">
+      <span style="font-size:36px">✅</span><br>No traps match this filter.
+    </div>
+  </div>
+
+  <!-- ══ TAB: BROADCAST ══ -->
+  <div id="tab-broadcast" class="content" style="display:none">
+    <div class="section-hdr">
+      <div><div class="section-title">Broadcast to All Drivers</div>
+        <div class="section-sub">Send a real-time message to every active M1 driver</div>
+      </div>
+    </div>
+    <div class="bc-card">
+      <div class="bc-lbl">Message Type</div>
+      <select class="bc-type" id="bc-type" style="margin-bottom:14px">
+        <option value="info">ℹ️ General Info</option>
+        <option value="warning">⚠️ Road Warning</option>
+        <option value="alert">🚨 Urgent Alert</option>
+        <option value="clear">✅ All Clear</option>
+      </select>
+      <div class="bc-lbl" style="margin-top:4px">Message</div>
+      <textarea class="bc-input" id="bc-msg" rows="3"
+        placeholder="e.g. Police checkpoint at Dedza — all vehicles being stopped..."></textarea>
+      <div class="bc-row">
+        <button class="btn-bc" onclick="sendBroadcast()">📢 Send to All Drivers</button>
+        <span id="bc-status" style="font-size:12px;color:rgba(255,255,255,.4)"></span>
+      </div>
+    </div>
+    <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:10px">Recent Broadcasts (this session)</div>
+    <div id="bc-history"></div>
+  </div>
+
+  <!-- ══ TAB: SETTINGS ══ -->
+  <div id="tab-settings" class="content" style="display:none">
+    <div class="section-hdr">
+      <div><div class="section-title">App Settings</div>
+        <div class="section-sub">Admin configuration — applies immediately</div>
+      </div>
+    </div>
+    <div class="set-card">
+      <div class="set-lbl">Verification Threshold</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.55);margin-bottom:12px;line-height:1.6">
+        Driver confirmations needed before a community trap fires alerts. Currently: <b style="color:#27ae60" id="thresh-disp">3 votes</b>
+      </div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button onclick="setThresh(2)" style="padding:9px 16px;border-radius:9px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:600;cursor:pointer">2 votes (faster)</button>
+        <button onclick="setThresh(3)" style="padding:9px 16px;border-radius:9px;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#5ddb8a;font-size:13px;font-weight:600;cursor:pointer">3 votes (default)</button>
+        <button onclick="setThresh(5)" style="padding:9px 16px;border-radius:9px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:600;cursor:pointer">5 votes (strict)</button>
+      </div>
+    </div>
+    <div class="set-card">
+      <div class="set-lbl">Danger Zone</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.55);margin-bottom:14px;line-height:1.6">These actions affect all drivers immediately.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button onclick="confirmAction('clearExpired')" style="padding:10px 18px;border-radius:10px;background:rgba(243,156,18,.13);border:1px solid rgba(243,156,18,.35);color:#f8c060;font-size:13px;font-weight:700;cursor:pointer">🧹 Clear Expired Traps</button>
+        <button onclick="confirmAction('clearAll')" style="padding:10px 18px;border-radius:10px;background:rgba(231,76,60,.13);border:1px solid rgba(231,76,60,.35);color:#ff7a7a;font-size:13px;font-weight:700;cursor:pointer">⚠️ Delete ALL Community Traps</button>
+      </div>
+    </div>
+    <div class="set-card">
+      <div class="set-lbl">Admin Password</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.55);margin-bottom:12px">Change your dashboard login password.</div>
+      <input type="password" id="new-pw" class="bc-input" placeholder="New password (min 6 chars)" style="margin-bottom:10px">
+      <button onclick="changePw()" style="padding:10px 18px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:600;cursor:pointer">🔒 Update Password</button>
+    </div>
+    <div class="set-card">
+      <div class="set-lbl">Supabase SQL — Create Tables</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.55);margin-bottom:10px;line-height:1.6">
+        Run this SQL once in your Supabase SQL Editor to create the sessions tracking table:
+      </div>
+      <pre style="background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px;font-size:11px;color:#5ddb8a;overflow-x:auto;line-height:1.7;white-space:pre-wrap">create table sg_sessions (
+  id          bigint generated always as identity primary key,
+  device_id   text not null,
+  nickname    text,
+  platform    text,
+  app_version text,
+  created_at  timestamptz default now()
+);
+alter table sg_sessions enable row level security;
+create policy "Anyone can insert" on sg_sessions for insert with check (true);
+create policy "Anyone can read"  on sg_sessions for select using (true);</pre>
+    </div>
+  </div>
+
+</div><!-- end #app -->
+
+<!-- CONFIRM DIALOG -->
+<div id="confirm-overlay">
+  <div class="confirm-card">
+    <div class="confirm-icon" id="cf-icon">⚠️</div>
+    <div class="confirm-title" id="cf-title">Are you sure?</div>
+    <div class="confirm-msg"   id="cf-msg">This cannot be undone.</div>
+    <div class="confirm-btns">
+      <button class="btn-cn" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-cy" id="cf-btn" onclick="execConfirm()">Delete</button>
+    </div>
+  </div>
+</div>
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════
+// CONFIG
+// ══════════════════════════════════════════════════════
+var SUPA_URL       = 'https://mgoxhsnmjbzjuevwryxy.supabase.co';
+var SUPA_KEY       = 'sb_publishable_6GSg9fQ2tCMJ9vZTaOFcCQ_SYviH_KR';
+var EXPIRY_MS      = 2 * 60 * 60 * 1000;
+var VOTES_TO_VERIFY= 3;
+var DEFAULT_PW     = 'speedguard2025';
+
+// ── AUTH ──
+function tryLogin() {
+  var pw    = document.getElementById('pw-input').value;
+  var saved = localStorage.getItem('sg_admin_pw') || DEFAULT_PW;
+  if (pw === saved) {
+    localStorage.setItem('sg_admin_sess', Date.now().toString());
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    initApp();
+  } else {
+    var e = document.getElementById('login-err');
+    e.textContent = '❌ Incorrect password.';
+    document.getElementById('pw-input').value = '';
+    setTimeout(function(){ e.textContent=''; }, 3000);
+  }
+}
+function logout(){ localStorage.removeItem('sg_admin_sess'); location.reload(); }
+function changePw() {
+  var pw = document.getElementById('new-pw').value.trim();
+  if (pw.length < 6){ showToast('❌ Min 6 characters'); return; }
+  localStorage.setItem('sg_admin_pw', pw);
+  document.getElementById('new-pw').value = '';
+  showToast('✅ Password updated');
+}
+(function(){
+  var sess = parseInt(localStorage.getItem('sg_admin_sess')||'0');
+  if (Date.now()-sess < 8*3600000){
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='block';
+    initApp();
+  }
+})();
+
+// ── SUPABASE ──
+function supa(path, method, body) {
+  return fetch(SUPA_URL+'/rest/v1/'+path, {
+    method: method||'GET',
+    headers:{ 'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,
+      'Content-Type':'application/json',
+      'Prefer': method==='POST'?'return=representation':'' },
+    body: body ? JSON.stringify(body) : undefined
+  }).then(function(r){ if(r.status===204||method==='DELETE')return null; return r.json(); })
+    .catch(function(){ return null; });
+}
+
+// ── REALTIME (live count) ──
+var liveDrivers = {};
+function initRealtime() {
+  try {
+    var ws = new WebSocket(SUPA_URL.replace('https','wss')+
+      '/realtime/v1/websocket?apikey='+SUPA_KEY+'&vsn=1.0.0');
+    ws.onopen = function(){
+      ws.send(JSON.stringify({topic:'realtime:m1_drivers',event:'phx_join',
+        payload:{config:{broadcast:{self:false}}},ref:'1'}));
+    };
+    ws.onmessage = function(e){
+      try{ var m=JSON.parse(e.data);
+        if(m.event==='broadcast'&&m.payload&&m.payload.type==='pos')
+          liveDrivers[m.payload.id]={ts:Date.now()};
+      }catch(err){}
+    };
+    ws.onclose = function(){ setTimeout(initRealtime,5000); };
+    wsAdmin = ws;
+  } catch(e) {}
+  setInterval(function(){
+    var now=Date.now();
+    Object.keys(liveDrivers).forEach(function(id){
+      if(now-liveDrivers[id].ts>35000) delete liveDrivers[id];
+    });
+    var n=Object.keys(liveDrivers).length;
+    document.getElementById('live-count').textContent='👥 '+n+' online';
+    document.getElementById('st-live').textContent=n;
+  }, 5000);
+}
+
+var wsAdmin=null;
+function initBroadcast(){
+  try{
+    wsAdmin=new WebSocket(SUPA_URL.replace('https','wss')+
+      '/realtime/v1/websocket?apikey='+SUPA_KEY+'&vsn=1.0.0');
+    wsAdmin.onopen=function(){
+      wsAdmin.send(JSON.stringify({topic:'realtime:m1_drivers',event:'phx_join',
+        payload:{config:{broadcast:{self:true}}},ref:'admin1'}));
+    };
+    wsAdmin.onclose=function(){setTimeout(initBroadcast,5000);};
+  }catch(e){}
+}
+
+// ── INIT ──
+function initApp(){
+  initRealtime();
+  initBroadcast();
+  loadUsage();
+  loadStrip();
+}
+
+// ══════════════════════════════════════════════════════
+// TABS
+// ══════════════════════════════════════════════════════
+function switchTab(tab, el){
+  document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  ['usage','traps','broadcast','settings'].forEach(function(t){
+    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+  });
+  if(tab==='traps') loadTraps();
+}
+
+// ══════════════════════════════════════════════════════
+// STRIP STATS (top summary)
+// ══════════════════════════════════════════════════════
+function loadStrip(){
+  // Traps
+  supa('sg_traps?select=*').then(function(rows){
+    if(!rows) return;
+    var active=rows.filter(function(r){return(Date.now()-new Date(r.created_at).getTime())<EXPIRY_MS;}).length;
+    document.getElementById('st-traps').textContent=active;
+  });
+  // Sessions counts
+  supa('sg_sessions?select=*').then(function(rows){
+    if(!rows) return;
+    var now=new Date(), today=now.toISOString().substring(0,10);
+    var weekAgo =new Date(now-7*86400000).toISOString();
+    var monthAgo=new Date(now-30*86400000).toISOString();
+    document.getElementById('st-users-today').textContent =rows.filter(function(r){return r.created_at.substring(0,10)===today;}).length;
+    document.getElementById('st-users-week').textContent  =rows.filter(function(r){return r.created_at>=weekAgo;}).length;
+    document.getElementById('st-users-month').textContent =rows.filter(function(r){return r.created_at>=monthAgo;}).length;
+    document.getElementById('st-users-total').textContent =rows.length;
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// USAGE ANALYTICS
+// ══════════════════════════════════════════════════════
+var allSessions=[];
+var currentPeriod=7;
+
+function setPeriod(days, el){
+  document.querySelectorAll('.ptab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');
+  currentPeriod=days;
+  renderUsage(allSessions);
+}
+
+function loadUsage(){
+  supa('sg_sessions?select=*&order=created_at.desc').then(function(rows){
+    if(!rows){ showToast('❌ Could not load sessions. Check sg_sessions table exists.'); return; }
+    allSessions=rows;
+    renderUsage(rows);
+    renderUsersTable(rows);
+    renderPlatforms(rows);
+  });
+}
+
+function renderUsage(rows){
+  var now=new Date();
+  var today=now.toISOString().substring(0,10);
+  var yesterday=new Date(now-86400000).toISOString().substring(0,10);
+  var weekAgo  =new Date(now-7*86400000).toISOString();
+  var monthAgo =new Date(now-30*86400000).toISOString();
+
+  document.getElementById('an-today').textContent     =rows.filter(function(r){return r.created_at.substring(0,10)===today;}).length;
+  document.getElementById('an-yesterday').textContent =rows.filter(function(r){return r.created_at.substring(0,10)===yesterday;}).length;
+  document.getElementById('an-week').textContent      =rows.filter(function(r){return r.created_at>=weekAgo;}).length;
+  document.getElementById('an-month').textContent     =rows.filter(function(r){return r.created_at>=monthAgo;}).length;
+  document.getElementById('an-total').textContent     =rows.length;
+
+  // Build daily buckets for the selected period
+  var buckets={};
+  var cutoff=new Date(now - currentPeriod*86400000);
+  for(var i=0;i<currentPeriod;i++){
+    var d=new Date(cutoff.getTime()+(i+1)*86400000);
+    buckets[d.toISOString().substring(0,10)]=0;
+  }
+  rows.forEach(function(r){
+    var day=r.created_at.substring(0,10);
+    if(buckets.hasOwnProperty(day)) buckets[day]++;
+  });
+
+  var days=Object.keys(buckets).sort();
+  var vals=days.map(function(d){return buckets[d];});
+  var total=vals.reduce(function(a,b){return a+b;},0);
+  var avg=days.length?Math.round(total/days.length*10)/10:0;
+  document.getElementById('an-avg').textContent=avg;
+  document.getElementById('chart-title').textContent='Daily Sessions — Last '+currentPeriod+' Days';
+
+  // Draw bar chart
+  var maxVal=Math.max.apply(null,vals)||1;
+  var chartEl=document.getElementById('bar-chart');
+  chartEl.innerHTML='';
+  days.forEach(function(day,i){
+    var val=vals[i];
+    var pct=Math.round(val/maxVal*100);
+    var col=document.createElement('div');
+    col.className='bar-col';
+    // Short date label
+    var d=new Date(day+'T12:00:00');
+    var lbl=d.toLocaleDateString('en-GB',{day:'numeric',month:'short'});
+    col.innerHTML=
+      '<div class="bar-fill" style="height:'+Math.max(pct,2)+'%">'
+        +'<div class="bar-tip">'+val+' on '+lbl+'</div>'
+      +'</div>'
+      +'<div class="bar-label">'+lbl+'</div>';
+    chartEl.appendChild(col);
+  });
+}
+
+function renderPlatforms(rows){
+  var counts={iOS:0,Android:0,Windows:0,Other:0};
+  rows.forEach(function(r){ if(counts.hasOwnProperty(r.platform)) counts[r.platform]++; else counts.Other++; });
+  document.getElementById('pl-ios').textContent    =counts.iOS;
+  document.getElementById('pl-android').textContent=counts.Android;
+  document.getElementById('pl-windows').textContent=counts.Windows;
+  document.getElementById('pl-other').textContent  =counts.Other;
+}
+
+function renderUsersTable(rows){
+  // Group by device_id — show unique devices with first/last seen + count
+  var devices={};
+  rows.forEach(function(r){
+    var id=r.device_id;
+    if(!devices[id]) devices[id]={nickname:r.nickname,platform:r.platform,version:r.app_version,first:r.created_at,last:r.created_at,count:0};
+    devices[id].count++;
+    if(r.created_at < devices[id].first) devices[id].first=r.created_at;
+    if(r.created_at > devices[id].last)  devices[id].last =r.created_at;
+  });
+
+  var devArr=Object.values(devices).sort(function(a,b){ return b.last.localeCompare(a.last); });
+  var tbody=document.getElementById('users-tbody');
+  tbody.innerHTML='';
+
+  if(devArr.length===0){
+    tbody.innerHTML='<tr><td colspan="7" class="empty">No sessions yet. Make sure the sg_sessions table exists in Supabase.</td></tr>';
+    return;
+  }
+
+  devArr.forEach(function(u,i){
+    var tr=document.createElement('tr');
+    var platEmoji=u.platform==='iOS'?'📱':u.platform==='Android'?'🤖':u.platform==='Windows'?'💻':'🔲';
+    tr.innerHTML=
+      '<td style="color:rgba(255,255,255,.4)">'+(i+1)+'</td>'
+      +'<td><b style="color:#fff">'+esc(u.nickname||'Anonymous')+'</b></td>'
+      +'<td>'+platEmoji+' '+esc(u.platform||'--')+'</td>'
+      +'<td style="color:rgba(255,255,255,.4)">v'+(u.version||'?')+'</td>'
+      +'<td class="first-seen">'+fmtDate(u.first)+'</td>'
+      +'<td>'+fmtDate(u.last)+'</td>'
+      +'<td style="color:#5ddb8a;font-weight:700">'+u.count+'</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// TRAPS
+// ══════════════════════════════════════════════════════
+var allTraps=[], trapFilter='all';
+
+function loadTraps(){
+  document.getElementById('traps-loading').style.display='block';
+  document.getElementById('traps-wrap').style.display='none';
+  document.getElementById('traps-empty').style.display='none';
+  supa('sg_traps?select=*&order=created_at.desc').then(function(rows){
+    document.getElementById('traps-loading').style.display='none';
+    if(!rows){ showToast('❌ Failed to load traps'); return; }
+    allTraps=rows;
+    renderTraps();
+  });
+}
+
+function isExp(r){ return(Date.now()-new Date(r.created_at).getTime())>EXPIRY_MS; }
+function isVer(r){ return(r.yes_votes||0)>=VOTES_TO_VERIFY; }
+
+function setTrapFilter(f,el){
+  document.querySelectorAll('.f-pill').forEach(function(p){p.classList.remove('active');});
+  el.classList.add('active'); trapFilter=f; renderTraps();
+}
+
+function renderTraps(){
+  var rows=allTraps;
+  if(trapFilter==='pending')    rows=rows.filter(function(r){return!isVer(r)&&!isExp(r);});
+  if(trapFilter==='verified')   rows=rows.filter(isVer);
+  if(trapFilter==='expired')    rows=rows.filter(isExp);
+  if(trapFilter==='mobile')     rows=rows.filter(function(r){return r.type==='mobile';});
+  if(trapFilter==='camera')     rows=rows.filter(function(r){return r.type==='camera';});
+  if(trapFilter==='checkpoint') rows=rows.filter(function(r){return r.type==='checkpoint';});
+
+  if(rows.length===0){
+    document.getElementById('traps-wrap').style.display='none';
+    document.getElementById('traps-empty').style.display='block'; return;
+  }
+  document.getElementById('traps-empty').style.display='none';
+  document.getElementById('traps-wrap').style.display='block';
+
+  var tbody=document.getElementById('traps-tbody'); tbody.innerHTML='';
+  rows.forEach(function(r){
+    var exp=isExp(r),ver=isVer(r);
+    var remain=EXPIRY_MS-(Date.now()-new Date(r.created_at).getTime());
+    var expLbl=exp?'Expired':remain<3600000?'~'+Math.round(remain/60000)+'m':'~'+Math.round(remain/3600000)+'h';
+    var badge=exp?'<span class="vbadge v-exp">Expired</span>':ver?'<span class="vbadge v-yes">✅ Verified</span>':'<span class="vbadge v-no">⏳ Pending</span>';
+    var em=r.type==='camera'?'📷':r.type==='checkpoint'?'🛡️':'🚔';
+    var tr=document.createElement('tr');
+    tr.innerHTML=
+      '<td><div class="trap-name">'+esc(r.name)+'</div>'
+        +'<div style="font-size:10px;color:rgba(255,255,255,.3);margin-top:2px">'+new Date(r.created_at).toLocaleDateString()+' '+new Date(r.created_at).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+'</div></td>'
+      +'<td><span class="trap-type '+r.type+'">'+em+' '+r.type+'</span></td>'
+      +'<td>'+r.limit_kmh+' km/h</td>'
+      +'<td>'+(r.km||'--')+'</td>'
+      +'<td><span style="color:#5ddb8a">👍 '+(r.yes_votes||0)+'</span> <span style="color:#ff7a7a">👎 '+(r.no_votes||0)+'</span></td>'
+      +'<td>'+badge+'</td>'
+      +'<td><span class="exp-lbl'+(exp?' expired':'')+'">'+expLbl+'</span></td>'
+      +'<td>'
+        +(!ver&&!exp?'<button class="btn-approve" onclick="approveTrap('+r.id+')">✅ Approve</button>':'')
+        +'<button class="btn-reset" onclick="resetVotes('+r.id+')">↺</button>'
+        +'<button class="btn-delete" onclick="delTrap('+r.id+',\''+esc(r.name)+'\')">🗑️</button>'
+      +'</td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function approveTrap(id){ supa('sg_traps?id=eq.'+id,'PATCH',{yes_votes:VOTES_TO_VERIFY}).then(function(){ showToast('✅ Trap approved!'); loadTraps(); }); }
+function resetVotes(id)  { supa('sg_traps?id=eq.'+id,'PATCH',{yes_votes:0,no_votes:0}).then(function(){ showToast('↺ Votes reset'); loadTraps(); }); }
+function delTrap(id,name){ showConfirm('🗑️ Delete "'+name+'"?','This trap will be permanently deleted.','Delete',function(){ supa('sg_traps?id=eq.'+id,'DELETE').then(function(){ showToast('🗑️ Trap deleted'); loadTraps(); }); }); }
+
+// ══════════════════════════════════════════════════════
+// BROADCAST
+// ══════════════════════════════════════════════════════
+var bcHistory=[];
+function sendBroadcast(){
+  var msg=document.getElementById('bc-msg').value.trim();
+  var type=document.getElementById('bc-type').value;
+  if(!msg){ showToast('❌ Enter a message first'); return; }
+  var typeEmoji={info:'ℹ️',warning:'⚠️',alert:'🚨',clear:'✅'};
+  if(wsAdmin&&wsAdmin.readyState===1){
+    wsAdmin.send(JSON.stringify({topic:'realtime:m1_drivers',event:'broadcast',payload:{type:'admin_broadcast',msgType:type,message:msg,from:'Admin',timestamp:new Date().toISOString()},ref:null}));
+    bcHistory.unshift({type,message:msg,time:new Date().toLocaleTimeString()});
+    var el=document.getElementById('bc-history'); el.innerHTML='';
+    bcHistory.forEach(function(b){
+      var d=document.createElement('div'); d.className='bc-sent';
+      d.innerHTML=(typeEmoji[b.type]||'📢')+' '+esc(b.message)+'<div class="bc-sent-time">'+b.time+'</div>';
+      el.appendChild(d);
+    });
+    document.getElementById('bc-msg').value='';
+    showToast('📢 Sent to '+Object.keys(liveDrivers).length+' driver(s)!');
+  } else { showToast('⚠️ Not connected — retrying...'); initBroadcast(); }
+}
+
+// ══════════════════════════════════════════════════════
+// SETTINGS ACTIONS
+// ══════════════════════════════════════════════════════
+function setThresh(n){ VOTES_TO_VERIFY=n; document.getElementById('thresh-disp').textContent=n+' votes'; showToast('✅ Threshold: '+n+' votes (this session)'); }
+
+function confirmAction(action){
+  if(action==='clearExpired'){
+    showConfirm('🧹 Clear expired?','All expired trap reports will be deleted.','Clear',function(){
+      Promise.all(allTraps.filter(isExp).map(function(r){ return supa('sg_traps?id=eq.'+r.id,'DELETE'); }))
+        .then(function(){ showToast('🧹 Expired traps cleared'); loadTraps(); });
+    });
+  } else {
+    showConfirm('⚠️ Delete ALL?','Every community trap report will be permanently deleted.','Delete All',function(){
+      supa('sg_traps?id=gt.0','DELETE').then(function(){ showToast('⚠️ All traps deleted'); allTraps=[]; renderTraps(); });
+    });
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// CONFIRM DIALOG
+// ══════════════════════════════════════════════════════
+var pendingFn=null;
+function showConfirm(title,msg,btnLbl,fn){
+  document.getElementById('cf-title').textContent=title;
+  document.getElementById('cf-msg').textContent=msg;
+  document.getElementById('cf-btn').textContent=btnLbl;
+  pendingFn=fn;
+  document.getElementById('confirm-overlay').classList.add('show');
+}
+function closeConfirm(){ document.getElementById('confirm-overlay').classList.remove('show'); pendingFn=null; }
+function execConfirm(){ closeConfirm(); if(pendingFn) pendingFn(); }
+
+// ══════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtDate(s){ var d=new Date(s); return d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})+' '+d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+
+var toastTmr=null;
+function showToast(msg){
+  var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  if(toastTmr)clearTimeout(toastTmr);
+  toastTmr=setTimeout(function(){t.classList.remove('show');},3500);
+}
+
+document.getElementById('pw-input').addEventListener('keydown',function(e){ if(e.key==='Enter')tryLogin(); });
+</script>
+</body>
+</html>
