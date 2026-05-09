@@ -76,7 +76,7 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .spd-n{font-size:20px;font-weight:800;line-height:1}
 .spd-u{font-size:8px;color:rgba(255,255,255,.4);margin-top:1px}
 /* ALERT */
-#alert{position:fixed;z-index:999;left:10px;right:10px;border-radius:15px;padding:12px 15px;display:none;align-items:center;gap:10px;font-size:13px;font-weight:600;border:1px solid;box-shadow:0 4px 24px rgba(0,0,0,.5);transition:all .3s}
+#alert{position:fixed;z-index:999;left:10px;right:10px;top:70px;border-radius:15px;padding:12px 15px;display:none;align-items:center;gap:10px;font-size:13px;font-weight:600;border:1px solid;box-shadow:0 4px 24px rgba(0,0,0,.5);transition:all .3s}
 .aico{font-size:19px;flex-shrink:0}
 .a-ok{background:rgba(14,40,20,.97);border-color:#27ae60;color:#5ddb8a}
 .a-warn{background:rgba(40,30,5,.97);border-color:#f39c12;color:#f8c060}
@@ -267,6 +267,50 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
   font-size:13px;font-weight:700;cursor:pointer;
 }
 
+
+/* ── SETTINGS PANEL ── */
+#settings-panel{
+  position:fixed;top:0;right:0;bottom:0;z-index:2100;
+  width:min(300px,90vw);
+  background:rgba(10,15,20,.98);
+  border-left:1px solid rgba(255,255,255,.09);
+  padding:env(safe-area-inset-top,20px) 0 env(safe-area-inset-bottom,20px);
+  display:none;flex-direction:column;
+  backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+  overflow-y:auto;
+}
+#settings-panel.open{display:flex}
+.sp-hdr{padding:14px 18px 10px;border-bottom:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:space-between}
+.sp-hdr-title{font-size:16px;font-weight:800}
+.sp-close{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);
+  border:none;color:#fff;font-size:15px;cursor:pointer}
+.sp-section{padding:14px 18px 4px}
+.sp-section-label{font-size:10px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.1em;color:rgba(255,255,255,.35);margin-bottom:10px}
+.sp-row{display:flex;align-items:center;justify-content:space-between;
+  padding:10px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.sp-row:last-child{border-bottom:none}
+.sp-row-info{flex:1;padding-right:12px}
+.sp-row-label{font-size:13px;font-weight:600;color:#fff}
+.sp-row-desc{font-size:11px;color:rgba(255,255,255,.38);margin-top:2px;line-height:1.4}
+/* Toggle switch */
+.sg-toggle{position:relative;width:44px;height:26px;flex-shrink:0}
+.sg-toggle input{opacity:0;width:0;height:0}
+.sg-slider{position:absolute;inset:0;background:rgba(255,255,255,.15);
+  border-radius:13px;cursor:pointer;transition:.2s}
+.sg-slider:before{content:'';position:absolute;width:20px;height:20px;
+  left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s}
+.sg-toggle input:checked + .sg-slider{background:#27ae60}
+.sg-toggle input:checked + .sg-slider:before{transform:translateX(18px)}
+/* Settings btn in header */
+.btn-settings-hdr{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15);
+  color:rgba(255,255,255,.7)}
+.btn-settings-hdr:active{background:rgba(255,255,255,.15)}
+/* Edit contact link */
+.sp-link{font-size:12px;color:#27ae60;cursor:pointer;text-decoration:underline;
+  text-underline-offset:2px}
+
 /* ── NIGHT MODE ── */
 body.night{background:#080c08}
 body.night #hdr{background:rgba(5,8,5,.97);border-bottom-color:rgba(255,100,100,.08)}
@@ -300,26 +344,30 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div class="t-hero">
     <div class="t-logo">SpeedGuard Malawi</div>
     <svg width="54" height="36" viewBox="0 0 54 36" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.5);border-radius:3px">
-      <rect width="54" height="12" fill="#000"/><rect y="12" width="54" height="12" fill="#d21034"/><rect y="24" width="54" height="12" fill="#339e35"/>
-      <g transform="translate(27,6)" fill="#d21034"><circle r="3.5"/>
-        <line x1="0" y1="-4.5" x2="0" y2="-7" stroke="#d21034" stroke-width="1.2" stroke-linecap="round"/>
-        <line x1="0" y1="4.5" x2="0" y2="7" stroke="#d21034" stroke-width="1.2" stroke-linecap="round"/>
-        <line x1="4.5" y1="0" x2="7" y2="0" stroke="#d21034" stroke-width="1.2" stroke-linecap="round"/>
-        <line x1="-4.5" y1="0" x2="-7" y2="0" stroke="#d21034" stroke-width="1.2" stroke-linecap="round"/>
-        <line x1="3.2" y1="-3.2" x2="5" y2="-5" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
-        <line x1="-3.2" y1="-3.2" x2="-5" y2="-5" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
-        <line x1="3.2" y1="3.2" x2="5" y2="5" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
-        <line x1="-3.2" y1="3.2" x2="-5" y2="5" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
-        <line x1="1.7" y1="-4.3" x2="2.5" y2="-6.7" stroke="#d21034" stroke-width=".9" stroke-linecap="round"/>
-        <line x1="-1.7" y1="-4.3" x2="-2.5" y2="-6.7" stroke="#d21034" stroke-width=".9" stroke-linecap="round"/>
-        <line x1="4.3" y1="-1.7" x2="6.7" y2="-2.5" stroke="#d21034" stroke-width=".9" stroke-linecap="round"/>
-        <line x1="4.3" y1="1.7" x2="6.7" y2="2.5" stroke="#d21034" stroke-width=".9" stroke-linecap="round"/>
-        <line x1="-4.3" y1="-1.7" x2="-6.7" y2="-2.5" stroke="#d21034" stroke-width=".9" stroke-linecap="round"/>
-        <line x1="-4.3" y1="1.7" x2="-6.7" y2="2.5" stroke="#d21034" stroke-width=".9" stroke-linecap="round"/>
-        <line x1="1.7" y1="4.3" x2="2.5" y2="6.7" stroke="#d21034" stroke-width=".9" stroke-linecap="round"/>
-        <line x1="-1.7" y1="4.3" x2="-2.5" y2="6.7" stroke="#d21034" stroke-width=".9" stroke-linecap="round"/>
-      </g>
-    </svg>
+  <rect width="54" height="12" fill="#000"/>
+  <rect y="12" width="54" height="12" fill="#d21034"/>
+  <rect y="24" width="54" height="12" fill="#339e35"/>
+  <g transform="translate(27,5)">
+    <path d="M0,0 m-5,0 a5,5 0 0,1 10,0" fill="#d21034"/>
+    <g stroke="#d21034" stroke-width="1.1" stroke-linecap="round">
+      <line x1="0" y1="-5.5" x2="0" y2="-8"/>
+      <line x1="2.8" y1="-4.7" x2="4.1" y2="-6.8"/>
+      <line x1="4.7" y1="-2.8" x2="6.8" y2="-4.1"/>
+      <line x1="5.5" y1="0" x2="8" y2="0"/>
+      <line x1="-2.8" y1="-4.7" x2="-4.1" y2="-6.8"/>
+      <line x1="-4.7" y1="-2.8" x2="-6.8" y2="-4.1"/>
+      <line x1="-5.5" y1="0" x2="-8" y2="0"/>
+      <line x1="1.5" y1="-5.3" x2="2.1" y2="-7.7"/>
+      <line x1="-1.5" y1="-5.3" x2="-2.1" y2="-7.7"/>
+      <line x1="3.9" y1="-3.9" x2="5.6" y2="-5.6"/>
+      <line x1="-3.9" y1="-3.9" x2="-5.6" y2="-5.6"/>
+      <line x1="5.3" y1="-1.5" x2="7.7" y2="-2.1"/>
+      <line x1="-5.3" y1="-1.5" x2="-7.7" y2="-2.1"/>
+      <line x1="4.4" y1="-3.3" x2="6.2" y2="-4.7"/>
+      <line x1="-4.4" y1="-3.3" x2="-6.2" y2="-4.7"/>
+    </g>
+  </g>
+</svg>
     <h1 class="t-title">Drive Safe on<br><span>Malawi M1</span></h1>
     <p class="t-sub">Lilongwe → Blantyre · Speed alerts · Live tracking · SOS</p>
   </div>
@@ -389,7 +437,29 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 <div id="hdr">
   <div class="hdr-left">
     <div class="hdr-title">
-      <svg width="18" height="12" viewBox="0 0 18 12" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:-2px;margin-right:4px;border-radius:1px"><rect width="18" height="4" fill="#000"/><rect y="4" width="18" height="4" fill="#d21034"/><rect y="8" width="18" height="4" fill="#339e35"/><g transform="translate(9,2)" fill="#d21034"><circle r="1.2"/><line x1="0" y1="-1.6" x2="0" y2="-2.4" stroke="#d21034" stroke-width=".5"/><line x1="0" y1="1.6" x2="0" y2="2.4" stroke="#d21034" stroke-width=".5"/><line x1="1.6" y1="0" x2="2.4" y2="0" stroke="#d21034" stroke-width=".5"/><line x1="-1.6" y1="0" x2="-2.4" y2="0" stroke="#d21034" stroke-width=".5"/><line x1="1.1" y1="-1.1" x2="1.7" y2="-1.7" stroke="#d21034" stroke-width=".4"/><line x1="-1.1" y1="-1.1" x2="-1.7" y2="-1.7" stroke="#d21034" stroke-width=".4"/><line x1="1.1" y1="1.1" x2="1.7" y2="1.7" stroke="#d21034" stroke-width=".4"/><line x1="-1.1" y1="1.1" x2="-1.7" y2="1.7" stroke="#d21034" stroke-width=".4"/></g></svg>SpeedGuard Malawi
+      <svg width="18" height="12" viewBox="0 0 18 12" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:-2px;margin-right:4px;border-radius:1px">
+  <rect width="18" height="4" fill="#000"/>
+  <rect y="4" width="18" height="4" fill="#d21034"/>
+  <rect y="8" width="18" height="4" fill="#339e35"/>
+  <g transform="translate(9,2)">
+    <path d="M0,0 m-2,0 a2,2 0 0,1 4,0" fill="#d21034"/>
+    <g stroke="#d21034" stroke-width=".45" stroke-linecap="round">
+      <line x1="0" y1="-2.2" x2="0" y2="-3.2"/>
+      <line x1="1.1" y1="-1.9" x2="1.6" y2="-2.7"/>
+      <line x1="1.9" y1="-1.1" x2="2.7" y2="-1.6"/>
+      <line x1="2.2" y1="0" x2="3.2" y2="0"/>
+      <line x1="-1.1" y1="-1.9" x2="-1.6" y2="-2.7"/>
+      <line x1="-1.9" y1="-1.1" x2="-2.7" y2="-1.6"/>
+      <line x1="-2.2" y1="0" x2="-3.2" y2="0"/>
+      <line x1="0.6" y1="-2.1" x2="0.8" y2="-3.0"/>
+      <line x1="-0.6" y1="-2.1" x2="-0.8" y2="-3.0"/>
+      <line x1="1.6" y1="-1.6" x2="2.3" y2="-2.3"/>
+      <line x1="-1.6" y1="-1.6" x2="-2.3" y2="-2.3"/>
+      <line x1="2.1" y1="-0.6" x2="3.0" y2="-0.8"/>
+      <line x1="-2.1" y1="-0.6" x2="-3.0" y2="-0.8"/>
+    </g>
+  </g>
+</svg>SpeedGuard Malawi
     </div>
     <div class="hdr-sub">
       <span class="dot gps" id="gps-dot"></span><span id="gps-lbl">GPS off</span>
@@ -402,8 +472,8 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   </div>
   <div class="hdr-btns">
     <button id="btn-audio" class="hdr-btn btn-audio-hdr" onclick="toggleAudio()" title="Toggle voice alerts">🔊 ON</button>
-    <button id="btn-night" class="hdr-btn btn-night-hdr" onclick="toggleNightMode()" title="Toggle night mode">🌙 Night</button>
     <button class="hdr-btn btn-live-hdr" onclick="openLive()">👥 Live</button>
+    <button class="hdr-btn btn-settings-hdr" onclick="openSettings()" title="Settings">⚙️</button>
     <div class="spd-ring" id="spd-ring">
       <div class="spd-n" id="spd-n">0</div>
       <div class="spd-u">km/h</div>
@@ -442,7 +512,6 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
     <button class="btn-gps" id="btn-gps" onclick="toggleGPS()">📍 Start GPS</button>
     <button class="btn-sm" onclick="openReport()">+ Trap</button>
     <button class="btn-fuel" onclick="openFuel()" title="Fuel stations">⛽</button>
-    <button class="btn-sm btn-live-hdr" onclick="openLive()" style="border-color:rgba(231,76,60,.28)">👥</button>
     <!-- SOS BUTTON — hold for 3 seconds to send -->
     <button class="btn-sos" id="btn-sos"
       onmousedown="sosPressStart()" onmouseup="sosPressEnd()" onmouseleave="sosPressEnd()"
@@ -1360,6 +1429,7 @@ function fuelIcon(station, dist) {
 }
 
 function addFuelMarkers() {
+  var show = lsGet('sg_set_fuel') !== '0';
   FUEL_STATIONS.forEach(function(s) {
     if (fuelMarkers[s.id]) return; // already added
     var m = L.marker([s.lat, s.lng], {
@@ -1375,6 +1445,7 @@ function addFuelMarkers() {
       + '<small style="color:rgba(255,255,255,.45)">' + s.note + '</small>'
     );
     fuelMarkers[s.id] = m;
+    if (!show) map.removeLayer(m);
   });
 }
 
@@ -1664,6 +1735,111 @@ function fetchWeatherInitial() {
   fetchWeather(-14.68, 34.38);
 }
 
+
+// ═══════════════════════════════════════════════════════
+// SETTINGS PANEL
+// ═══════════════════════════════════════════════════════
+var sgSettings = {
+  fuel:    lsGet('sg_set_fuel')    !== '0',
+  traps:   lsGet('sg_set_traps')  !== '0',
+  live:    lsGet('sg_set_live')   !== '0',
+  audio:   lsGet('sg_audio')      !== '0',
+  weather: lsGet('sg_set_weather')!== '0',
+  night:   lsGet('sg_night') === 'on',
+};
+
+function openSettings() {
+  // Sync toggles to current state
+  document.getElementById('tog-fuel').checked    = sgSettings.fuel;
+  document.getElementById('tog-traps').checked   = sgSettings.traps;
+  document.getElementById('tog-live').checked    = sgSettings.live;
+  document.getElementById('tog-audio').checked   = sgSettings.audio;
+  document.getElementById('tog-weather').checked = sgSettings.weather;
+  document.getElementById('tog-night').checked   = nightModeOn;
+
+  // Show SOS contact info
+  var sosN = document.getElementById('sp-sos-name');
+  var sosP = document.getElementById('sp-sos-num');
+  if (sosContact) {
+    if(sosN) sosN.textContent = '🆘 ' + sosContact.name;
+    if(sosP) sosP.textContent = sosContact.number;
+  } else {
+    if(sosN) sosN.textContent = 'No contact saved';
+    if(sosP) sosP.textContent = 'Tap Edit to set up emergency contact';
+  }
+
+  // Show nickname
+  var nickEl = document.getElementById('sp-nick-display');
+  if (nickEl) nickEl.textContent = '🚗 ' + (myNickname || 'Not set');
+
+  document.getElementById('settings-panel').classList.add('open');
+}
+
+function closeSettings() {
+  document.getElementById('settings-panel').classList.remove('open');
+}
+
+function settingChanged(key, val) {
+  sgSettings[key] = val;
+
+  if (key === 'fuel') {
+    lsSet('sg_set_fuel', val ? '1' : '0');
+    Object.values(fuelMarkers).forEach(function(m){
+      val ? map.addLayer(m) : map.removeLayer(m);
+    });
+    showToast(val ? '⛽ Fuel stations shown' : '⛽ Fuel stations hidden');
+  }
+
+  if (key === 'traps') {
+    lsSet('sg_set_traps', val ? '1' : '0');
+    Object.values(trapMk).forEach(function(m){
+      val ? map.addLayer(m) : map.removeLayer(m);
+    });
+    showToast(val ? '🚔 Trap markers shown' : '🚔 Trap markers hidden');
+  }
+
+  if (key === 'live') {
+    lsSet('sg_set_live', val ? '1' : '0');
+    Object.values(liveMarkers).forEach(function(m){
+      val ? map.addLayer(m) : map.removeLayer(m);
+    });
+    showToast(val ? '👥 Live drivers shown' : '👥 Live drivers hidden');
+  }
+
+  if (key === 'audio') {
+    audioEnabled = val;
+    lsSet('sg_audio', val ? '1' : '0');
+    syncAudioBtn();
+    if (val) speak('Voice alerts on.', 1.0);
+    showToast(val ? '🔊 Voice alerts ON' : '🔇 Voice alerts OFF');
+  }
+
+  if (key === 'weather') {
+    lsSet('sg_set_weather', val ? '1' : '0');
+    var bar = document.getElementById('weather-bar');
+    if (bar) bar.style.display = val ? 'flex' : 'none';
+    if (val && curLat) fetchWeather(curLat, curLng);
+    showToast(val ? '🌤️ Weather alerts ON' : '🌤️ Weather alerts OFF');
+  }
+
+  if (key === 'night') {
+    nightManual = val ? 'on' : 'off';
+    applyNightMode(val);
+    lsSet('sg_night', nightManual);
+    showToast(val ? '🌙 Night mode ON' : '☀️ Day mode ON');
+  }
+}
+
+function changeNickname() {
+  closeSettings();
+  var n = prompt('Enter new driver name:', myNickname || '');
+  if (n && n.trim()) {
+    myNickname = n.trim();
+    lsSet('sg_nick', myNickname);
+    showToast('✅ Name updated: ' + myNickname);
+  }
+}
+
 // ═══════════════════════════════════════════
 // STARTUP
 // ═══════════════════════════════════════════
@@ -1682,5 +1858,120 @@ function fetchWeatherInitial() {
   }
 })();
 </script>
+
+<!-- SETTINGS PANEL -->
+<div id="settings-panel">
+  <div class="sp-hdr">
+    <div class="sp-hdr-title">⚙️ Settings</div>
+    <button class="sp-close" onclick="closeSettings()">✕</button>
+  </div>
+
+  <!-- MAP LAYERS -->
+  <div class="sp-section">
+    <div class="sp-section-label">Map Layers</div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">⛽ Fuel Stations</div>
+        <div class="sp-row-desc">Show petrol stations on the map</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-fuel" checked onchange="settingChanged('fuel',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">🚔 Speed Trap Markers</div>
+        <div class="sp-row-desc">Show speed trap icons on the map</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-traps" checked onchange="settingChanged('traps',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">👥 Live Drivers</div>
+        <div class="sp-row-desc">Show other drivers on the map</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-live" checked onchange="settingChanged('live',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- ALERTS & AUDIO -->
+  <div class="sp-section">
+    <div class="sp-section-label">Alerts & Audio</div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">🔊 Voice Alerts</div>
+        <div class="sp-row-desc">Speak trap warnings out loud</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-audio" checked onchange="settingChanged('audio',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">🌤️ Weather Alerts</div>
+        <div class="sp-row-desc">Show weather conditions along M1</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-weather" checked onchange="settingChanged('weather',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">🌙 Night Mode</div>
+        <div class="sp-row-desc">Auto-detect sunset / force dark display</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-night" onchange="settingChanged('night',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <!-- EMERGENCY CONTACT -->
+  <div class="sp-section">
+    <div class="sp-section-label">Emergency SOS</div>
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label" id="sp-sos-name">No contact saved</div>
+        <div class="sp-row-desc" id="sp-sos-num">Tap to set up emergency contact</div>
+      </div>
+      <span class="sp-link" onclick="closeSettings();openSosSettings()">Edit</span>
+    </div>
+  </div>
+
+  <!-- DRIVER -->
+  <div class="sp-section">
+    <div class="sp-section-label">Driver Profile</div>
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label" id="sp-nick-display">--</div>
+        <div class="sp-row-desc">Your nickname shown to other drivers</div>
+      </div>
+      <span class="sp-link" onclick="changeNickname()">Change</span>
+    </div>
+  </div>
+
+  <!-- VERSION -->
+  <div style="padding:16px 18px;font-size:11px;color:rgba(255,255,255,.2);text-align:center;margin-top:auto">
+    SpeedGuard Malawi v2.0 · M1 Road<br>
+    Built for Malawi 🇲🇼
+  </div>
+</div>
+
 </body>
 </html>
