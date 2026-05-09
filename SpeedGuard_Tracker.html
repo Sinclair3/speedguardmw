@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpeedGuard Malawi — Feature Tracker</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#0a0f14;color:#fff;min-height:100vh;padding:0 0 60px}
+
+header{background:linear-gradient(135deg,#0a1a0f,#0e2318);border-bottom:1px solid rgba(39,174,96,.2);padding:28px 24px 22px;text-align:center}
+.flag-svg{margin-bottom:12px;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+h1{font-size:22px;font-weight:800;letter-spacing:-.3px;margin-bottom:4px}
+h1 span{color:#27ae60}
+.tagline{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:20px;line-height:1.5}
+
+.scan-status{display:inline-flex;align-items:center;gap:7px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:6px 14px;font-size:12px;color:rgba(255,255,255,.5);margin-bottom:16px}
+.scan-dot{width:7px;height:7px;border-radius:50%;background:#333;flex-shrink:0}
+.scan-dot.ok{background:#27ae60}
+.scan-dot.fail{background:#e74c3c}
+.scan-dot.scanning{background:#f39c12;animation:bk .8s infinite}
+@keyframes bk{0%,100%{opacity:1}50%{opacity:.2}}
+
+.progress-wrap{background:rgba(255,255,255,.06);border-radius:20px;height:10px;margin:0 auto 8px;max-width:400px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,#27ae60,#f39c12);border-radius:20px;transition:width .6s}
+.progress-label{font-size:12px;color:rgba(255,255,255,.45);text-align:center}
+.progress-counts{display:flex;justify-content:center;gap:20px;margin-top:14px;flex-wrap:wrap}
+.pcount{text-align:center}
+.pcount-num{font-size:22px;font-weight:800;margin-bottom:2px}
+.pcount-lbl{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.06em}
+
+.main{max-width:900px;margin:0 auto;padding:20px 16px}
+
+.filter-bar{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.filter-bar::-webkit-scrollbar{display:none}
+.f-tab{flex-shrink:0;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid;transition:all .2s}
+.f-tab.active{background:#27ae60;border-color:#27ae60;color:#fff}
+.f-tab:not(.active){background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:rgba(255,255,255,.55)}
+.f-tab:not(.active):hover{border-color:rgba(255,255,255,.25);color:#fff}
+
+.phase-block{margin-bottom:28px}
+.phase-header{display:flex;align-items:center;gap:10px;margin-bottom:12px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.07)}
+.phase-num{width:28px;height:28px;border-radius:50%;background:rgba(39,174,96,.2);border:1.5px solid rgba(39,174,96,.4);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:#27ae60;flex-shrink:0}
+.phase-title{font-size:15px;font-weight:700;flex:1}
+.phase-progress{font-size:11px;color:rgba(255,255,255,.4);font-weight:500}
+.phase-bar{height:3px;background:rgba(255,255,255,.07);border-radius:2px;margin-bottom:10px;overflow:hidden}
+.phase-bar-fill{height:100%;background:#27ae60;border-radius:2px;transition:width .4s}
+
+.feature-card{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:14px;padding:14px 16px;margin-bottom:10px;
+  transition:all .2s;cursor:pointer;position:relative;overflow:hidden;
+}
+.feature-card:hover{border-color:rgba(255,255,255,.18);background:rgba(255,255,255,.07)}
+.feature-card.done{background:rgba(39,174,96,.07);border-color:rgba(39,174,96,.25)}
+.feature-card.done:hover{background:rgba(39,174,96,.11)}
+.feature-card.auto-detected{border-color:rgba(39,174,96,.4)}
+
+.feature-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;border-radius:14px 0 0 14px;background:rgba(255,255,255,.08);transition:background .2s}
+.feature-card.done::before{background:#27ae60}
+.feature-card.impact-critical:not(.done)::before{background:#e74c3c}
+.feature-card.impact-high:not(.done)::before{background:#f39c12}
+
+.card-main{display:flex;align-items:flex-start;gap:12px}
+.card-check{width:22px;height:22px;border-radius:6px;border:2px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .2s;background:rgba(255,255,255,.04)}
+.feature-card.done .card-check{background:#27ae60;border-color:#27ae60}
+.card-check-icon{font-size:12px;display:none}
+.feature-card.done .card-check-icon{display:block}
+.card-body{flex:1;min-width:0}
+.card-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+.card-num{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);background:rgba(255,255,255,.06);padding:2px 6px;border-radius:6px}
+.card-name{font-size:14px;font-weight:700}
+.feature-card.done .card-name{color:rgba(255,255,255,.55);text-decoration:line-through;text-decoration-color:rgba(39,174,96,.5)}
+.card-desc{font-size:12px;color:rgba(255,255,255,.45);line-height:1.6;margin-bottom:8px}
+.card-meta{display:flex;gap:7px;flex-wrap:wrap;align-items:center}
+.badge{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:3px 8px;border-radius:8px}
+.badge-cat-safety{background:rgba(231,76,60,.15);color:#ff8a7a;border:1px solid rgba(231,76,60,.2)}
+.badge-cat-navigation{background:rgba(41,128,185,.15);color:#7fb3d3;border:1px solid rgba(41,128,185,.2)}
+.badge-cat-community{background:rgba(108,52,131,.15);color:#d2a8f5;border:1px solid rgba(108,52,131,.2)}
+.badge-cat-technical{background:rgba(17,122,101,.15);color:#76d7c4;border:1px solid rgba(17,122,101,.2)}
+.badge-cat-trust{background:rgba(211,84,0,.15);color:#f0a26a;border:1px solid rgba(211,84,0,.2)}
+.badge-effort{background:rgba(255,255,255,.07);color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1)}
+.badge-impact-critical{background:rgba(231,76,60,.15);color:#ff7a7a;border:1px solid rgba(231,76,60,.3)}
+.badge-impact-high{background:rgba(243,156,18,.12);color:#f8c060;border:1px solid rgba(243,156,18,.25)}
+.badge-impact-medium{background:rgba(39,174,96,.1);color:#5ddb8a;border:1px solid rgba(39,174,96,.2)}
+.badge-auto{background:rgba(39,174,96,.2);color:#5ddb8a;border:1px solid rgba(39,174,96,.4);font-size:10px}
+.badge-manual{background:rgba(255,255,255,.07);color:rgba(255,255,255,.45);border:1px solid rgba(255,255,255,.1);font-size:10px}
+
+.card-note{font-size:11px;background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.2);border-radius:8px;padding:5px 9px;margin-top:8px;color:#5ddb8a;line-height:1.5}
+.card-done-stamp{font-size:11px;font-weight:600;margin-top:7px;display:none;align-items:center;gap:5px}
+.feature-card.done .card-done-stamp{display:flex}
+.done-stamp-auto{color:#27ae60}
+.done-stamp-manual{color:rgba(255,255,255,.4)}
+
+.info-box{background:rgba(41,128,185,.08);border:1px solid rgba(41,128,185,.2);border-radius:12px;padding:13px 16px;margin-bottom:20px;font-size:12px;color:rgba(255,255,255,.6);line-height:1.7}
+.info-box b{color:#7fb3d3}
+
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a2530;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:9px 18px;font-size:12px;font-weight:600;color:#fff;z-index:999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+</style>
+</head>
+<body>
+
+<header>
+  <svg class="flag-svg" width="60" height="40" viewBox="0 0 60 40" xmlns="http://www.w3.org/2000/svg">
+    <rect width="60" height="13.3" fill="#000"/>
+    <rect y="13.3" width="60" height="13.3" fill="#d21034"/>
+    <rect y="26.6" width="60" height="13.4" fill="#339e35"/>
+    <g transform="translate(30,6.65)" fill="#d21034">
+      <circle r="4"/>
+      <line x1="0" y1="-5.2" x2="0" y2="-8" stroke="#d21034" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="0" y1="5.2" x2="0" y2="8" stroke="#d21034" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="5.2" y1="0" x2="8" y2="0" stroke="#d21034" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="-5.2" y1="0" x2="-8" y2="0" stroke="#d21034" stroke-width="1.3" stroke-linecap="round"/>
+      <line x1="3.7" y1="-3.7" x2="5.7" y2="-5.7" stroke="#d21034" stroke-width="1.1" stroke-linecap="round"/>
+      <line x1="-3.7" y1="-3.7" x2="-5.7" y2="-5.7" stroke="#d21034" stroke-width="1.1" stroke-linecap="round"/>
+      <line x1="3.7" y1="3.7" x2="5.7" y2="5.7" stroke="#d21034" stroke-width="1.1" stroke-linecap="round"/>
+      <line x1="-3.7" y1="3.7" x2="-5.7" y2="5.7" stroke="#d21034" stroke-width="1.1" stroke-linecap="round"/>
+      <line x1="2" y1="-5" x2="2.9" y2="-7.7" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
+      <line x1="-2" y1="-5" x2="-2.9" y2="-7.7" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
+      <line x1="5" y1="-2" x2="7.7" y2="-2.9" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
+      <line x1="5" y1="2" x2="7.7" y2="2.9" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
+      <line x1="-5" y1="-2" x2="-7.7" y2="-2.9" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
+      <line x1="-5" y1="2" x2="-7.7" y2="2.9" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
+      <line x1="2" y1="5" x2="2.9" y2="7.7" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
+      <line x1="-2" y1="5" x2="-2.9" y2="7.7" stroke="#d21034" stroke-width="1" stroke-linecap="round"/>
+    </g>
+  </svg>
+  <h1>SpeedGuard <span>Malawi</span> — Feature Tracker</h1>
+  <p class="tagline">M1 Road Safety App · Project Roadmap & Implementation Checklist<br>Built for Malawi 🇲🇼 · Auto-detects features from the live app</p>
+
+  <div class="scan-status">
+    <div class="scan-dot scanning" id="scan-dot"></div>
+    <span id="scan-label">Scanning live app for features...</span>
+  </div>
+
+  <div class="progress-wrap"><div class="progress-fill" id="total-bar" style="width:0%"></div></div>
+  <div class="progress-label" id="total-label">Scanning...</div>
+  <div class="progress-counts">
+    <div class="pcount"><div class="pcount-num" id="cnt-done" style="color:#27ae60">0</div><div class="pcount-lbl">Done</div></div>
+    <div class="pcount"><div class="pcount-num" id="cnt-auto" style="color:#5ddb8a">0</div><div class="pcount-lbl">Auto-detected</div></div>
+    <div class="pcount"><div class="pcount-num" id="cnt-remain" style="color:rgba(255,255,255,.4)">0</div><div class="pcount-lbl">Remaining</div></div>
+    <div class="pcount"><div class="pcount-num" id="cnt-critical" style="color:#e74c3c">0</div><div class="pcount-lbl">Critical Left</div></div>
+  </div>
+</header>
+
+<div class="main">
+
+  <div class="info-box">
+    <b>🤖 Auto-detection:</b> This tracker fetches <code>index.html</code> from the same repository and scans it for code signatures that prove each feature is built. Features detected automatically show a <b>✅ Auto-detected</b> badge. You can also manually tick features — your manual overrides are saved in your browser.
+  </div>
+
+  <div class="filter-bar">
+    <div class="f-tab active" onclick="setFilter('all',this)">All (17)</div>
+    <div class="f-tab" onclick="setFilter('todo',this)">⬜ To Do</div>
+    <div class="f-tab" onclick="setFilter('done',this)">✅ Done</div>
+    <div class="f-tab" onclick="setFilter('auto',this)">🤖 Auto-detected</div>
+    <div class="f-tab" onclick="setFilter('critical',this)">🔴 Critical</div>
+    <div class="f-tab" onclick="setFilter('safety',this)">🚨 Safety</div>
+    <div class="f-tab" onclick="setFilter('navigation',this)">🗺️ Navigation</div>
+    <div class="f-tab" onclick="setFilter('community',this)">👥 Community</div>
+    <div class="f-tab" onclick="setFilter('technical',this)">🔧 Technical</div>
+    <div class="f-tab" onclick="setFilter('trust',this)">🔐 Trust</div>
+  </div>
+
+  <div id="cards-container"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ─────────────────────────────────────────────────────
+// FEATURE DEFINITIONS
+// Each feature has a `detect` array — these are unique
+// code strings that ONLY exist in index.html if that
+// feature has been implemented. If ALL strings in the
+// array are found in the app source, the feature is
+// auto-detected as done.
+// ─────────────────────────────────────────────────────
+const FEATURES = [
+  {
+    id:1, num:'#1', name:'Audio Alerts', phase:1, phaseLabel:'Phase 1 — Safety Essentials',
+    category:'safety', effort:'Low', impact:'critical',
+    desc:'Text-to-speech voice announces trap warnings out loud so the driver never looks at the screen. Fires at warning (400m) and danger (150m) thresholds. Uses Web Speech API — zero libraries.',
+    detect:['speechSynthesis','triggerAudio','function speak(','toggleAudio'],
+  },
+  {
+    id:2, num:'#2', name:'Speed Limit Auto-Warning', phase:1, phaseLabel:'Phase 1 — Safety Essentials',
+    category:'safety', effort:'Low', impact:'critical',
+    desc:'Continuously compares your speed against the posted limit for the current zone — even when no trap is nearby. A gentle beep and banner fire the moment you exceed the limit anywhere on the M1.',
+    detect:['autoWarning','speedAutoWarn','auto-warn','function checkSpeedLimit'],
+  },
+  {
+    id:3, num:'#3', name:'Distracted Driving Lock', phase:1, phaseLabel:'Phase 1 — Safety Essentials',
+    category:'safety', effort:'Low', impact:'high',
+    desc:'When speed exceeds 30 km/h the app locks into minimal driving mode — only the speed circle and alert banner visible. All buttons hidden. The phone becomes a dashboard, not an interactive app.',
+    detect:['drivingLock','driving-lock','function enableDrivingMode','lockScreen'],
+  },
+  {
+    id:13, num:'#13', name:'Progressive Web App (PWA)', phase:1, phaseLabel:'Phase 1 — Safety Essentials',
+    category:'technical', effort:'Low', impact:'high',
+    desc:'Web app manifest so the app looks like a native app when added to the home screen. Full-screen, proper icon, no browser bar. About 15 lines of code.',
+    detect:['rel="manifest"','manifest.json','serviceWorker','start_url'],
+  },
+  {
+    id:14, num:'#14', name:'Smooth Speed Calculation', phase:1, phaseLabel:'Phase 1 — Safety Essentials',
+    category:'technical', effort:'Low', impact:'medium',
+    desc:'Rolling 5-reading average replaces single-point GPS speed. Eliminates jumpy speed display. Makes the speed ring feel reliable.',
+    detect:['speedBuffer','rollingAvg','speedHistory','smoothSpeed'],
+  },
+  {
+    id:12, num:'#12', name:'Offline Mode', phase:2, phaseLabel:'Phase 2 — Resilience & Coverage',
+    category:'technical', effort:'Medium', impact:'critical',
+    desc:'Cache all trap data, road waypoints, and map tiles when internet is available. GPS tracking, speed alerts, and trap warnings all work without any connection.',
+    detect:['serviceWorker','caches.open','cache.addAll','workbox'],
+  },
+  {
+    id:5, num:'#5', name:'Road Condition Reports', phase:2, phaseLabel:'Phase 2 — Resilience & Coverage',
+    category:'navigation', effort:'Medium', impact:'high',
+    desc:'Report potholes, accidents, animals on road, flooding, fallen trees, broken-down vehicles. Each type has its own icon and expiry time.',
+    detect:['pothole','road-condition','condition-type','roadReport'],
+  },
+  {
+    id:7, num:'#7', name:'Weather Alerts', phase:2, phaseLabel:'Phase 2 — Resilience & Coverage',
+    category:'navigation', effort:'Medium', impact:'high',
+    desc:'Integrate OpenWeatherMap (free API) to show live conditions for key M1 points. Alert drivers to heavy rain, fog, and storms — especially the Ntcheu escarpment.',
+    detect:['openweathermap','weatherAlert','weather-icon','fetchWeather'],
+  },
+  {
+    id:8, num:'#8', name:'Night Mode Auto-Detection', phase:2, phaseLabel:'Phase 2 — Resilience & Coverage',
+    category:'navigation', effort:'Low', impact:'medium',
+    desc:'Detects sunset/sunrise from GPS latitude. Switches to a dim red-tinted scheme after dark. Manual toggle also available for drivers who prefer dark mode all the time.',
+    detect:['nightMode','night-mode','getSunset','toggleNightMode'],
+  },
+  {
+    id:6, num:'#6', name:'Fuel Stations & Rest Stop Markers', phase:2, phaseLabel:'Phase 2 — Resilience & Coverage',
+    category:'navigation', effort:'Low', impact:'medium',
+    desc:'Static markers for petrol stations, rest stops, lodges, and restaurants along the M1. Tap to see name and distance.',
+    detect:['fuelStation','fuel-station','restStop','petrol-marker'],
+  },
+  {
+    id:4, num:'#4', name:'Emergency SOS Button', phase:3, phaseLabel:'Phase 3 — Community & Trust',
+    category:'safety', effort:'Medium', impact:'critical',
+    desc:'Hold for 3 seconds to send GPS coordinates to a saved contact via WhatsApp. Includes Google Maps link, speed at time of alert, nearest checkpoint. Voice confirmation after sending.',
+    detect:['sosPressStart','fireSOS','sos-overlay','wa.me'],
+  },
+  {
+    id:15, num:'#15', name:'Trap Photo Evidence', phase:3, phaseLabel:'Phase 3 — Community & Trust',
+    category:'trust', effort:'Medium', impact:'high',
+    desc:'Attach a photo when reporting a trap. Photo evidence raises credibility — needs only 1 confirmation instead of 3. Stored in Supabase Storage.',
+    detect:['trapPhoto','photo-evidence','supabase.storage','camera-input'],
+  },
+  {
+    id:9, num:'#9', name:'Driver Road Chat', phase:3, phaseLabel:'Phase 3 — Community & Trust',
+    category:'community', effort:'Medium', impact:'high',
+    desc:'Real-time text channel for all M1 drivers. Messages expire after 2 hours. Extends the existing Supabase Realtime broadcast system.',
+    detect:['roadChat','chat-panel','sendChatMessage','chat-input'],
+  },
+  {
+    id:16, num:'#16', name:'Abuse Reporting & User Flagging', phase:3, phaseLabel:'Phase 3 — Community & Trust',
+    category:'trust', effort:'Medium', impact:'high',
+    desc:'Flag users for fake traps or offensive names. After 3 flags in 24 hours, user blocked from reporting. Community self-moderation.',
+    detect:['flagUser','abuse-report','user-flag','reportAbuse'],
+  },
+  {
+    id:17, num:'#17', name:'Admin Dashboard', phase:3, phaseLabel:'Phase 3 — Community & Trust',
+    category:'trust', effort:'High', impact:'medium',
+    desc:'Password-protected page to approve/remove traps, ban users, push announcements, and view usage stats.',
+    detect:['adminDashboard','admin-panel','admin-password','adminAuth'],
+  },
+  {
+    id:10, num:'#10', name:'Trip History & Journey Log', phase:4, phaseLabel:'Phase 4 — Engagement & Retention',
+    category:'community', effort:'Medium', impact:'medium',
+    desc:'Save a journey summary after each trip: date, distance, average speed, max speed, traps passed, time taken.',
+    detect:['tripHistory','journey-log','saveTripLog','tripSummary'],
+  },
+  {
+    id:11, num:'#11', name:'Safe Driver Score & Badges', phase:4, phaseLabel:'Phase 4 — Engagement & Retention',
+    category:'community', effort:'Medium', impact:'medium',
+    desc:'Safety score based on speed limit compliance. Good scorers earn visible badges on their map marker.',
+    detect:['driverScore','safetyScore','driver-badge','calcScore'],
+  },
+];
+
+const CAT_LABELS   = {safety:'🚨 Safety',navigation:'🗺️ Navigation',community:'👥 Community',technical:'🔧 Technical',trust:'🔐 Trust & Safety'};
+const IMPACT_LABELS= {critical:'🔴 Critical',high:'🟠 High',medium:'🟡 Medium'};
+const IMPACT_BADGE = {critical:'badge-impact-critical',high:'badge-impact-high',medium:'badge-impact-medium'};
+
+// State
+let manualDone   = JSON.parse(localStorage.getItem('sg_tracker_manual') || '{}');
+let autoDone     = {};   // filled after scanning
+let appSource    = '';   // raw text of index.html
+let scanComplete = false;
+let currentFilter= 'all';
+
+// ─────────────────────────────────────────────────────
+// SCAN index.html for feature signatures
+// ─────────────────────────────────────────────────────
+async function scanApp(){
+  const dot   = document.getElementById('scan-dot');
+  const label = document.getElementById('scan-label');
+  dot.className = 'scan-dot scanning';
+  label.textContent = 'Scanning live app for features...';
+
+  try {
+    // Fetch index.html from same origin (works on GitHub Pages)
+    const res = await fetch('index.html?v=' + Date.now(), {cache:'no-store'});
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    appSource = await res.text();
+
+    // Detect each feature
+    FEATURES.forEach(f => {
+      if(!f.detect || f.detect.length === 0) return;
+      // ALL signatures must be present for auto-detection
+      const found = f.detect.every(sig => appSource.includes(sig));
+      if(found) autoDone[f.id] = true;
+    });
+
+    const autoCount = Object.keys(autoDone).length;
+    dot.className = 'scan-dot ok';
+    label.textContent = 'Scan complete — ' + autoCount + ' feature' + (autoCount!==1?'s':'') + ' auto-detected in index.html';
+    scanComplete = true;
+  } catch(e) {
+    dot.className = 'scan-dot fail';
+    label.textContent = 'Could not scan index.html — using manual ticks only';
+    console.warn('Scan error:', e.message);
+    scanComplete = true;
+  }
+  render();
+}
+
+// ─────────────────────────────────────────────────────
+// Check if a feature is done (auto OR manual)
+// ─────────────────────────────────────────────────────
+function isDone(f)    { return !!autoDone[f.id] || !!manualDone[f.id]; }
+function isAuto(f)    { return !!autoDone[f.id]; }
+function isManual(f)  { return !!manualDone[f.id] && !autoDone[f.id]; }
+
+// ─────────────────────────────────────────────────────
+// RENDER
+// ─────────────────────────────────────────────────────
+function render(){
+  updateStats();
+  const container = document.getElementById('cards-container');
+  container.innerHTML = '';
+
+  const filtered = FEATURES.filter(f => {
+    if(currentFilter==='all')       return true;
+    if(currentFilter==='done')      return isDone(f);
+    if(currentFilter==='todo')      return !isDone(f);
+    if(currentFilter==='auto')      return isAuto(f);
+    if(currentFilter==='critical')  return f.impact==='critical' && !isDone(f);
+    return f.category === currentFilter;
+  });
+
+  const phases = {};
+  filtered.forEach(f => {
+    if(!phases[f.phase]) phases[f.phase] = {label:f.phaseLabel, features:[]};
+    phases[f.phase].features.push(f);
+  });
+
+  Object.keys(phases).sort().forEach(ph => {
+    const block   = phases[ph];
+    const phTotal = FEATURES.filter(f => f.phase==ph).length;
+    const phDone  = FEATURES.filter(f => f.phase==ph && isDone(f)).length;
+    const pct     = phTotal ? Math.round(phDone/phTotal*100) : 0;
+
+    const section = document.createElement('div');
+    section.className = 'phase-block';
+    section.innerHTML = `
+      <div class="phase-header">
+        <div class="phase-num">${ph}</div>
+        <div class="phase-title">${block.label}</div>
+        <div class="phase-progress">${phDone}/${phTotal} done</div>
+      </div>
+      <div class="phase-bar"><div class="phase-bar-fill" style="width:${pct}%"></div></div>
+    `;
+
+    block.features.forEach(f => {
+      const done2 = isDone(f);
+      const auto  = isAuto(f);
+      const card  = document.createElement('div');
+      card.className = `feature-card${done2?' done':''} impact-${f.impact}${auto?' auto-detected':''}`;
+
+      const doneStamp = done2
+        ? (auto
+          ? `<div class="card-done-stamp"><span class="done-stamp-auto">✅ Auto-detected in index.html</span></div>`
+          : `<div class="card-done-stamp"><span class="done-stamp-manual">☑️ Manually marked as done</span></div>`)
+        : '';
+
+      const detectBadge = auto
+        ? `<span class="badge badge-auto">🤖 Auto-detected</span>`
+        : (done2 ? `<span class="badge badge-manual">☑️ Manual</span>` : '');
+
+      card.innerHTML = `
+        <div class="card-main">
+          <div class="card-check"><span class="card-check-icon">✓</span></div>
+          <div class="card-body">
+            <div class="card-top">
+              <span class="card-num">${f.num}</span>
+              <span class="card-name">${f.name}</span>
+            </div>
+            <div class="card-desc">${f.desc}</div>
+            <div class="card-meta">
+              <span class="badge badge-cat-${f.category}">${CAT_LABELS[f.category]}</span>
+              <span class="badge badge-effort">⚒ ${f.effort}</span>
+              <span class="badge ${IMPACT_BADGE[f.impact]}">${IMPACT_LABELS[f.impact]}</span>
+              ${detectBadge}
+            </div>
+            ${doneStamp}
+          </div>
+        </div>
+      `;
+
+      card.addEventListener('click', () => toggleManual(f, done2, auto));
+      section.appendChild(card);
+    });
+
+    if(block.features.length===0){
+      const empty = document.createElement('div');
+      empty.style.cssText='text-align:center;padding:20px;color:rgba(255,255,255,.3);font-size:13px';
+      empty.textContent = '🎉 Nothing here — all features in this filter are done!';
+      section.appendChild(empty);
+    }
+    container.appendChild(section);
+  });
+
+  if(Object.keys(phases).length===0){
+    container.innerHTML='<div style="text-align:center;padding:40px;color:rgba(255,255,255,.3);font-size:14px">No features match this filter.</div>';
+  }
+}
+
+function updateStats(){
+  const total    = FEATURES.length;
+  const doneList = FEATURES.filter(f => isDone(f));
+  const autoList = FEATURES.filter(f => isAuto(f));
+  const remain   = total - doneList.length;
+  const critical = FEATURES.filter(f => f.impact==='critical' && !isDone(f)).length;
+  const pct      = Math.round(doneList.length/total*100);
+
+  document.getElementById('total-bar').style.width    = pct+'%';
+  document.getElementById('total-label').textContent  = pct+'% complete — '+doneList.length+' of '+total+' features built';
+  document.getElementById('cnt-done').textContent     = doneList.length;
+  document.getElementById('cnt-auto').textContent     = autoList.length;
+  document.getElementById('cnt-remain').textContent   = remain;
+  document.getElementById('cnt-critical').textContent = critical;
+}
+
+function toggleManual(f, wasDone, isAutoDetected){
+  if(isAutoDetected){
+    // Auto-detected — can't manually untick, app code drives this
+    showToast('🤖 Auto-detected from index.html — remove code to untick.');
+    return;
+  }
+  if(manualDone[f.id]){
+    delete manualDone[f.id];
+    showToast('⬜ "'+f.name+'" unmarked.');
+  } else {
+    manualDone[f.id] = true;
+    showToast('✅ "'+f.name+'" manually marked as done!');
+  }
+  localStorage.setItem('sg_tracker_manual', JSON.stringify(manualDone));
+  render();
+}
+
+function setFilter(filter, el){
+  currentFilter = filter;
+  document.querySelectorAll('.f-tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  render();
+}
+
+let toastTimer=null;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  if(toastTimer)clearTimeout(toastTimer);
+  toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
+}
+
+// Start
+render();    // show skeleton immediately
+scanApp();   // then scan and update
+</script>
+</body>
+</html>
