@@ -1199,6 +1199,7 @@ function launchApp(){
   startNightAutoCheck();
   addFuelMarkers();
   fetchWeatherInitial();
+  logSession();
   initRealtime();
   loadCommunityTraps();
 }
@@ -1838,6 +1839,31 @@ function changeNickname() {
     lsSet('sg_nick', myNickname);
     showToast('✅ Name updated: ' + myNickname);
   }
+}
+
+
+// ═══════════════════════════════════════════════════════
+// SESSION LOGGING — anonymous usage tracking
+// Logs one record to sg_sessions per device per day.
+// No personal data — just device ID hash, nickname (optional),
+// date and platform. Think of it like a website page-view counter.
+// ═══════════════════════════════════════════════════════
+function logSession() {
+  // Only log once per 24 hours per device
+  var lastLog = parseInt(lsGet('sg_last_log') || '0');
+  if (Date.now() - lastLog < 24 * 60 * 60 * 1000) return;
+  var ua = navigator.userAgent || '';
+  var platform = /iPhone|iPad/.test(ua) ? 'iOS'
+    : /Android/.test(ua) ? 'Android'
+    : /Windows/.test(ua) ? 'Windows' : 'Other';
+  supaFetch('sg_sessions', 'POST', {
+    device_id: myId,
+    nickname: myNickname || 'Anonymous',
+    platform: platform,
+    app_version: '2.0'
+  }).then(function(r) {
+    if (r && r[0]) lsSet('sg_last_log', Date.now().toString());
+  }).catch(function(){});
 }
 
 // ═══════════════════════════════════════════
