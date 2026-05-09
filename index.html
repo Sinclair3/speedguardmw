@@ -181,6 +181,40 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 /* VOTE MODAL */
 #vote-mo .mc{border-top:3px solid #f39c12}
 
+
+/* ── WEATHER ALERTS ── */
+#weather-bar{
+  position:fixed;z-index:998;left:10px;right:10px;
+  border-radius:13px;padding:9px 13px;
+  display:none;align-items:center;gap:9px;
+  font-size:12px;font-weight:600;
+  border:1px solid;box-shadow:0 3px 16px rgba(0,0,0,.4);
+  transition:all .3s;
+}
+.wb-icon{font-size:18px;flex-shrink:0}
+.wb-text{flex:1;line-height:1.4}
+.wb-loc{font-size:10px;opacity:.65;margin-top:1px}
+.wb-dismiss{background:none;border:none;color:inherit;font-size:14px;cursor:pointer;opacity:.6;padding:0 2px;flex-shrink:0}
+/* severity colours */
+.wb-clear{background:rgba(14,40,20,.95);border-color:rgba(39,174,96,.4);color:#5ddb8a}
+.wb-watch{background:rgba(40,30,5,.95);border-color:rgba(243,156,18,.5);color:#f8c060}
+.wb-warn{background:rgba(42,10,10,.95);border-color:rgba(231,76,60,.6);color:#ff8a8a}
+.wb-fog {background:rgba(20,20,30,.95);border-color:rgba(150,150,200,.4);color:#b0b8d0}
+
+/* Weather widget in live panel header area */
+.weather-widget{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 14px;background:rgba(255,255,255,.04);
+  border-bottom:1px solid rgba(255,255,255,.06);
+  font-size:12px;color:rgba(255,255,255,.6);cursor:pointer;
+}
+.weather-widget:active{background:rgba(255,255,255,.08)}
+.ww-ico{font-size:20px}
+.ww-info{flex:1}
+.ww-temp{font-size:14px;font-weight:700;color:#fff}
+.ww-desc{font-size:11px;color:rgba(255,255,255,.45)}
+.ww-refresh{font-size:10px;color:rgba(255,255,255,.25);flex-shrink:0}
+
 /* ── FUEL STATIONS ── */
 .fuel-chip{
   flex-shrink:0;background:rgba(243,156,18,.07);
@@ -362,6 +396,8 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
       &nbsp;·&nbsp;
       <span class="dot live" id="live-dot" style="display:none"></span>
       <span id="live-lbl">0 online</span>
+      &nbsp;·&nbsp;
+      <span id="wx-hdr" style="display:none">🌤️ <span id="wx-temp">--</span>°C</span>
     </div>
   </div>
   <div class="hdr-btns">
@@ -376,6 +412,17 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 </div>
 
 <div id="map"></div>
+
+
+<!-- WEATHER ALERT BAR -->
+<div id="weather-bar" class="wb-clear">
+  <span class="wb-icon" id="wb-icon">🌤️</span>
+  <div class="wb-text">
+    <div id="wb-msg">Fetching weather along M1...</div>
+    <div class="wb-loc" id="wb-loc"></div>
+  </div>
+  <button class="wb-dismiss" onclick="dismissWeather()" title="Dismiss">✕</button>
+</div>
 
 <div id="alert" class="a-ok">
   <span class="aico" id="aico">📍</span>
@@ -935,6 +982,7 @@ function updateUI(lat,lng,spd){
     else if(s==='warn'){ab.className='a-warn';ai.textContent='⚠️';at.textContent='Trap in '+ds+' — '+near.name+'. Reduce to '+near.limit+' km/h.';}
     else{ab.className='a-ok';ai.textContent='✅';at.textContent='All clear — next: '+near.name+' in '+ds+'. Limit: '+near.limit+' km/h.';}
     triggerAudio(newStatus,near,ds,spdr);
+    positionWeatherBar();
   }
   var prog=Math.round(latProg(lat));
   document.getElementById('s-prg').textContent=prog+'%';
@@ -956,6 +1004,7 @@ function updateUI(lat,lng,spd){
   updateFuelMarkers(lat, lng);
   checkProximityVotes(lat,lng);
   nightCheckOnGPS();
+  weatherCheckOnGPS(lat,lng);
   broadcastPos(lat,lng,spd);
 }
 
@@ -1080,6 +1129,7 @@ function launchApp(){
   syncAudioBtn();
   startNightAutoCheck();
   addFuelMarkers();
+  fetchWeatherInitial();
   initRealtime();
   loadCommunityTraps();
 }
@@ -1410,6 +1460,208 @@ function nearestFuelChip(lat, lng) {
     if (fuelMarkers[nearest.id]) fuelMarkers[nearest.id].openPopup();
   };
   return ch;
+}
+
+
+// ═══════════════════════════════════════════════════════
+// WEATHER ALERTS — Open-Meteo API
+// Free, no API key, no registration — just a URL fetch.
+// Fetches weather for the driver's current GPS position.
+// Re-fetches every 15 minutes or when you move >10km.
+//
+// WMO weather codes → human-readable alerts:
+// Think of it like a hospital triage system —
+// green=clear, yellow=watch, red=warning.
+// ═══════════════════════════════════════════════════════
+var wxData         = null;   // last fetched weather
+var wxLastLat      = null;   // position of last fetch
+var wxLastLng      = null;
+var wxLastFetchAt  = 0;      // timestamp of last fetch
+var wxDismissed    = false;  // user dismissed current alert
+var WX_REFETCH_KM  = 10;     // refetch if moved >10km
+var WX_REFETCH_MIN = 15;     // refetch every 15 min
+
+// WMO code → { emoji, label, severity }
+// severity: 0=clear, 1=watch, 2=warn
+function wmoInfo(code) {
+  if (code === 0)              return {e:'☀️',  l:'Clear sky',            s:0};
+  if (code <= 2)               return {e:'⛅',  l:'Partly cloudy',        s:0};
+  if (code === 3)              return {e:'☁️',  l:'Overcast',             s:0};
+  if (code <= 49)              return {e:'🌫️', l:'Fog — reduced visibility', s:1};
+  if (code <= 55)              return {e:'🌦️', l:'Light drizzle',         s:0};
+  if (code <= 57)              return {e:'🌧️', l:'Freezing drizzle',      s:1};
+  if (code <= 61)              return {e:'🌧️', l:'Light rain',            s:0};
+  if (code <= 63)              return {e:'🌧️', l:'Moderate rain',         s:1};
+  if (code === 65)             return {e:'🌧️', l:'Heavy rain',            s:2};
+  if (code <= 67)              return {e:'🌨️', l:'Freezing rain',         s:2};
+  if (code <= 77)              return {e:'❄️',  l:'Snow / sleet',          s:2};
+  if (code <= 82)              return {e:'🌦️', l:'Rain showers',          s:1};
+  if (code <= 84)              return {e:'🌧️', l:'Heavy rain showers',    s:2};
+  if (code <= 86)              return {e:'❄️',  l:'Snow showers',          s:2};
+  if (code === 95)             return {e:'⛈️', l:'Thunderstorm',          s:2};
+  if (code >= 96)              return {e:'⛈️', l:'Thunderstorm with hail',s:2};
+  return {e:'🌤️', l:'Unknown', s:0};
+}
+
+// Severity class
+function wbClass(s) {
+  return ['wb-clear','wb-watch','wb-warn'][s] || 'wb-clear';
+}
+
+// Fetch weather from Open-Meteo (no key needed)
+function fetchWeather(lat, lng) {
+  var url = 'https://api.open-meteo.com/v1/forecast'
+    + '?latitude='  + lat.toFixed(4)
+    + '&longitude=' + lng.toFixed(4)
+    + '&current=temperature_2m,weathercode,windspeed_10m,precipitation,visibility'
+    + '&hourly=precipitation_probability,weathercode'
+    + '&forecast_hours=6'
+    + '&timezone=Africa%2FBlantyre'
+    + '&windspeed_unit=kmh';
+
+  fetch(url)
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      wxData        = d;
+      wxLastFetchAt = Date.now();
+      wxLastLat     = lat;
+      wxLastLng     = lng;
+      wxDismissed   = false;
+      processWeather(d, lat, lng);
+    })
+    .catch(function(e){
+      console.warn('Weather fetch failed:', e.message);
+    });
+}
+
+function processWeather(d, lat, lng) {
+  if (!d || !d.current) return;
+
+  var cur   = d.current;
+  var code  = cur.weathercode;
+  var temp  = Math.round(cur.temperature_2m);
+  var wind  = Math.round(cur.windspeed_10m);
+  var precip= cur.precipitation || 0;
+  var vis   = cur.visibility || 10000; // metres
+  var info  = wmoInfo(code);
+
+  // Check upcoming 6h for worst conditions
+  var worstCode = code, worstSev = info.s;
+  if (d.hourly && d.hourly.weathercode) {
+    d.hourly.weathercode.slice(0,6).forEach(function(hc){
+      var hi = wmoInfo(hc);
+      if (hi.s > worstSev){ worstCode = hc; worstSev = hi.s; }
+    });
+  }
+  var worstInfo = wmoInfo(worstCode);
+
+  // Build message
+  var msg = info.e + ' ' + info.l + ' · ' + temp + '°C · ' + wind + ' km/h wind';
+  var sev = info.s;
+
+  // Upgrade severity for specific M1 hazards
+  if (vis < 1000) {
+    sev = 2; msg = '🌫️ POOR VISIBILITY: ' + Math.round(vis) + 'm · Fog on road — slow down!';
+  } else if (vis < 3000) {
+    sev = Math.max(sev, 1);
+    msg = '🌫️ Reduced visibility (' + Math.round(vis/1000*10)/10 + ' km) · Drive carefully';
+  }
+  if (precip > 5) {
+    sev = 2; msg = '⛈️ HEAVY RAIN: ' + precip + 'mm · Slippery road conditions on M1!';
+  } else if (precip > 1) {
+    sev = Math.max(sev, 1);
+    msg = '🌧️ Rain (' + precip + 'mm) · Roads may be slippery. Reduce speed.';
+  }
+  // Warn about upcoming worse conditions
+  if (worstSev > info.s) {
+    msg += ' · ⚠️ ' + worstInfo.l + ' expected within 6 hours';
+    sev = Math.max(sev, worstSev);
+  }
+  // Ntcheu highlands fog warning (known foggy stretch)
+  if (lat >= -14.8 && lat <= -14.5 && (code >= 40 && code <= 49)) {
+    sev = 2; msg = '🌫️ HIGHLAND FOG near Ntcheu — Very dangerous! Slow to 30 km/h.';
+  }
+
+  // Location label — nearest M1 town
+  var locLabel = nearestTownLabel(lat);
+
+  // Update header temp
+  var wxHdr = document.getElementById('wx-hdr');
+  var wxTemp = document.getElementById('wx-temp');
+  if (wxHdr){ wxHdr.style.display='inline'; }
+  if (wxTemp){ wxTemp.textContent = temp; }
+
+  // Show/update weather bar
+  showWeatherBar(info.e, msg, locLabel, sev);
+
+  // Voice alert for severe conditions (sev 2 only)
+  if (sev === 2) {
+    speak(msg.replace(/[⛈️🌫️🌧️⚠️·]/g,'').trim(), 1.0);
+  }
+}
+
+function nearestTownLabel(lat) {
+  var towns = [
+    {lat:-13.97, name:'Lilongwe'},
+    {lat:-14.39, name:'Dedza'},
+    {lat:-14.68, name:'Ntcheu'},
+    {lat:-15.05, name:'Balaka'},
+    {lat:-15.11, name:'Liwonde Junction'},
+    {lat:-15.35, name:'Zomba Junction'},
+    {lat:-15.55, name:'Limbe'},
+    {lat:-15.67, name:'Blantyre'},
+  ];
+  var nearest = towns.reduce(function(prev, t){
+    return Math.abs(t.lat - lat) < Math.abs(prev.lat - lat) ? t : prev;
+  });
+  return 'Near ' + nearest.name;
+}
+
+function showWeatherBar(emoji, msg, loc, sev) {
+  if (wxDismissed && sev < 2) return; // don't re-show low-sev if dismissed
+  var bar = document.getElementById('weather-bar');
+  if (!bar) return;
+  bar.className = 'wb-' + ['clear','watch','warn'][sev];
+  document.getElementById('wb-icon').textContent = emoji;
+  document.getElementById('wb-msg').textContent  = msg;
+  document.getElementById('wb-loc').textContent  = loc || '';
+  bar.style.display = 'flex';
+  // Position below the alert banner
+  positionWeatherBar();
+}
+
+function positionWeatherBar() {
+  var alertEl = document.getElementById('alert');
+  if (!alertEl) return;
+  var bar = document.getElementById('weather-bar');
+  if (!bar) return;
+  var alertBottom = alertEl.style.display !== 'none'
+    ? (alertEl.offsetTop + alertEl.offsetHeight + 8)
+    : (parseInt(getComputedStyle(document.getElementById('hdr')).height||60) + 8);
+  bar.style.top = alertBottom + 'px';
+}
+
+function dismissWeather() {
+  wxDismissed = true;
+  var bar = document.getElementById('weather-bar');
+  if (bar) bar.style.display = 'none';
+}
+
+// Called from updateUI — smart refetch logic
+function weatherCheckOnGPS(lat, lng) {
+  var now = Date.now();
+  var movedFar = wxLastLat !== null && hav(wxLastLat, wxLastLng, lat, lng) > WX_REFETCH_KM;
+  var stale    = (now - wxLastFetchAt) > WX_REFETCH_MIN * 60 * 1000;
+  var firstTime = wxLastLat === null;
+  if (firstTime || movedFar || stale) {
+    fetchWeather(lat, lng);
+  }
+}
+
+// Initial fetch using M1 midpoint before GPS locks
+function fetchWeatherInitial() {
+  // Use Ntcheu lat/lng — the most weather-critical stretch
+  fetchWeather(-14.68, 34.38);
 }
 
 // ═══════════════════════════════════════════
