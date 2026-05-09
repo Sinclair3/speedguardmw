@@ -180,6 +180,59 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 #sg-toast{position:fixed;bottom:170px;left:50%;transform:translateX(-50%);background:#1a2530;border:1px solid rgba(255,255,255,.15);border-radius:20px;padding:9px 18px;font-size:12px;font-weight:600;color:#fff;z-index:3000;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;max-width:90vw;text-align:center}
 /* VOTE MODAL */
 #vote-mo .mc{border-top:3px solid #f39c12}
+
+/* ── FUEL STATIONS ── */
+.fuel-chip{
+  flex-shrink:0;background:rgba(243,156,18,.07);
+  border:1px solid rgba(243,156,18,.25);
+  border-radius:11px;padding:8px 11px;min-width:148px;cursor:pointer;
+}
+.fuel-chip:active{background:rgba(243,156,18,.14)}
+.fc-n{font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:136px;color:#f8c060}
+.fc-s{font-size:10px;color:rgba(255,255,255,.38);margin-top:1px}
+.fc-d{font-size:12px;font-weight:700;margin-top:3px;color:#f39c12}
+
+/* FUEL PANEL */
+#fuel-panel{
+  position:fixed;top:0;left:0;bottom:0;z-index:1100;
+  width:min(300px,92vw);
+  background:rgba(10,15,20,.97);
+  border-right:1px solid rgba(255,255,255,.07);
+  padding:env(safe-area-inset-top,20px) 0 env(safe-area-inset-bottom,10px);
+  display:none;flex-direction:column;
+  backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);
+}
+#fuel-panel.open{display:flex}
+.fp-hdr{
+  padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.07);
+  display:flex;align-items:center;justify-content:space-between;
+}
+.fp-title{font-size:15px;font-weight:700}
+.fp-sub{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
+.fp-x{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:14px;cursor:pointer}
+.fp-list{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.fcard{
+  background:rgba(243,156,18,.07);border:1px solid rgba(243,156,18,.2);
+  border-radius:12px;padding:12px 14px;cursor:pointer;transition:background .15s;
+}
+.fcard:active{background:rgba(243,156,18,.15)}
+.fcard-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px}
+.fcard-name{font-size:13px;font-weight:700;color:#f8c060}
+.fcard-dist{font-size:12px;font-weight:700;color:#f39c12}
+.fcard-brand{font-size:11px;color:rgba(255,255,255,.45);margin-bottom:2px}
+.fcard-km{font-size:11px;color:rgba(255,255,255,.3)}
+.fcard-types{display:flex;gap:5px;margin-top:5px;flex-wrap:wrap}
+.ftype{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.5)}
+.ftype.petrol{background:rgba(39,174,96,.15);color:#5ddb8a}
+.ftype.diesel{background:rgba(41,128,185,.15);color:#7fb3d3}
+.ftype.atm{background:rgba(243,156,18,.15);color:#f8c060}
+.btn-fuel{
+  padding:11px 12px;border-radius:11px;
+  background:rgba(243,156,18,.15);color:#f39c12;
+  border:1px solid rgba(243,156,18,.3);
+  font-size:13px;font-weight:700;cursor:pointer;
+}
+
 /* ── NIGHT MODE ── */
 body.night{background:#080c08}
 body.night #hdr{background:rgba(5,8,5,.97);border-bottom-color:rgba(255,100,100,.08)}
@@ -341,6 +394,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div class="btn-row">
     <button class="btn-gps" id="btn-gps" onclick="toggleGPS()">📍 Start GPS</button>
     <button class="btn-sm" onclick="openReport()">+ Trap</button>
+    <button class="btn-fuel" onclick="openFuel()" title="Fuel stations">⛽</button>
     <button class="btn-sm btn-live-hdr" onclick="openLive()" style="border-color:rgba(231,76,60,.28)">👥</button>
     <!-- SOS BUTTON — hold for 3 seconds to send -->
     <button class="btn-sos" id="btn-sos"
@@ -349,6 +403,23 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
       <div class="sos-ring" id="sos-ring"></div>
       🆘 SOS
     </button>
+  </div>
+</div>
+
+
+<!-- FUEL STATIONS PANEL -->
+<div id="fuel-panel">
+  <div class="fp-hdr">
+    <div>
+      <div class="fp-title">⛽ Fuel Stations — M1</div>
+      <div class="fp-sub" id="fp-sub">Sorted by distance from you</div>
+    </div>
+    <button class="fp-x" onclick="closeFuel()">✕</button>
+  </div>
+  <div class="fp-list" id="fp-list">
+    <div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">
+      Start GPS to see distances<br>to each fuel station.
+    </div>
   </div>
 </div>
 
@@ -879,6 +950,10 @@ function updateUI(lat,lng,spd){
     ch.onclick=function(){map.setView([t.lat,t.lng],14);if(trapMk[t.id])trapMk[t.id].openPopup();if(t.community&&!t.verified)setTimeout(function(){promptVote(t);},400);};
     el.appendChild(ch);
   });
+  // Add nearest fuel chip to bottom scroll
+  var fchip = nearestFuelChip(lat, lng);
+  if (fchip) el.appendChild(fchip);
+  updateFuelMarkers(lat, lng);
   checkProximityVotes(lat,lng);
   nightCheckOnGPS();
   broadcastPos(lat,lng,spd);
@@ -1004,6 +1079,7 @@ function launchApp(){
   setTimeout(function(){map.invalidateSize();map.fitBounds(road.getBounds(),{padding:[80,30]});},100);
   syncAudioBtn();
   startNightAutoCheck();
+  addFuelMarkers();
   initRealtime();
   loadCommunityTraps();
 }
@@ -1076,6 +1152,264 @@ function startNightAutoCheck() {
   nightCheckOnGPS();
   if (nightAutoTimer) clearInterval(nightAutoTimer);
   nightAutoTimer = setInterval(nightCheckOnGPS, 5 * 60 * 1000);
+}
+
+
+// ═══════════════════════════════════════════════════════
+// FUEL STATIONS — M1 Road, Lilongwe to Blantyre
+// Real stations confirmed from Petroda, Puma, Engen,
+// Total and local sources. Sorted by distance when GPS on.
+// ═══════════════════════════════════════════════════════
+var FUEL_STATIONS = [
+  // ── LILONGWE (city) ──
+  {
+    id:'f1', name:'Total Lilongwe — Area 18',
+    brand:'Total', lat:-14.012, lng:33.826, km:28,
+    types:['petrol','diesel','atm'],
+    note:'On M1 exit, just before Kalinyeke'
+  },
+  {
+    id:'f2', name:'Puma — Lilongwe City Centre',
+    brand:'Puma', lat:-13.980, lng:33.787, km:5,
+    types:['petrol','diesel'],
+    note:'City centre, near bus depot'
+  },
+  {
+    id:'f3', name:'Engen — Area 4 Lilongwe',
+    brand:'Engen', lat:-13.970, lng:33.790, km:3,
+    types:['petrol','diesel','atm'],
+    note:'Near Lilongwe Central Hospital'
+  },
+  {
+    id:'f4', name:'Petroda — Bunda Turn-off',
+    brand:'Petroda', lat:-13.985, lng:33.796, km:8,
+    types:['petrol','diesel'],
+    note:'At Bunda junction before M1 south'
+  },
+  // ── KAMUZU AREA ──
+  {
+    id:'f5', name:'Total — Kamuzu Airport Rd',
+    brand:'Total', lat:-14.058, lng:33.862, km:46,
+    types:['petrol','diesel'],
+    note:'Near airport junction on M1'
+  },
+  // ── DEDZA ──
+  {
+    id:'f6', name:'Puma — Dedza Town',
+    brand:'Puma', lat:-14.375, lng:34.105, km:83,
+    types:['petrol','diesel','atm'],
+    note:'Main station in Dedza town centre'
+  },
+  {
+    id:'f7', name:'Engen — Dedza',
+    brand:'Engen', lat:-14.382, lng:34.108, km:84,
+    types:['petrol','diesel'],
+    note:'South end of Dedza town'
+  },
+  // ── NTCHEU ──
+  {
+    id:'f8', name:'Total — Ntcheu Town',
+    brand:'Total', lat:-14.672, lng:34.375, km:138,
+    types:['petrol','diesel','atm'],
+    note:'Centre of Ntcheu — last reliable stop before Balaka'
+  },
+  {
+    id:'f9', name:'Petroda — Ntcheu',
+    brand:'Petroda', lat:-14.680, lng:34.382, km:139,
+    types:['petrol','diesel'],
+    note:'South end of Ntcheu on M1'
+  },
+  // ── ZALEWA / NENO JUNCTION ──
+  {
+    id:'f10', name:'Engen — Zalewa',
+    brand:'Engen', lat:-14.820, lng:34.510, km:167,
+    types:['petrol','diesel'],
+    note:'Zalewa trading centre — isolated, check fuel level before passing'
+  },
+  // ── BALAKA ──
+  {
+    id:'f11', name:'Puma — Balaka Town',
+    brand:'Puma', lat:-15.048, lng:34.958, km:187,
+    types:['petrol','diesel','atm'],
+    note:'Main station in Balaka — good stop before Liwonde'
+  },
+  {
+    id:'f12', name:'Total — Balaka',
+    brand:'Total', lat:-15.052, lng:34.962, km:188,
+    types:['petrol','diesel'],
+    note:'On M1 in Balaka town'
+  },
+  // ── LIWONDE ──
+  {
+    id:'f13', name:'Engen — Liwonde Junction',
+    brand:'Engen', lat:-15.108, lng:35.018, km:211,
+    types:['petrol','diesel'],
+    note:'At the Liwonde National Park junction'
+  },
+  // ── ZOMBA JUNCTION ──
+  {
+    id:'f14', name:'Total — Zomba Road Junction',
+    brand:'Total', lat:-15.348, lng:34.918, km:236,
+    types:['petrol','diesel','atm'],
+    note:'Junction to Zomba — also serves Zomba traffic'
+  },
+  // ── LIMBE / BLANTYRE METRO ──
+  {
+    id:'f15', name:'Puma — Limbe',
+    brand:'Puma', lat:-15.548, lng:34.975, km:266,
+    types:['petrol','diesel','atm'],
+    note:'Entering Blantyre metro — Limbe commercial area'
+  },
+  {
+    id:'f16', name:'Engen — Limbe',
+    brand:'Engen', lat:-15.552, lng:34.978, km:267,
+    types:['petrol','diesel'],
+    note:'Limbe urban zone on M1'
+  },
+  {
+    id:'f17', name:'Total — Ginnery Corner',
+    brand:'Total', lat:-15.663, lng:34.998, km:287,
+    types:['petrol','diesel','atm'],
+    note:'Major junction, Blantyre city entry'
+  },
+  {
+    id:'f18', name:'Puma — Blantyre City',
+    brand:'Puma', lat:-15.668, lng:35.002, km:289,
+    types:['petrol','diesel','atm'],
+    note:'Blantyre city centre — end of M1 journey'
+  },
+];
+
+// Brand colour coding
+function fuelBrandColor(brand) {
+  if(brand==='Total')   return '#e74c3c';
+  if(brand==='Puma')    return '#e67e22';
+  if(brand==='Engen')   return '#27ae60';
+  if(brand==='Petroda') return '#2980b9';
+  return '#888';
+}
+
+// Leaflet markers for fuel stations
+var fuelMarkers = {};
+function fuelIcon(station, dist) {
+  var col = fuelBrandColor(station.brand);
+  var distLabel = dist !== null
+    ? (dist < 1 ? Math.round(dist*1000)+'m' : dist.toFixed(1)+'km')
+    : '';
+  return L.divIcon({
+    html: '<div style="position:relative">'
+        + '<div style="background:'+col+';color:#fff;font-size:9px;font-weight:800;'
+        + 'padding:3px 7px;border-radius:14px;white-space:nowrap;'
+        + 'border:1.5px solid rgba(255,255,255,.5);box-shadow:0 2px 6px rgba(0,0,0,.5);'
+        + 'display:flex;align-items:center;gap:4px">'
+        + '⛽ <span>'+station.brand+'</span>'
+        + (distLabel ? '<span style="opacity:.7">'+distLabel+'</span>' : '')
+        + '</div></div>',
+    className: '', iconAnchor: [50, 12]
+  });
+}
+
+function addFuelMarkers() {
+  FUEL_STATIONS.forEach(function(s) {
+    if (fuelMarkers[s.id]) return; // already added
+    var m = L.marker([s.lat, s.lng], {
+      icon: fuelIcon(s, null),
+      zIndexOffset: -100  // below trap markers
+    }).addTo(map);
+    m.bindPopup(
+      '<b>⛽ ' + s.name + '</b><br>'
+      + '<span style="color:#f39c12">' + s.brand + '</span> · km ' + s.km + '<br>'
+      + s.types.map(function(t){
+          return '<span style="background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-size:11px">'+t+'</span>';
+        }).join(' ') + '<br>'
+      + '<small style="color:rgba(255,255,255,.45)">' + s.note + '</small>'
+    );
+    fuelMarkers[s.id] = m;
+  });
+}
+
+function updateFuelMarkers(lat, lng) {
+  FUEL_STATIONS.forEach(function(s) {
+    var d = hav(lat, lng, s.lat, s.lng);
+    if (fuelMarkers[s.id]) {
+      fuelMarkers[s.id].setIcon(fuelIcon(s, d));
+    }
+  });
+}
+
+// ── FUEL PANEL ──
+function openFuel() {
+  document.getElementById('fuel-panel').classList.add('open');
+  renderFuelList();
+}
+function closeFuel() {
+  document.getElementById('fuel-panel').classList.remove('open');
+}
+
+function renderFuelList() {
+  var el  = document.getElementById('fp-list');
+  var sub = document.getElementById('fp-sub');
+
+  // Sort by distance if GPS on, else by km
+  var sorted = FUEL_STATIONS.map(function(s) {
+    var d = (curLat !== null) ? hav(curLat, curLng, s.lat, s.lng) : null;
+    return Object.assign({}, s, {dist: d});
+  }).sort(function(a, b) {
+    if (a.dist !== null && b.dist !== null) return a.dist - b.dist;
+    return a.km - b.km;
+  });
+
+  if (sub) sub.textContent = curLat
+    ? sorted.length + ' stations · sorted by distance from you'
+    : sorted.length + ' stations · start GPS for distances';
+
+  el.innerHTML = '';
+  sorted.forEach(function(s) {
+    var col    = fuelBrandColor(s.brand);
+    var ds     = s.dist !== null
+      ? (s.dist < 1 ? Math.round(s.dist*1000)+' m' : s.dist.toFixed(1)+' km')
+      : 'km ' + s.km;
+    var card = document.createElement('div');
+    card.className = 'fcard';
+    card.innerHTML =
+      '<div class="fcard-top">'
+        + '<div class="fcard-name">⛽ '+s.name+'</div>'
+        + '<div class="fcard-dist">'+ds+'</div>'
+      + '</div>'
+      + '<div class="fcard-brand" style="color:'+col+'">'+s.brand+'</div>'
+      + '<div class="fcard-km">km '+s.km+' along M1 · '+s.note+'</div>'
+      + '<div class="fcard-types">'
+        + s.types.map(function(t){return '<span class="ftype '+t+'">'+t.toUpperCase()+'</span>';}).join('')
+      + '</div>';
+    card.onclick = function() {
+      map.setView([s.lat, s.lng], 14);
+      if (fuelMarkers[s.id]) fuelMarkers[s.id].openPopup();
+      closeFuel();
+    };
+    el.appendChild(card);
+  });
+}
+
+// ── NEAREST FUEL CHIP in bottom scroll ──
+function nearestFuelChip(lat, lng) {
+  if (!lat) return null;
+  var nearest = FUEL_STATIONS.map(function(s) {
+    return Object.assign({}, s, {d: hav(lat, lng, s.lat, s.lng)});
+  }).sort(function(a,b){ return a.d-b.d; })[0];
+  if (!nearest) return null;
+  var ds = nearest.d < 1 ? Math.round(nearest.d*1000)+'m' : nearest.d.toFixed(1)+'km';
+  var ch = document.createElement('div');
+  ch.className = 'chip';
+  ch.style.cssText = 'border-color:rgba(243,156,18,.4);background:rgba(243,156,18,.07)';
+  ch.innerHTML =
+    '<div class="ch-n" style="color:#f8c060">⛽ '+nearest.name+'</div>'
+    + '<div class="ch-s">'+nearest.brand+' · km '+nearest.km+'</div>'
+    + '<div class="ch-d" style="color:#f39c12">'+ds+' away</div>';
+  ch.onclick = function() {
+    map.setView([nearest.lat, nearest.lng], 14);
+    if (fuelMarkers[nearest.id]) fuelMarkers[nearest.id].openPopup();
+  };
+  return ch;
 }
 
 // ═══════════════════════════════════════════
