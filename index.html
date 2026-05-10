@@ -155,7 +155,11 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .sos-sent-detail div b{color:#fff}
 .btn-sos-close{padding:14px 40px;border-radius:13px;background:linear-gradient(135deg,#1a6b3a,#27ae60);color:#fff;border:none;font-size:15px;font-weight:700;cursor:pointer}
 /* LIVE PANEL */
-#live-panel{position:fixed;top:0;right:0;bottom:0;z-index:1100;width:min(290px,90vw);background:rgba(10,15,20,.97);border-left:1px solid rgba(255,255,255,.07);padding:env(safe-area-inset-top,20px) 0 env(safe-area-inset-bottom,10px);display:none;flex-direction:column;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+#live-panel{position:fixed;top:0;right:0;bottom:0;z-index:1100;width:min(320px,100vw);background:rgba(10,15,20,.97);border-left:1px solid rgba(255,255,255,.07);padding:env(safe-area-inset-top,20px) 0 env(safe-area-inset-bottom,10px);display:none;flex-direction:column;backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px)}
+/* On mobile, chat tab goes full width */
+@media(max-width:480px){
+  #live-panel.chat-mode{width:100vw;border-left:none}
+}
 #live-panel.open{display:flex}
 .lp-hdr{padding:14px 16px;border-bottom:1px solid rgba(255,255,255,.07);display:flex;align-items:center;justify-content:space-between}
 .lp-t{font-size:15px;font-weight:700}.lp-s{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
@@ -199,13 +203,16 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .lp-tab:hover:not(.active){color:rgba(255,255,255,.7)}
 
 /* Chat container */
-#chat-panel{display:none;flex-direction:column;flex:1;min-height:0}
+#chat-panel{display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden}
 #chat-panel.show{display:flex}
+/* Chat messages fill available space properly */
+#chat-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:6px;min-height:0}
 
 /* Messages area */
 #chat-messages{
   flex:1;overflow-y:auto;padding:10px 12px;
   display:flex;flex-direction:column;gap:6px;
+  min-height:0; /* critical for flex containment */
   scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;
 }
 #chat-messages::-webkit-scrollbar{width:3px}
@@ -304,6 +311,25 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 
 
 /* ── CHAT ENHANCEMENTS ── */
+
+/* ── DISTRACTED DRIVING LOCK ── */
+body.driving-lock #btm .btn-row .btn-sm,
+body.driving-lock #btm .btn-row .btn-fuel,
+body.driving-lock #btm .btn-row .btn-sos,
+body.driving-lock #btm .chips,
+body.driving-lock #btm #pgbar-w{ opacity:.25; pointer-events:none }
+body.driving-lock #btm .btn-gps{ opacity:1; pointer-events:all }
+body.driving-lock #hdr .hdr-btn:not(#btn-audio){ opacity:.3; pointer-events:none }
+/* Lock icon badge on speed ring when locked */
+.driving-lock-badge{
+  position:absolute;bottom:-4px;right:-4px;
+  background:#e74c3c;color:#fff;font-size:9px;
+  width:16px;height:16px;border-radius:50%;
+  display:none;align-items:center;justify-content:center;
+  font-weight:800;border:1.5px solid #0a0f14;
+}
+body.driving-lock .driving-lock-badge{display:flex}
+
 
 /* Reply bar above input */
 #chat-reply-bar{
@@ -566,7 +592,7 @@ body.offline #hdr{padding-top:calc(env(safe-area-inset-top,12px) + 26px)}
 /* ── SETTINGS PANEL ── */
 #settings-panel{
   position:fixed;top:0;right:0;bottom:0;z-index:2100;
-  width:min(300px,90vw);
+  width:min(320px,100vw);
   background:rgba(10,15,20,.98);
   border-left:1px solid rgba(255,255,255,.09);
   padding:env(safe-area-inset-top,20px) 0 env(safe-area-inset-bottom,20px);
@@ -769,15 +795,18 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
       <span id="live-lbl">0 online</span>
       &nbsp;·&nbsp;
       <span id="wx-hdr" style="display:none">🌤️ <span id="wx-temp">--</span>°C</span>
+      &nbsp;·&nbsp;
+      <span id="hdr-clock" style="font-size:10px;font-weight:600;color:rgba(255,255,255,.55);letter-spacing:.03em">--:-- AM</span>
     </div>
   </div>
   <div class="hdr-btns">
     <button id="btn-audio" class="hdr-btn btn-audio-hdr" onclick="toggleAudio()" title="Toggle voice alerts">🔊 ON</button>
     <button class="hdr-btn btn-live-hdr" onclick="openLive()">👥 Live</button>
     <button class="hdr-btn btn-settings-hdr" onclick="openSettings()" title="Settings">⚙️</button>
-    <div class="spd-ring" id="spd-ring">
+    <div class="spd-ring" id="spd-ring" style="position:relative">
       <div class="spd-n" id="spd-n">0</div>
       <div class="spd-u">km/h</div>
+      <div class="driving-lock-badge" title="Driving lock active">🔒</div>
     </div>
   </div>
 </div>
@@ -1221,6 +1250,8 @@ var liveUsers={},liveMarkers={};
 var watchId=null,isTracking=false;
 var curLat=null,curLng=null,curSpd=0;
 var lastLat=null,lastLng=null,lastTime=null;
+var speedHistory=[]; // rolling buffer for smooth speed
+var SPEED_THRESHOLD=2; // speeds below 2 km/h treated as stationary
 
 // ═══════════════════════════════════════════
 // MAP
@@ -1457,6 +1488,7 @@ function updateUI(lat,lng,spd){
   var spdr=Math.round(spd);
   document.getElementById('spd-n').textContent=spdr;
   document.getElementById('s-spd').textContent=spdr+' km/h';
+  updateDrivingLock(spdr);
   if(wd.length>0){
     var near=wd[0],s=gs(near.d),ds=near.d<1?Math.round(near.d*1000)+'m':near.d.toFixed(1)+'km';
     document.getElementById('spd-ring').className='spd-ring '+(s==='bad'&&spdr>near.limit?'bad':s==='bad'?'warn':'ok');
@@ -1513,7 +1545,13 @@ function startGPS(){
     var spd=0;
     if(sp!=null&&sp>=0){spd=sp*3.6;}
     else if(lastLat!=null){var dt=(Date.now()-lastTime)/3600000;spd=dt>0?hav(lastLat,lastLng,la,lo)/dt:0;}
-    curSpd=Math.max(0,Math.min(spd,220));lastLat=la;lastLng=lo;lastTime=Date.now();
+    // Rolling 3-point average to smooth GPS jitter
+    speedHistory.push(spd);
+    if(speedHistory.length > 3) speedHistory.shift();
+    var avgSpd = speedHistory.reduce(function(a,b){return a+b;},0) / speedHistory.length;
+    // Clamp speeds below threshold to 0 — removes the 1 km/h ghost
+    curSpd = avgSpd < SPEED_THRESHOLD ? 0 : Math.min(avgSpd, 220);
+    lastLat=la;lastLng=lo;lastTime=Date.now();
     map.panTo([la,lo],{animate:true,duration:.5});
     updateUI(la,lo,curSpd);
   },function(err){
@@ -1530,6 +1568,10 @@ function stopGPS(){
   document.getElementById('btn-gps').classList.remove('on');
   document.getElementById('gps-dot').classList.remove('on');
   document.getElementById('gps-lbl').textContent='GPS off';
+  // Release driving lock when GPS stops
+  drivingLockActive=false;
+  document.body.classList.remove('driving-lock');
+  speedHistory=[];
 }
 
 // ═══════════════════════════════════════════
@@ -1561,7 +1603,8 @@ function openLive(){
   switchLiveTab('drivers');
 }
 function closeLive(){
-  document.getElementById('live-panel').classList.remove('open');
+  var lp = document.getElementById('live-panel');
+  if(lp){ lp.classList.remove('open'); lp.classList.remove('chat-mode'); }
   chatOpen = false;
 }
 
@@ -1624,6 +1667,7 @@ function launchApp(){
   syncAudioBtn();
   startNightAutoCheck();
   initPrivacyMode();
+  updateClock();
   addFuelMarkers();
   fetchWeatherInitial();
   logSession();
@@ -2120,8 +2164,9 @@ function nearestTownLabel(lat) {
   return 'Near ' + nearest.name;
 }
 
+var weatherDismissTimer = null;
 function showWeatherBar(emoji, msg, loc, sev) {
-  if (wxDismissed && sev < 2) return; // don't re-show low-sev if dismissed
+  if (wxDismissed && sev < 2) return;
   var bar = document.getElementById('weather-bar');
   if (!bar) return;
   bar.className = 'wb-' + ['clear','watch','warn'][sev];
@@ -2129,8 +2174,13 @@ function showWeatherBar(emoji, msg, loc, sev) {
   document.getElementById('wb-msg').textContent  = msg;
   document.getElementById('wb-loc').textContent  = loc || '';
   bar.style.display = 'flex';
-  // Position below the alert banner
   positionWeatherBar();
+  // Auto-dismiss after 8 seconds for all severities
+  // Severe warnings (sev 2) stay longer — 20 seconds
+  if (weatherDismissTimer) clearTimeout(weatherDismissTimer);
+  weatherDismissTimer = setTimeout(function() {
+    dismissWeather();
+  }, sev === 2 ? 20000 : 8000);
 }
 
 function positionWeatherBar() {
@@ -2165,7 +2215,7 @@ function fetchWeatherInitial() {
 // SETTINGS PANEL
 // ═══════════════════════════════════════════════════════
 var sgSettings = {
-  fuel:     lsGet('sg_set_fuel')     !== '0',
+  fuel:     lsGet('sg_set_fuel')     === '1', // default OFF — opt in
   traps:    lsGet('sg_set_traps')    !== '0',
   live:     lsGet('sg_set_live')     === '1', // DEFAULT: private (opt-in to live)
   audio:    lsGet('sg_audio')        !== '0',
@@ -2584,29 +2634,30 @@ var CHAT_EXPIRY   = 2 * 60 * 60 * 1000; // 2 hours
 
 // ── LIVE PANEL TAB SWITCH ──
 function switchLiveTab(tab) {
-  var driverTab = document.getElementById('lpt-drivers');
-  var chatTab   = document.getElementById('lpt-chat');
+  var driverTab     = document.getElementById('lpt-drivers');
+  var chatTab       = document.getElementById('lpt-chat');
   var driverContent = document.getElementById('drivers-tab-content');
   var chatPanel     = document.getElementById('chat-panel');
+  var livePanel     = document.getElementById('live-panel');
 
   if (tab === 'drivers') {
     driverTab.classList.add('active');
     chatTab.classList.remove('active');
     driverContent.style.display = 'block';
     chatPanel.classList.remove('show');
+    if(livePanel) livePanel.classList.remove('chat-mode');
     chatOpen = false;
   } else {
     driverTab.classList.remove('active');
     chatTab.classList.add('active');
     driverContent.style.display = 'none';
     chatPanel.classList.add('show');
+    // On mobile, go full width for chat
+    if(livePanel) livePanel.classList.add('chat-mode');
     chatOpen = true;
-    // Clear unread count
     chatUnread = 0;
     updateChatBadge();
-    // Scroll to bottom
     scrollChatToBottom();
-    // Focus input
     setTimeout(function(){ var inp=document.getElementById('chat-input'); if(inp) inp.focus(); }, 150);
   }
 }
@@ -2823,10 +2874,10 @@ function escChat(s) {
 // Notify in chat when a driver joins/leaves
 // Called from updateLiveMarker when new driver appears
 function chatNotifyJoin(nickname) {
-  addChatSystem('👋 ' + nickname + ' joined the M1');
+  // Join/leave notifications removed — too noisy with many drivers
 }
 function chatNotifyLeave(nickname) {
-  addChatSystem('👋 ' + nickname + ' left the M1');
+  // Join/leave notifications removed — too noisy with many drivers
 }
 
 // Expire old messages every 5 minutes
@@ -3041,6 +3092,48 @@ function processChatDelete(msgId) {
   });
   // Remove from memory
   chatMessages = chatMessages.filter(function(m){ return m.pl.ts !== msgId; });
+}
+
+
+// ═══════════════════════════════════════════════════════
+// DIGITAL CLOCK — 12hr format in header
+// ═══════════════════════════════════════════════════════
+function updateClock() {
+  var el = document.getElementById('hdr-clock');
+  if (!el) return;
+  var now = new Date();
+  var h   = now.getHours();
+  var m   = now.getMinutes().toString().padStart(2,'0');
+  var ampm= h >= 12 ? 'PM' : 'AM';
+  h = h % 12 || 12;
+  el.textContent = h + ':' + m + ' ' + ampm;
+}
+setInterval(updateClock, 1000);
+
+
+// ═══════════════════════════════════════════════════════
+// DISTRACTED DRIVING LOCK — activates at 50 km/h
+// Hides non-essential buttons to reduce screen interaction
+// while driving. GPS and audio alerts remain fully active.
+// ═══════════════════════════════════════════════════════
+var drivingLockActive = false;
+var DRIVING_LOCK_SPEED = 50; // km/h threshold
+var DRIVING_UNLOCK_SPEED = 30; // km/h to unlock (hysteresis)
+
+function updateDrivingLock(spd) {
+  var shouldLock = spd >= DRIVING_LOCK_SPEED;
+  var shouldUnlock = spd < DRIVING_UNLOCK_SPEED;
+
+  if (shouldLock && !drivingLockActive) {
+    drivingLockActive = true;
+    document.body.classList.add('driving-lock');
+    // Close any open panels when lock engages
+    closeLive();
+    closeSettings();
+  } else if (shouldUnlock && drivingLockActive) {
+    drivingLockActive = false;
+    document.body.classList.remove('driving-lock');
+  }
 }
 
 // ═══════════════════════════════════════════
