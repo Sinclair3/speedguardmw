@@ -184,6 +184,29 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 
 
 
+
+/* ── NICKNAME EDIT MODAL ── */
+#nick-edit-mo .mc{border-top:3px solid #27ae60}
+.nick-edit-input{
+  width:100%;padding:15px;border-radius:13px;
+  background:rgba(255,255,255,.08);border:1.5px solid rgba(255,255,255,.15);
+  color:#fff;font-size:20px;text-align:center;
+  margin-bottom:8px;outline:none;
+  font-family:-apple-system,sans-serif;
+  transition:border-color .2s;
+  letter-spacing:.3px;
+}
+.nick-edit-input:focus{border-color:rgba(39,174,96,.6)}
+.nick-edit-input::placeholder{color:rgba(255,255,255,.2);font-size:15px}
+.nick-char-count{font-size:11px;color:rgba(255,255,255,.3);text-align:right;
+  margin-bottom:14px;margin-top:-4px}
+.nick-preview{
+  background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);
+  border-radius:10px;padding:10px 14px;margin-bottom:14px;
+  font-size:12px;color:rgba(255,255,255,.4);text-align:center;
+}
+.nick-preview b{color:#2980b9}
+
 /* ── REVIEW MODAL ── */
 .mo.review-mo .mc{border-top:3px solid #f39c12}
 .star-row{display:flex;gap:6px;justify-content:center;margin:10px 0 16px}
@@ -1908,24 +1931,78 @@ function settingChanged(key, val) {
 }
 
 function changeNickname() {
+  // Open our custom modal instead of the ugly system prompt
+  openNickEdit();
+}
+
+function openNickEdit() {
   closeSettings();
-  var n = prompt('Enter new driver name:', myNickname || '');
-  if (n && n.trim()) {
-    myNickname = n.trim();
-    lsSet('sg_nick', myNickname);
-    // Update the map marker immediately
-    if (myMk) myMk.setIcon(myIcon(myNickname, curSpd));
-    // Update nickname in Supabase session record for this device
-    supaFetch('sg_sessions?device_id=eq.'+myId, 'PATCH', {nickname: myNickname})
-      .then(function(){ console.log('Nickname updated in DB'); })
-      .catch(function(){});
-    // Reset the 24h log timer so next session logs with new name
-    lsSet('sg_last_log', '0');
-    showToast('✅ Name updated: ' + myNickname);
-    // Refresh settings panel display
-    var nickEl = document.getElementById('sp-nick-display');
-    if (nickEl) nickEl.textContent = '🚗 ' + myNickname;
+  var input = document.getElementById('nick-edit-input');
+  if (input) {
+    input.value = myNickname || '';
+    updateNickPreview(input.value);
   }
+  document.getElementById('nick-edit-mo').classList.add('open');
+  // Focus the input after modal opens
+  setTimeout(function(){ if(input) input.focus(); }, 100);
+}
+
+function closeNickEdit() {
+  document.getElementById('nick-edit-mo').classList.remove('open');
+}
+
+function updateNickPreview(val) {
+  var clean = val.trim();
+  var countEl   = document.getElementById('nick-char-count');
+  var previewEl = document.getElementById('nick-preview-text');
+  if (countEl)   countEl.textContent   = val.length + ' / 18';
+  if (previewEl) previewEl.textContent = '🚗 ' + (clean || 'You') + ' 0 km/h';
+}
+
+function saveNickEdit() {
+  var input = document.getElementById('nick-edit-input');
+  var n = input ? input.value.trim() : '';
+  if (!n) {
+    input.style.borderColor = 'rgba(231,76,60,.6)';
+    input.placeholder = 'Please enter a name!';
+    setTimeout(function(){
+      input.style.borderColor = '';
+      input.placeholder = 'e.g. Driver K, Bwana J...';
+    }, 1500);
+    return;
+  }
+  var oldName = myNickname;
+  myNickname  = n;
+  lsSet('sg_nick', myNickname);
+
+  // Update map marker immediately
+  if (myMk) myMk.setIcon(myIcon(myNickname, curSpd));
+
+  // Update review modal display name
+  var revNickLbl = document.getElementById('review-nick-lbl');
+  if (revNickLbl) revNickLbl.textContent = myNickname;
+
+  // Update settings panel display
+  var nickEl = document.getElementById('sp-nick-display');
+  if (nickEl) nickEl.textContent = '🚗 ' + myNickname;
+
+  // FIX: Update BOTH sg_sessions AND sg_reviews in Supabase
+  // sg_sessions — update all session rows for this device
+  supaFetch('sg_sessions?device_id=eq.'+myId, 'PATCH', {nickname: myNickname})
+    .catch(function(){});
+
+  // sg_reviews — update all reviews posted by this device
+  supaFetch('sg_reviews?device_id=eq.'+myId, 'PATCH', {nickname: myNickname})
+    .catch(function(){});
+
+  // Reset 24h log timer so next log uses new name
+  lsSet('sg_last_log', '0');
+
+  closeNickEdit();
+  showToast('✅ Name updated to: ' + myNickname);
+
+  // Broadcast new name to live map immediately if GPS on
+  if (curLat && isTracking) broadcastPos(curLat, curLng, curSpd);
 }
 
 
@@ -2041,6 +2118,7 @@ function openReview() {
   document.querySelectorAll('.star').forEach(function(s){ s.classList.remove('lit'); });
   document.querySelectorAll('.rev-cat').forEach(function(c){ c.classList.remove('active'); });
   document.getElementById('review-text').value = '';
+  // Always read the CURRENT nickname at the time of opening
   var nickLbl = document.getElementById('review-nick-lbl');
   if (nickLbl) nickLbl.textContent = myNickname || 'Anonymous';
   document.getElementById('review-mo').classList.add('open');
@@ -2222,7 +2300,7 @@ function submitReview() {
         <div class="sp-row-label" id="sp-nick-display">--</div>
         <div class="sp-row-desc">Your nickname shown to other drivers</div>
       </div>
-      <span class="sp-link" onclick="changeNickname()">Change</span>
+      <span class="sp-link" onclick="openNickEdit()">Change</span>
     </div>
   </div>
 
@@ -2244,6 +2322,39 @@ function submitReview() {
   </div>
 </div>
 
+
+
+<!-- NICKNAME EDIT MODAL -->
+<div class="mo" id="nick-edit-mo">
+  <div class="mc">
+    <div class="mc-hndl"></div>
+    <div class="mc-t">✏️ Change Driver Name</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:14px;line-height:1.5">
+      This name is visible to other drivers on the live map and in reviews.
+    </div>
+    <input
+      class="nick-edit-input"
+      id="nick-edit-input"
+      type="text"
+      maxlength="18"
+      autocomplete="off"
+      autocorrect="off"
+      autocapitalize="words"
+      spellcheck="false"
+      placeholder="e.g. Driver K, Bwana J..."
+      oninput="updateNickPreview(this.value)"
+      onkeydown="if(event.key==='Enter')saveNickEdit()"
+    >
+    <div class="nick-char-count" id="nick-char-count">0 / 18</div>
+    <div class="nick-preview">
+      Your map marker: <b id="nick-preview-text">🚗 -- 0 km/h</b>
+    </div>
+    <div class="mc-btns">
+      <button class="mc-cancel" onclick="closeNickEdit()">Cancel</button>
+      <button class="mc-ok" id="nick-edit-save" onclick="saveNickEdit()">Save Name ✓</button>
+    </div>
+  </div>
+</div>
 
 <!-- REVIEW MODAL -->
 <div class="mo review-mo" id="review-mo">
