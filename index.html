@@ -312,6 +312,43 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 
 /* ── CHAT ENHANCEMENTS ── */
 
+
+
+/* ── PUSH NOTIFICATION PERMISSION BANNER ── */
+#push-banner{
+  position:fixed;z-index:1500;left:0;right:0;bottom:0;
+  background:linear-gradient(135deg,#0e2318,#0a1a0f);
+  border-top:2px solid #27ae60;
+  padding:14px 18px env(safe-area-inset-bottom,14px);
+  display:none;align-items:flex-start;gap:12px;
+  animation:slideUp .3s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+#push-banner.show{display:flex}
+.pb-icon{font-size:28px;flex-shrink:0;margin-top:2px}
+.pb-body{flex:1}
+.pb-title{font-size:14px;font-weight:800;color:#fff;margin-bottom:3px}
+.pb-desc{font-size:12px;color:rgba(255,255,255,.55);line-height:1.5}
+.pb-btns{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn-pb-allow{
+  padding:9px 18px;border-radius:10px;
+  background:linear-gradient(135deg,#1a6b3a,#27ae60);
+  color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;
+}
+.btn-pb-later{
+  padding:9px 14px;border-radius:10px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);
+  color:rgba(255,255,255,.5);font-size:13px;font-weight:600;cursor:pointer;
+}
+
+/* ── WAKE LOCK INDICATOR ── */
+.wakelock-dot{
+  width:6px;height:6px;border-radius:50%;
+  background:#27ae60;flex-shrink:0;
+  display:none;
+}
+.wakelock-dot.active{display:inline-block;animation:bk 2s infinite}
+
 /* ── DISTRACTED DRIVING LOCK ── */
 body.driving-lock #btm .btn-row .btn-sm,
 body.driving-lock #btm .btn-row .btn-fuel,
@@ -790,6 +827,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
     </div>
     <div class="hdr-sub">
       <span class="dot gps" id="gps-dot"></span><span id="gps-lbl">GPS off</span>
+      <span class="wakelock-dot" id="wakelock-dot" title="Screen kept awake"></span>
       &nbsp;·&nbsp;
       <span class="dot live" id="live-dot" style="display:none"></span>
       <span id="live-lbl">0 online</span>
@@ -1501,6 +1539,7 @@ function updateUI(lat,lng,spd){
     else if(s==='warn'){ab.className='a-warn';ai.textContent='⚠️';at.textContent='Trap in '+ds+' — '+near.name+'. Reduce to '+near.limit+' km/h.';}
     else{ab.className='a-ok';ai.textContent='✅';at.textContent='All clear — next: '+near.name+' in '+ds+'. Limit: '+near.limit+' km/h.';}
     triggerAudio(newStatus,near,ds,spdr);
+    triggerPushAlert(newStatus,near.name,ds,near.limit);
     positionWeatherBar();
   }
   var prog=Math.round(latProg(lat));
@@ -1539,6 +1578,7 @@ function startGPS(){
   document.getElementById('gps-dot').classList.add('on');
   document.getElementById('gps-lbl').textContent='GPS active';
   primeAudio();
+  requestWakeLock(); // keep screen on during navigation
   watchId=navigator.geolocation.watchPosition(function(pos){
     var la=pos.coords.latitude,lo=pos.coords.longitude,sp=pos.coords.speed;
     curLat=la;curLng=lo;
@@ -1572,6 +1612,7 @@ function stopGPS(){
   drivingLockActive=false;
   document.body.classList.remove('driving-lock');
   speedHistory=[];
+  releaseWakeLock(); // allow screen to sleep again
 }
 
 // ═══════════════════════════════════════════
@@ -1667,6 +1708,7 @@ function launchApp(){
   syncAudioBtn();
   startNightAutoCheck();
   initPrivacyMode();
+  initPushBanner();
   updateClock();
   addFuelMarkers();
   fetchWeatherInitial();
@@ -3136,6 +3178,290 @@ function updateDrivingLock(spd) {
   }
 }
 
+
+// ═══════════════════════════════════════════════════════
+// SCREEN WAKE LOCK
+// Keeps the screen on while GPS is active so the driver
+// can see the map and alerts without the phone going dark.
+//
+// Uses two methods for maximum compatibility:
+//   1. Wake Lock API (Chrome Android, Safari 16.4+)
+//      — official standard, cleanest solution
+//   2. Silent video loop fallback (older browsers, iOS)
+//      — plays a tiny transparent video on loop;
+//        video playback prevents screen sleep
+//
+// The phone WILL still sleep if the user manually locks
+// it with the side button — this only prevents AUTO-sleep.
+// ═══════════════════════════════════════════════════════
+var wakeLockSentinel = null;  // Wake Lock API handle
+var noSleepVideo     = null;  // fallback video element
+var wakeLockActive   = false;
+
+async function requestWakeLock() {
+  // Method 1: Wake Lock API (preferred)
+  if ('wakeLock' in navigator) {
+    try {
+      wakeLockSentinel = await navigator.wakeLock.request('screen');
+      wakeLockActive = true;
+      wakeLockSentinel.addEventListener('release', function() {
+        // Screen lock was released (e.g. tab went background)
+        wakeLockActive = false;
+        syncWakeLockDot();
+        // Re-request when tab becomes visible again
+      });
+      console.log('[WakeLock] Screen wake lock acquired via API.');
+      syncWakeLockDot();
+      return;
+    } catch(err) {
+      console.log('[WakeLock] API failed, trying video fallback:', err.message);
+    }
+  }
+
+  // Method 2: Silent video loop fallback (iOS Safari, older browsers)
+  try {
+    if (!noSleepVideo) {
+      noSleepVideo = document.createElement('video');
+      noSleepVideo.setAttribute('playsinline', '');
+      noSleepVideo.setAttribute('muted', '');
+      noSleepVideo.setAttribute('loop', '');
+      noSleepVideo.style.cssText = 'position:fixed;width:1px;height:1px;opacity:0;pointer-events:none;top:-2px;left:-2px;z-index:-1';
+      // Tiny 1x1 transparent MP4 as base64 — 52 bytes, plays forever
+      // This is the standard NoSleep.js trick used by navigation apps
+      noSleepVideo.src = 'data:video/mp4;base64,AAAAIGZ0eXBpc29tAAACAGlzb21pc28yYXZjMW1wNDEAAAAIZnJlZQAAAvptZGF0AAACrgYF//+q3EXpvebZSLeWLNgg2SPu73gyNjQgLSBjb3JlIDE1MCByMjkwMSBhMzVlZWIyIC0gSC4yNjQvTVBFRy00IEFWQyBjb2RlYyAtIENvcHlsZWZ0IDIwMDMtMjAxOCAtIGh0dHA6Ly93d3cudmlkZW9sYW4ub3JnL3gyNjQuaHRtbCAtIG9wdGlvbnM6IGNhYmFjPTEgcmVmPTMgZGVibG9jaz0xOjA6MCBhbmFseXNlPTB4MzoweDExMyBtZT1oZXggc3VibWU9NyBwc3k9MSBwc3lfcmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTE2IGNocm9tYV9tZT0xIHRyZWxsaXM9MSA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21hX3FwX29mZnNldD0tMiBzY2VuZWN1dD00MCBpbnRyYV9yZWZyZXNoPTAgcmNfbG9va2FoZWFkPTQwIHJjPWNyZiBtYnRyZWU9MSBjcmY9MjMuMCBxY29tcD0wLjYwIHFwbWluPTAgcXBtYXg9NjkgcXBzdGVwPTQgaXBfcmF0aW89MS40MCBhcT0xOjEuMDAAgAAAAFZliIQL8mKAAKvMnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnJycnAAAABAABAAEAAAAADUGaJPgAAAMAAQAAAwAIA5BWZRJQAAACZ21vb3YAAABsbXZoZAAAAADXo7vQAAAAAAAAAAAAAAAAAAAD6AAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAGQAAABRtZGhkAAAAANeFYuAAAAAAAAAAAAAAAAAFAAAAKAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAGQAAABRzdHNkAAAAAAAAAQAAABBhd';
+      document.body.appendChild(noSleepVideo);
+    }
+    await noSleepVideo.play();
+    wakeLockActive = true;
+    console.log('[WakeLock] Screen wake lock via video fallback.');
+    syncWakeLockDot();
+  } catch(err) {
+    console.log('[WakeLock] Both methods failed:', err.message);
+  }
+}
+
+function releaseWakeLock() {
+  if (wakeLockSentinel) {
+    wakeLockSentinel.release().catch(function(){});
+    wakeLockSentinel = null;
+  }
+  if (noSleepVideo) {
+    noSleepVideo.pause();
+    // Don't remove from DOM — keeps it ready for next GPS start
+  }
+  wakeLockActive = false;
+  syncWakeLockDot();
+  console.log('[WakeLock] Screen wake lock released.');
+}
+
+function syncWakeLockDot() {
+  var dot = document.getElementById('wakelock-dot');
+  if (!dot) return;
+  dot.classList.toggle('active', wakeLockActive);
+  dot.title = wakeLockActive ? 'Screen kept awake for navigation' : '';
+}
+
+// Re-acquire wake lock when tab becomes visible again
+// (Wake Lock API releases automatically when tab is hidden)
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && isTracking && !wakeLockActive) {
+    requestWakeLock();
+  }
+});
+
+
+// ═══════════════════════════════════════════════════════
+// PUSH NOTIFICATIONS — Web Push API with VAPID
+// Sends lock-screen alerts when approaching speed traps.
+// No Firebase, no third-party service — pure Web Push.
+//
+// HOW IT WORKS:
+//   1. Driver grants notification permission
+//   2. App subscribes to push via the service worker
+//   3. Subscription stored in Supabase (sg_push_subs)
+//   4. When a trap is nearby, app sends a push via
+//      the Supabase Edge Function (or direct VAPID push)
+//   5. Service worker receives the push and shows
+//      a lock-screen notification — even if phone is locked
+//
+// FOR NOW (no server): we use the Notifications API
+// directly (foreground) AND schedule via SW for background.
+// ═══════════════════════════════════════════════════════
+var VAPID_PUBLIC_KEY = 'BLIzF0qwFz3pIW96kjZW-7y1IQWEEGkmP-BGqzGlXr7-uSelwuj-0wn9Axmy2glXoZTwz0564axCv6c-1b2pLNU';
+var pushSubscription  = null;
+var pushEnabled       = lsGet('sg_push') === '1';
+var pushBannerShown   = lsGet('sg_push_asked') === '1';
+
+// ── PERMISSION BANNER ──
+function initPushBanner() {
+  // Don't ask if already decided or notifications not supported
+  if (!('Notification' in window)) return;
+  if (pushBannerShown) return;
+  if (Notification.permission === 'granted') {
+    pushEnabled = true;
+    lsSet('sg_push','1');
+    subscribeToPush();
+    return;
+  }
+  if (Notification.permission === 'denied') return;
+  // Show banner after 10 seconds — let driver get settled first
+  setTimeout(function() {
+    var banner = document.getElementById('push-banner');
+    if(banner) banner.classList.add('show');
+  }, 10000);
+}
+
+function dismissPushBanner(savePref) {
+  var banner = document.getElementById('push-banner');
+  if(banner) banner.classList.remove('show');
+  if(savePref) {
+    lsSet('sg_push_asked','1');
+    pushBannerShown = true;
+  }
+}
+
+async function requestPushPermission() {
+  dismissPushBanner(false);
+  if (!('Notification' in window)) {
+    showToast('❌ Notifications not supported on this browser');
+    return;
+  }
+  try {
+    var result = await Notification.requestPermission();
+    lsSet('sg_push_asked','1');
+    pushBannerShown = true;
+    if (result === 'granted') {
+      pushEnabled = true;
+      lsSet('sg_push','1');
+      showToast('✅ Lock screen alerts enabled!');
+      await subscribeToPush();
+    } else {
+      showToast('❌ Notifications blocked — enable in phone settings');
+    }
+  } catch(e) {
+    console.warn('[Push] Permission request failed:', e);
+  }
+}
+
+// ── SUBSCRIBE TO PUSH VIA SERVICE WORKER ──
+async function subscribeToPush() {
+  if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
+  try {
+    var reg = await navigator.serviceWorker.ready;
+    // Check if already subscribed
+    var existing = await reg.pushManager.getSubscription();
+    if (existing) {
+      pushSubscription = existing;
+      console.log('[Push] Already subscribed.');
+      return;
+    }
+    // Convert VAPID key to Uint8Array
+    var appServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+    pushSubscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: appServerKey
+    });
+    console.log('[Push] Subscribed:', JSON.stringify(pushSubscription).substring(0,80));
+    // Save subscription to Supabase for server-side push (future use)
+    savePushSubscription(pushSubscription);
+  } catch(e) {
+    console.warn('[Push] Subscription failed:', e.message);
+  }
+}
+
+function savePushSubscription(sub) {
+  if (!myId) return;
+  supaFetch('sg_push_subs', 'POST', {
+    device_id: myId,
+    nickname:  myNickname || 'Anonymous',
+    endpoint:  sub.endpoint,
+    auth:      btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('auth')))),
+    p256dh:    btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh'))))
+  }).catch(function(){});
+}
+
+// ── SEND NOTIFICATION ──
+// This fires a visible notification — works in foreground AND
+// when the phone is locked (if SW is running)
+function sendPushAlert(title, body, tag, urgency) {
+  if (!pushEnabled || Notification.permission !== 'granted') return;
+
+  // Use Service Worker notification (shows on lock screen)
+  if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+    navigator.serviceWorker.ready.then(function(reg) {
+      reg.showNotification(title, {
+        body:    body,
+        icon:    './icon-192.png',
+        badge:   './icon-96.png',
+        tag:     tag || 'speedguard-alert',
+        renotify: true,
+        vibrate: urgency === 'critical' ? [200,100,200,100,200] : [100,50,100],
+        silent:  false,
+        data:    { url: './', timestamp: Date.now() },
+        actions: [
+          { action: 'open', title: '🗺️ View Map' }
+        ]
+      });
+    }).catch(function(){});
+  } else {
+    // Fallback: regular Notification API (foreground only)
+    try {
+      new Notification(title, {
+        body:    body,
+        icon:    './icon-192.png',
+        tag:     tag || 'speedguard-alert',
+        vibrate: [200,100,200],
+      });
+    } catch(e) {}
+  }
+}
+
+// ── TRAP PROXIMITY PUSH ALERTS ──
+// Called from updateUI when alert status changes
+var lastPushStatus = 'clear';
+var lastPushAt     = 0;
+
+function triggerPushAlert(status, trapName, ds, limit) {
+  if (!pushEnabled || Notification.permission !== 'granted') return;
+  var now = Date.now();
+  // Don't repeat the same status within 30 seconds
+  if (status === lastPushStatus && now - lastPushAt < 30000) return;
+  // Don't push if app is in foreground and visible — audio handles it
+  if (document.visibilityState === 'visible') return;
+  lastPushStatus = status;
+  lastPushAt = now;
+
+  if (status === 'critical') {
+    sendPushAlert(
+      '🚨 SLOW DOWN — Speed Trap!',
+      trapName + ' · ' + ds + ' ahead · Limit: ' + limit + ' km/h',
+      'trap-critical', 'critical'
+    );
+  } else if (status === 'danger') {
+    sendPushAlert(
+      '⚠️ Speed Trap Ahead',
+      trapName + ' · ' + ds + ' away · Reduce to ' + limit + ' km/h',
+      'trap-danger', 'warn'
+    );
+  } else if (status === 'warning') {
+    sendPushAlert(
+      '📍 Trap Approaching',
+      trapName + ' in ' + ds + ' · Limit: ' + limit + ' km/h',
+      'trap-warning', 'info'
+    );
+  }
+}
+
+// ── HELPER: Convert VAPID key ──
+function urlBase64ToUint8Array(base64String) {
+  var padding = '='.repeat((4 - base64String.length % 4) % 4);
+  var base64  = (base64String + padding).replace(/-/g,'+').replace(/_/g,'/');
+  var raw     = window.atob(base64);
+  var output  = new Uint8Array(raw.length);
+  for (var i = 0; i < raw.length; ++i) output[i] = raw.charCodeAt(i);
+  return output;
+}
+
 // ═══════════════════════════════════════════
 // STARTUP
 // ═══════════════════════════════════════════
@@ -3336,6 +3662,23 @@ function updateDrivingLock(spd) {
   </div>
   <div class="cam-btn" onclick="closeActionMenu()">
     ✕ Cancel
+  </div>
+</div>
+
+
+<!-- PUSH NOTIFICATION PERMISSION BANNER -->
+<div id="push-banner">
+  <div class="pb-icon">🔔</div>
+  <div class="pb-body">
+    <div class="pb-title">Enable Speed Trap Alerts on Lock Screen</div>
+    <div class="pb-desc">
+      Get notified when approaching a speed trap — even when your phone is locked.
+      Works like Google Maps navigation alerts.
+    </div>
+    <div class="pb-btns">
+      <button class="btn-pb-allow" onclick="requestPushPermission()">Enable Alerts</button>
+      <button class="btn-pb-later" onclick="dismissPushBanner(true)">Not Now</button>
+    </div>
   </div>
 </div>
 
