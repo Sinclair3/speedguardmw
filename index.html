@@ -6,6 +6,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SpeedGuard MW">
+<meta name="theme-color" content="#0a0f14">
+<link rel="manifest" href="manifest.json">
 <title>SpeedGuard Malawi — M1 Road</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
@@ -184,6 +186,224 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 
 
 
+
+
+
+/* ── DRIVER CHAT ── */
+/* Tab bar inside the live panel */
+.lp-tabs{display:flex;border-bottom:1px solid rgba(255,255,255,.07)}
+.lp-tab{flex:1;padding:10px;font-size:12px;font-weight:600;text-align:center;
+  cursor:pointer;color:rgba(255,255,255,.4);border-bottom:2px solid transparent;
+  transition:all .15s}
+.lp-tab.active{color:#27ae60;border-bottom-color:#27ae60}
+.lp-tab:hover:not(.active){color:rgba(255,255,255,.7)}
+
+/* Chat container */
+#chat-panel{display:none;flex-direction:column;flex:1;min-height:0}
+#chat-panel.show{display:flex}
+
+/* Messages area */
+#chat-messages{
+  flex:1;overflow-y:auto;padding:10px 12px;
+  display:flex;flex-direction:column;gap:6px;
+  scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;
+}
+#chat-messages::-webkit-scrollbar{width:3px}
+#chat-messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+
+/* Individual message bubbles */
+.chat-msg{
+  max-width:92%;padding:8px 11px;border-radius:14px;
+  font-size:13px;line-height:1.45;word-break:break-word;
+  animation:msgIn .2s ease;
+}
+@keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Other drivers — left aligned */
+.chat-msg.other{
+  align-self:flex-start;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:4px 14px 14px 14px;
+}
+/* My own messages — right aligned green */
+.chat-msg.mine{
+  align-self:flex-end;
+  background:rgba(39,174,96,.2);
+  border:1px solid rgba(39,174,96,.3);
+  border-radius:14px 4px 14px 14px;
+}
+/* Admin broadcasts in chat */
+.chat-msg.admin{
+  align-self:stretch;
+  background:rgba(231,76,60,.12);
+  border:1px solid rgba(231,76,60,.3);
+  border-radius:10px;text-align:center;font-size:12px;
+}
+.msg-nick{
+  font-size:10px;font-weight:700;color:rgba(255,255,255,.5);
+  margin-bottom:3px;display:block;
+}
+.chat-msg.mine .msg-nick{color:rgba(39,174,96,.8);text-align:right}
+.chat-msg.admin .msg-nick{color:#ff8a7a}
+.msg-text{color:#fff}
+.msg-time{font-size:10px;color:rgba(255,255,255,.25);margin-top:3px;
+  display:block;text-align:right}
+.chat-msg.other .msg-time{text-align:left}
+.msg-speed{
+  font-size:9px;color:rgba(255,255,255,.3);margin-left:5px;
+}
+
+/* System messages */
+.chat-system{
+  text-align:center;font-size:11px;color:rgba(255,255,255,.3);
+  padding:4px 0;font-style:italic;
+}
+
+/* Input bar */
+.chat-input-bar{
+  display:flex;align-items:center;gap:7px;
+  padding:9px 12px;border-top:1px solid rgba(255,255,255,.07);
+  background:rgba(10,15,20,.6);
+}
+#chat-input{
+  flex:1;padding:9px 12px;border-radius:20px;
+  background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);
+  color:#fff;font-size:13px;outline:none;
+  font-family:-apple-system,sans-serif;
+  transition:border-color .2s;
+  -webkit-user-select:text;user-select:text;
+}
+#chat-input:focus{border-color:rgba(39,174,96,.5)}
+#chat-input::placeholder{color:rgba(255,255,255,.25)}
+#chat-input:disabled{opacity:.4}
+.btn-chat-send{
+  width:36px;height:36px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#1a6b3a,#27ae60);
+  border:none;color:#fff;font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .1s;
+}
+.btn-chat-send:active{transform:scale(.92)}
+.btn-chat-send:disabled{opacity:.4;cursor:not-allowed}
+.chat-char-left{
+  font-size:10px;color:rgba(255,255,255,.25);
+  flex-shrink:0;min-width:20px;text-align:right;
+}
+
+/* Unread badge on Live button */
+.unread-badge{
+  position:absolute;top:-5px;right:-5px;
+  background:#e74c3c;color:#fff;
+  font-size:9px;font-weight:800;
+  width:16px;height:16px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  border:1.5px solid rgba(10,15,20,.9);
+}
+.hdr-btn{position:relative} /* allow badge positioning */
+
+
+/* ── CHAT ENHANCEMENTS ── */
+
+/* Reply bar above input */
+#chat-reply-bar{
+  display:none;align-items:center;gap:8px;
+  padding:7px 12px;background:rgba(39,174,96,.1);
+  border-top:1px solid rgba(39,174,96,.25);
+  border-left:3px solid #27ae60;
+  font-size:12px;
+}
+#chat-reply-bar.show{display:flex}
+.reply-bar-content{flex:1;min-width:0}
+.reply-bar-nick{font-weight:700;color:#27ae60;font-size:11px;margin-bottom:1px}
+.reply-bar-text{color:rgba(255,255,255,.6);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.btn-reply-cancel{background:none;border:none;color:rgba(255,255,255,.4);
+  font-size:18px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1}
+
+/* Quoted message inside bubble */
+.msg-quote{
+  background:rgba(0,0,0,.25);border-left:3px solid #27ae60;
+  border-radius:4px 8px 8px 4px;padding:5px 8px;margin-bottom:5px;
+  font-size:11px;line-height:1.4;
+}
+.msg-quote-nick{font-weight:700;color:#5ddb8a;margin-bottom:1px}
+.msg-quote-text{color:rgba(255,255,255,.55);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-msg.mine .msg-quote{border-left-color:#5ddb8a;background:rgba(0,0,0,.2)}
+
+/* Message action menu (delete) */
+#chat-action-menu{
+  position:fixed;z-index:3000;
+  background:#1a2530;border:1px solid rgba(255,255,255,.15);
+  border-radius:12px;padding:4px;
+  box-shadow:0 4px 20px rgba(0,0,0,.6);
+  display:none;min-width:140px;
+}
+#chat-action-menu.show{display:block}
+.cam-btn{
+  display:flex;align-items:center;gap:9px;
+  padding:10px 14px;border-radius:9px;
+  font-size:13px;font-weight:600;cursor:pointer;
+  color:#fff;transition:background .15s;
+}
+.cam-btn:hover{background:rgba(255,255,255,.08)}
+.cam-btn.danger{color:#ff7a7a}
+.cam-btn.danger:hover{background:rgba(231,76,60,.15)}
+
+/* Deleted message placeholder */
+.chat-msg.deleted{
+  opacity:.45;font-style:italic;
+}
+.chat-msg.deleted .msg-text{color:rgba(255,255,255,.4)}
+
+/* Swipe hint animation on first message */
+@keyframes swipeHint{
+  0%{transform:translateX(0)}40%{transform:translateX(18px)}70%{transform:translateX(-4px)}100%{transform:translateX(0)}
+}
+.chat-msg.swipe-hint{animation:swipeHint .6s ease .5s}
+
+/* Privacy mode lock screen inside live panel */
+#live-private-screen{
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  flex:1;padding:24px;text-align:center;
+}
+#live-private-screen.show{display:flex}
+.priv-icon{font-size:48px;margin-bottom:14px}
+.priv-title{font-size:16px;font-weight:800;margin-bottom:6px}
+.priv-desc{font-size:13px;color:rgba(255,255,255,.45);line-height:1.7;margin-bottom:20px;max-width:220px}
+.btn-go-live{
+  padding:12px 24px;border-radius:12px;
+  background:linear-gradient(135deg,#1a6b3a,#27ae60);
+  color:#fff;border:none;font-size:14px;font-weight:800;cursor:pointer;
+  box-shadow:0 3px 12px rgba(39,174,96,.35);
+}
+
+/* Privacy badge in header sub */
+.privacy-badge{
+  display:inline-flex;align-items:center;gap:3px;
+  font-size:10px;font-weight:700;
+  padding:2px 7px;border-radius:8px;
+  background:rgba(243,156,18,.15);border:1px solid rgba(243,156,18,.3);
+  color:#f8c060;
+}
+
+/* Mute icon on chat tab */
+.mute-icon{font-size:10px;opacity:.6;margin-left:3px}
+
+/* Chat message swipe transition */
+.chat-msg{transition:transform .15s ease,background .15s}
+
+/* ── OFFLINE MODE INDICATOR ── */
+#offline-bar{
+  position:fixed;top:0;left:0;right:0;z-index:2000;
+  background:#c0392b;color:#fff;
+  font-size:12px;font-weight:700;text-align:center;
+  padding:5px 14px;
+  display:none;align-items:center;justify-content:center;gap:7px;
+  letter-spacing:.03em;
+}
+#offline-bar.show{display:flex}
+body.offline #hdr{padding-top:calc(env(safe-area-inset-top,12px) + 26px)}
+.offline-dot{width:7px;height:7px;border-radius:50%;background:#fff;opacity:.8;animation:bk .8s infinite}
 
 /* ── NICKNAME EDIT MODAL ── */
 #nick-edit-mo .mc{border-top:3px solid #27ae60}
@@ -414,6 +634,12 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 </head>
 <body>
 
+<!-- OFFLINE BAR -->
+<div id="offline-bar">
+  <span class="offline-dot"></span>
+  📡 No internet — GPS &amp; speed alerts still work · Live features paused
+</div>
+
 <!-- TERMS -->
 <div id="terms-screen">
   <div class="t-hero">
@@ -627,11 +853,67 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 
 <!-- LIVE PANEL -->
 <div id="live-panel">
+  <!-- Header -->
   <div class="lp-hdr">
-    <div><div class="lp-t">👥 Live Drivers — M1</div><div class="lp-s" id="lp-s">0 drivers online</div></div>
+    <div>
+      <div class="lp-t">M1 Road — Live</div>
+      <div class="lp-s" id="lp-s">0 drivers online</div>
+    </div>
     <button class="lp-x" onclick="closeLive()">✕</button>
   </div>
-  <div class="lp-list" id="lp-list"><div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">No other drivers online yet.</div></div>
+
+  <!-- Tabs: Drivers | Chat -->
+  <div class="lp-tabs">
+    <div class="lp-tab active" id="lpt-drivers" onclick="switchLiveTab('drivers')">👥 Drivers</div>
+    <div class="lp-tab" id="lpt-chat" onclick="switchLiveTab('chat')">
+      💬 Chat
+      <span id="chat-unread-badge" style="display:none;background:#e74c3c;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;vertical-align:middle">0</span>
+    </div>
+  </div>
+
+  <!-- PRIVATE MODE LOCK SCREEN -->
+  <div id="live-private-screen">
+    <div class="priv-icon">🔒</div>
+    <div class="priv-title">You are in Private Mode</div>
+    <div class="priv-desc">
+      Other drivers cannot see you.<br>
+      You cannot see other drivers or use chat.<br><br>
+      Speed trap alerts and GPS still work normally.
+    </div>
+    <button class="btn-go-live" onclick="goLiveFromPanel()">👥 Go Live</button>
+  </div>
+
+  <!-- Drivers list -->
+  <div id="drivers-tab-content" style="flex:1;overflow-y:auto">
+    <div class="lp-list" id="lp-list">
+      <div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">No other drivers online yet.</div>
+    </div>
+  </div>
+
+  <!-- Chat panel -->
+  <div id="chat-panel">
+    <div id="chat-messages">
+      <div class="chat-system">💬 M1 Road Chat — messages expire after 2 hours</div>
+      <div class="chat-system">Only active while app is open</div>
+    </div>
+    <!-- Reply bar (shown when replying) -->
+    <div id="chat-reply-bar">
+      <div class="reply-bar-content">
+        <div class="reply-bar-nick" id="reply-bar-nick">Driver K</div>
+        <div class="reply-bar-text" id="reply-bar-text">Original message...</div>
+      </div>
+      <button class="btn-reply-cancel" onclick="cancelReply()" title="Cancel reply">✕</button>
+    </div>
+    <div class="chat-input-bar">
+      <input id="chat-input" type="text" maxlength="120"
+        placeholder="Message all M1 drivers..."
+        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"
+        oninput="updateChatCharCount(this.value)"
+        autocomplete="off" autocorrect="off" spellcheck="false">
+      <span class="chat-char-left" id="chat-char-left">120</span>
+      <button class="btn-chat-send" onclick="sendChat()" id="btn-chat-send" title="Send">➤</button>
+    </div>
+  </div>
 </div>
 
 <!-- REPORT MODAL -->
@@ -733,6 +1015,7 @@ function supaFetch(path, method, body){
   }).catch(function(){return null;});
 }
 function loadCommunityTraps(){
+  if (!navigator.onLine) { console.log('[App] Offline — skipping community trap load'); return; }
   supaFetch('sg_traps?select=*&order=created_at.desc').then(function(rows){
     if(!rows||!Array.isArray(rows))return;
     rows.forEach(function(row){
@@ -856,18 +1139,28 @@ function initRealtime(){
         var msg=JSON.parse(e.data);
         if(msg.event==='broadcast'&&msg.payload){
           var pl=msg.payload;
-          // ── Driver position updates ──
+          // ── Driver position updates (only when live) ──
           if(pl.type==='pos'){
-            var u=pl;
-            if(u.id!==myId){
-              liveUsers[u.id]={nickname:u.nickname,lat:u.lat,lng:u.lng,speed:u.speed,progress:u.progress,ts:Date.now()};
-              updateLiveMarker(u.id,liveUsers[u.id]);
-              refreshLivePanel();
+            if(isLive()){
+              var u=pl;
+              if(u.id!==myId){
+                liveUsers[u.id]={nickname:u.nickname,lat:u.lat,lng:u.lng,speed:u.speed,progress:u.progress,ts:Date.now()};
+                updateLiveMarker(u.id,liveUsers[u.id]);
+                refreshLivePanel();
+              }
             }
           }
-          // ── Admin broadcast messages ──
+          // ── Admin broadcast (always received — safety alerts) ──
           if(pl.type==='admin_broadcast'){
             showAdminBanner(pl.msgType, pl.message);
+          }
+          // ── Driver chat (only when live) ──
+          if(pl.type==='chat'){
+            if(isLive()) receiveChatMsg(pl);
+          }
+          // ── Chat delete (always process to remove from UI) ──
+          if(pl.type==='chat_delete'){
+            processChatDelete(pl.msgId);
           }
         }
       }catch(err){}
@@ -878,10 +1171,21 @@ function initRealtime(){
   }catch(e){console.warn('Realtime failed:',e.message);}
 }
 function broadcastPos(lat,lng,spd){
-  if(!channel||!realtimeConnected)return;
+  if(!isLive()||!isOnline||!channel||!realtimeConnected)return;
   try{channel.send(JSON.stringify({topic:'realtime:m1_drivers',event:'broadcast',payload:{type:'pos',id:myId,nickname:myNickname,lat:parseFloat(lat.toFixed(5)),lng:parseFloat(lng.toFixed(5)),speed:Math.round(spd),progress:Math.round(latProg(lat))},ref:null}));}catch(e){}
 }
-setInterval(function(){var now=Date.now();Object.keys(liveUsers).forEach(function(id){if(now-liveUsers[id].ts>30000){delete liveUsers[id];if(liveMarkers[id]){map.removeLayer(liveMarkers[id]);delete liveMarkers[id];}}});refreshLivePanel();},10000);
+setInterval(function(){
+  var now=Date.now();
+  Object.keys(liveUsers).forEach(function(id){
+    if(now-liveUsers[id].ts>30000){
+      var nick = liveUsers[id].nickname;
+      delete liveUsers[id];
+      if(liveMarkers[id]){map.removeLayer(liveMarkers[id]);delete liveMarkers[id];}
+      chatNotifyLeave(nick);
+    }
+  });
+  refreshLivePanel();
+},10000);
 
 // ═══════════════════════════════════════════
 // M1 ROAD
@@ -933,7 +1237,15 @@ traps.forEach(function(t){renderTrapMarker(t);});
 var myMk=null;
 function myIcon(nick,spd){var col=spd>80?'#e74c3c':spd>50?'#f39c12':'#2980b9';return L.divIcon({html:'<div style="background:'+col+';color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;border:2px solid rgba(255,255,255,.5);box-shadow:0 2px 8px rgba(0,0,0,.5)">🚗 '+(nick||'You')+' <span style="opacity:.7">'+Math.round(spd)+'km/h</span></div>',className:'',iconAnchor:[44,12]});}
 function luIcon(nick,spd){var col=spd>80?'#e74c3c':spd>50?'#f39c12':'#8e44ad';return L.divIcon({html:'<div style="background:'+col+';color:#fff;font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;border:2px solid rgba(255,255,255,.35);box-shadow:0 2px 6px rgba(0,0,0,.5)">👤 '+nick+' <span style="opacity:.7">'+Math.round(spd)+'km/h</span></div>',className:'',iconAnchor:[44,12]});}
-function updateLiveMarker(id,u){var ico=luIcon(u.nickname,u.speed);if(liveMarkers[id]){liveMarkers[id].setLatLng([u.lat,u.lng]);liveMarkers[id].setIcon(ico);}else{liveMarkers[id]=L.marker([u.lat,u.lng],{icon:ico,zIndexOffset:500}).addTo(map);}liveMarkers[id].bindPopup('<b>👤 '+u.nickname+'</b><br>Speed: '+u.speed+' km/h<br>km '+u.progress);}
+function updateLiveMarker(id,u){
+  var ico=luIcon(u.nickname,u.speed);
+  var isNew = !liveMarkers[id];
+  if(liveMarkers[id]){liveMarkers[id].setLatLng([u.lat,u.lng]);liveMarkers[id].setIcon(ico);}
+  else{liveMarkers[id]=L.marker([u.lat,u.lng],{icon:ico,zIndexOffset:500}).addTo(map);}
+  liveMarkers[id].bindPopup('<b>👤 '+u.nickname+'</b><br>Speed: '+u.speed+' km/h<br>km '+u.progress);
+  // Notify chat when a new driver appears
+  if(isNew) chatNotifyJoin(u.nickname);
+}
 
 // ═══════════════════════════════════════════
 // HELPERS
@@ -1242,8 +1554,16 @@ function refreshLivePanel(){
     el.appendChild(c);
   });
 }
-function openLive(){document.getElementById('live-panel').classList.add('open');refreshLivePanel();}
-function closeLive(){document.getElementById('live-panel').classList.remove('open');}
+function openLive(){
+  document.getElementById('live-panel').classList.add('open');
+  refreshLivePanel();
+  // Reset to drivers tab when opening
+  switchLiveTab('drivers');
+}
+function closeLive(){
+  document.getElementById('live-panel').classList.remove('open');
+  chatOpen = false;
+}
 
 // ═══════════════════════════════════════════
 // REPORT TRAP
@@ -1303,9 +1623,13 @@ function launchApp(){
   setTimeout(function(){map.invalidateSize();map.fitBounds(road.getBounds(),{padding:[80,30]});},100);
   syncAudioBtn();
   startNightAutoCheck();
+  initPrivacyMode();
   addFuelMarkers();
   fetchWeatherInitial();
   logSession();
+  registerServiceWorker();
+  // Check initial online state
+  if (!navigator.onLine) updateOfflineBar(false);
   initRealtime();
   loadCommunityTraps();
 }
@@ -1688,6 +2012,7 @@ function wbClass(s) {
 
 // Fetch weather from Open-Meteo (no key needed)
 function fetchWeather(lat, lng) {
+  if (!navigator.onLine) return; // skip when offline
   var url = 'https://api.open-meteo.com/v1/forecast'
     + '?latitude='  + lat.toFixed(4)
     + '&longitude=' + lng.toFixed(4)
@@ -1840,22 +2165,27 @@ function fetchWeatherInitial() {
 // SETTINGS PANEL
 // ═══════════════════════════════════════════════════════
 var sgSettings = {
-  fuel:    lsGet('sg_set_fuel')    !== '0',
-  traps:   lsGet('sg_set_traps')  !== '0',
-  live:    lsGet('sg_set_live')   !== '0',
-  audio:   lsGet('sg_audio')      !== '0',
-  weather: lsGet('sg_set_weather')!== '0',
-  night:   lsGet('sg_night') === 'on',
+  fuel:     lsGet('sg_set_fuel')     !== '0',
+  traps:    lsGet('sg_set_traps')    !== '0',
+  live:     lsGet('sg_set_live')     === '1', // DEFAULT: private (opt-in to live)
+  audio:    lsGet('sg_audio')        !== '0',
+  weather:  lsGet('sg_set_weather')  !== '0',
+  night:    lsGet('sg_night') === 'on',
+  muteChat: lsGet('sg_mute_chat')    === '1',
 };
+// isLive = true means visible to others, can see others and use chat
+function isLive(){ return sgSettings.live; }
 
 function openSettings() {
   // Sync toggles to current state
-  document.getElementById('tog-fuel').checked    = sgSettings.fuel;
-  document.getElementById('tog-traps').checked   = sgSettings.traps;
-  document.getElementById('tog-live').checked    = sgSettings.live;
-  document.getElementById('tog-audio').checked   = sgSettings.audio;
-  document.getElementById('tog-weather').checked = sgSettings.weather;
-  document.getElementById('tog-night').checked   = nightModeOn;
+  document.getElementById('tog-fuel').checked     = sgSettings.fuel;
+  document.getElementById('tog-traps').checked    = sgSettings.traps;
+  document.getElementById('tog-live').checked     = sgSettings.live;
+  document.getElementById('tog-audio').checked    = sgSettings.audio;
+  document.getElementById('tog-weather').checked  = sgSettings.weather;
+  document.getElementById('tog-night').checked    = nightModeOn;
+  document.getElementById('tog-mute-chat').checked= sgSettings.muteChat;
+  updatePrivacySettingsRow();
 
   // Show SOS contact info
   var sosN = document.getElementById('sp-sos-name');
@@ -1900,10 +2230,15 @@ function settingChanged(key, val) {
 
   if (key === 'live') {
     lsSet('sg_set_live', val ? '1' : '0');
-    Object.values(liveMarkers).forEach(function(m){
-      val ? map.addLayer(m) : map.removeLayer(m);
-    });
-    showToast(val ? '👥 Live drivers shown' : '👥 Live drivers hidden');
+    applyPrivacyMode(!val); // val=true means GO LIVE (not private)
+    showToast(val ? '👥 You are now LIVE — visible to others' : '🔒 Private mode — you are invisible');
+  }
+
+  if (key === 'muteChat') {
+    sgSettings.muteChat = val;
+    lsSet('sg_mute_chat', val ? '1' : '0');
+    syncChatMuteState();
+    showToast(val ? '🔕 Chat notifications muted' : '🔔 Chat notifications on');
   }
 
   if (key === 'audio') {
@@ -2178,6 +2513,536 @@ function submitReview() {
   });
 }
 
+
+// ═══════════════════════════════════════════════════════
+// SERVICE WORKER REGISTRATION + OFFLINE DETECTION
+// ═══════════════════════════════════════════════════════
+var isOnline = navigator.onLine;
+
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) {
+    console.log('[App] Service workers not supported on this browser.');
+    return;
+  }
+  navigator.serviceWorker.register('./sw.js').then(function(reg) {
+    console.log('[App] Service Worker registered. Scope:', reg.scope);
+
+    // Check for updates — if new SW is waiting, prompt user
+    reg.addEventListener('updatefound', function() {
+      var newWorker = reg.installing;
+      newWorker.addEventListener('statechange', function() {
+        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+          // New version available — show update toast
+          showToast('🔄 App updated! Reload to get latest version.');
+        }
+      });
+    });
+  }).catch(function(err) {
+    console.warn('[App] Service Worker registration failed:', err);
+  });
+}
+
+function updateOfflineBar(online) {
+  isOnline = online;
+  var bar = document.getElementById('offline-bar');
+  if (!bar) return;
+  if (online) {
+    bar.classList.remove('show');
+    document.body.classList.remove('offline');
+    showToast('✅ Back online — live features restored');
+  } else {
+    bar.classList.add('show');
+    document.body.classList.add('offline');
+    showToast('📡 Gone offline — GPS & alerts still working');
+  }
+  // Update GPS label to show offline state
+  var gpsLbl = document.getElementById('gps-lbl');
+  if (gpsLbl && isTracking) {
+    gpsLbl.textContent = online ? 'GPS active' : 'GPS active (offline)';
+  }
+}
+
+// Listen for online/offline events
+window.addEventListener('online',  function() { updateOfflineBar(true);  });
+window.addEventListener('offline', function() { updateOfflineBar(false); });
+
+
+// ═══════════════════════════════════════════════════════
+// DRIVER ROAD CHAT
+// Real-time text channel for all M1 drivers.
+// Uses the same Supabase WebSocket channel already open.
+// Think of it like a CB radio — everyone on the M1
+// frequency hears the same messages.
+// Messages are in-memory only — no database storage.
+// They disappear when the app closes or after 2 hours.
+// ═══════════════════════════════════════════════════════
+var chatMessages  = [];       // in-memory message list
+var chatUnread    = 0;        // unread count when panel closed
+var chatOpen      = false;    // is chat tab visible
+var MAX_CHAT_MSGS = 100;      // keep last 100 messages in memory
+var CHAT_EXPIRY   = 2 * 60 * 60 * 1000; // 2 hours
+
+// ── LIVE PANEL TAB SWITCH ──
+function switchLiveTab(tab) {
+  var driverTab = document.getElementById('lpt-drivers');
+  var chatTab   = document.getElementById('lpt-chat');
+  var driverContent = document.getElementById('drivers-tab-content');
+  var chatPanel     = document.getElementById('chat-panel');
+
+  if (tab === 'drivers') {
+    driverTab.classList.add('active');
+    chatTab.classList.remove('active');
+    driverContent.style.display = 'block';
+    chatPanel.classList.remove('show');
+    chatOpen = false;
+  } else {
+    driverTab.classList.remove('active');
+    chatTab.classList.add('active');
+    driverContent.style.display = 'none';
+    chatPanel.classList.add('show');
+    chatOpen = true;
+    // Clear unread count
+    chatUnread = 0;
+    updateChatBadge();
+    // Scroll to bottom
+    scrollChatToBottom();
+    // Focus input
+    setTimeout(function(){ var inp=document.getElementById('chat-input'); if(inp) inp.focus(); }, 150);
+  }
+}
+
+// ── SEND MESSAGE ──
+function sendChat() {
+  if (!isOnline) { showToast('📡 No internet — chat unavailable offline'); return; }
+  if (!channel || !realtimeConnected) { showToast('⚠️ Not connected to live channel'); return; }
+  var input = document.getElementById('chat-input');
+  var text  = input ? input.value.trim() : '';
+  if (!text) return;
+  if (text.length > 120) { showToast('❌ Message too long (max 120 chars)'); return; }
+
+  var payload = {
+    type:     'chat',
+    id:       myId,
+    nickname: myNickname || 'Anonymous',
+    text:     text,
+    lat:      curLat,
+    lng:      curLng,
+    progress: curLat ? Math.round(latProg(curLat)) : null,
+    ts:       Date.now(),
+    // Reply data (null if not replying)
+    replyId:   replyingTo ? replyingTo.id   : null,
+    replyNick: replyingTo ? replyingTo.nick : null,
+    replyText: replyingTo ? replyingTo.text : null,
+  };
+
+  try {
+    channel.send(JSON.stringify({
+      topic:   'realtime:m1_drivers',
+      event:   'broadcast',
+      payload: payload,
+      ref:     null
+    }));
+    // Add own message to UI immediately (WS has self:false so we do it manually)
+    appendChatMsg(payload, true);
+    input.value = '';
+    document.getElementById('chat-char-left').textContent = '120';
+    cancelReply(); // clear reply bar
+  } catch(e) {
+    showToast('❌ Failed to send — check your connection');
+  }
+}
+
+// ── RECEIVE MESSAGE ──
+function receiveChatMsg(pl) {
+  // Ignore own messages (already added on send)
+  if (pl.id === myId) return;
+  appendChatMsg(pl, false);
+  // Unread badge if chat is not open
+  if (!chatOpen) {
+    if (!sgSettings.muteChat) {
+      chatUnread++;
+      updateChatBadge();
+      showToast('💬 ' + (pl.nickname || 'Driver') + ': ' + pl.text.substring(0, 40) + (pl.text.length > 40 ? '...' : ''));
+    }
+  }
+}
+
+// ── APPEND A MESSAGE TO THE UI ──
+function appendChatMsg(pl, isMine) {
+  var el = document.getElementById('chat-messages');
+  if (!el) return;
+
+  // Store in memory
+  chatMessages.push({pl: pl, mine: isMine, ts: Date.now()});
+  if (chatMessages.length > MAX_CHAT_MSGS) chatMessages.shift();
+
+  // Build bubble
+  var div = document.createElement('div');
+  div.className = 'chat-msg ' + (isMine ? 'mine' : 'other');
+  div.setAttribute('data-ts', pl.ts);
+
+  var t  = new Date(pl.ts);
+  var tm = t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0');
+
+  // Show DISTANCE (km along M1) not speed — for privacy
+  var locStr = '';
+  if (pl.progress !== null && pl.progress !== undefined) {
+    var kmAlong = Math.round(pl.progress / 100 * 306);
+    if (curLat && pl.lat && pl.lng) {
+      // If we have their position, show distance from us
+      var dist = hav(curLat, curLng, pl.lat || 0, pl.lng || 0);
+      locStr = dist < 1
+        ? '<span class="msg-speed">• ' + Math.round(dist*1000) + 'm away</span>'
+        : '<span class="msg-speed">• ' + dist.toFixed(1) + 'km away</span>';
+    } else {
+      locStr = '<span class="msg-speed">• km ' + kmAlong + '</span>';
+    }
+  }
+
+  // Reply quote box
+  var quoteHtml = '';
+  if (pl.replyText) {
+    quoteHtml = '<div class="msg-quote">'
+      + '<div class="msg-quote-nick">' + escChat(pl.replyNick || 'Driver') + '</div>'
+      + '<div class="msg-quote-text">' + escChat(pl.replyText) + '</div>'
+      + '</div>';
+  }
+
+  div.innerHTML =
+    '<span class="msg-nick">' + escChat(pl.nickname || 'Anonymous') + locStr + '</span>'
+    + quoteHtml
+    + '<span class="msg-text">' + escChat(pl.text) + '</span>'
+    + '<span class="msg-time">' + tm + '</span>';
+
+  // ── SWIPE TO REPLY (touch) ──
+  var touchStartX = 0, touchStartY = 0, swiped = false;
+  div.addEventListener('touchstart', function(e) {
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+    swiped = false;
+    // Long press timer for action menu
+    longPressTimer = setTimeout(function() {
+      if(!swiped) openActionMenu(e, pl.ts, isMine, pl.nickname || 'Anonymous', pl.text);
+    }, 600);
+  }, {passive:true});
+
+  div.addEventListener('touchmove', function(e) {
+    var dx = e.touches[0].clientX - touchStartX;
+    var dy = Math.abs(e.touches[0].clientY - touchStartY);
+    if(longPressTimer && (Math.abs(dx) > 10 || dy > 10)) {
+      clearTimeout(longPressTimer); longPressTimer = null;
+    }
+    if(dx > 60 && dy < 40 && !swiped) {
+      swiped = true;
+      div.style.transform = 'translateX(12px)';
+      setTimeout(function(){ div.style.transform = ''; }, 200);
+      startReply(pl.ts, pl.nickname || 'Anonymous', pl.text);
+    }
+  }, {passive:true});
+
+  div.addEventListener('touchend', function() {
+    if(longPressTimer){ clearTimeout(longPressTimer); longPressTimer = null; }
+  });
+
+  // Desktop: show reply button on hover
+  div.addEventListener('mouseenter', function() {
+    if(!div.querySelector('.msg-reply-hover')) {
+      var btn = document.createElement('button');
+      btn.className = 'msg-reply-hover';
+      btn.style.cssText = 'position:absolute;'+(isMine?'left:-28px':'right:-28px')+';top:6px;'
+        +'background:rgba(255,255,255,.1);border:none;border-radius:50%;width:22px;height:22px;'
+        +'color:rgba(255,255,255,.6);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center';
+      btn.textContent = '↩';
+      btn.title = 'Reply';
+      btn.onclick = function(e){ e.stopPropagation(); startReply(pl.ts, pl.nickname||'Anonymous', pl.text); };
+      div.style.position = 'relative';
+      div.appendChild(btn);
+    }
+  });
+  div.addEventListener('mouseleave', function() {
+    var btn = div.querySelector('.msg-reply-hover');
+    if(btn) btn.remove();
+  });
+
+  // Right-click context menu (desktop)
+  div.addEventListener('contextmenu', function(e) {
+    e.preventDefault();
+    openActionMenu(e, pl.ts, isMine, pl.nickname||'Anonymous', pl.text);
+  });
+
+  el.appendChild(div);
+  while (el.children.length > MAX_CHAT_MSGS + 3) el.removeChild(el.firstChild);
+  scrollChatToBottom();
+}
+
+// Add a system message (join/leave notification)
+function addChatSystem(msg) {
+  var el = document.getElementById('chat-messages');
+  if (!el) return;
+  var div = document.createElement('div');
+  div.className = 'chat-system';
+  div.textContent = msg;
+  el.appendChild(div);
+  scrollChatToBottom();
+}
+
+function scrollChatToBottom() {
+  var el = document.getElementById('chat-messages');
+  if (el) el.scrollTop = el.scrollHeight;
+}
+
+function updateChatBadge() {
+  var badge = document.getElementById('chat-unread-badge');
+  if (!badge) return;
+  if (chatUnread > 0) {
+    badge.style.display = 'inline';
+    badge.textContent = chatUnread > 9 ? '9+' : chatUnread;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function updateChatCharCount(val) {
+  var el = document.getElementById('chat-char-left');
+  if (el) {
+    var left = 120 - val.length;
+    el.textContent = left;
+    el.style.color = left < 20 ? '#f39c12' : left < 10 ? '#e74c3c' : 'rgba(255,255,255,.25)';
+  }
+}
+
+// Escape HTML in chat messages to prevent XSS
+function escChat(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+// Notify in chat when a driver joins/leaves
+// Called from updateLiveMarker when new driver appears
+function chatNotifyJoin(nickname) {
+  addChatSystem('👋 ' + nickname + ' joined the M1');
+}
+function chatNotifyLeave(nickname) {
+  addChatSystem('👋 ' + nickname + ' left the M1');
+}
+
+// Expire old messages every 5 minutes
+setInterval(function() {
+  var now = Date.now();
+  var el  = document.getElementById('chat-messages');
+  if (!el) return;
+  chatMessages = chatMessages.filter(function(m) {
+    return (now - m.ts) < CHAT_EXPIRY;
+  });
+  // Remove expired message elements from DOM
+  var nodes = el.querySelectorAll('.chat-msg[data-ts]');
+  nodes.forEach(function(node) {
+    var ts = parseInt(node.getAttribute('data-ts'));
+    if (now - ts > CHAT_EXPIRY) node.remove();
+  });
+}, 5 * 60 * 1000);
+
+
+// ═══════════════════════════════════════════════════════
+// PRIVACY MODE
+// ═══════════════════════════════════════════════════════
+function applyPrivacyMode(isPrivate) {
+  var privScreen   = document.getElementById('live-private-screen');
+  var driversTab   = document.getElementById('drivers-tab-content');
+  var chatPanel    = document.getElementById('chat-panel');
+  var tabBar       = document.querySelector('.lp-tabs');
+  var liveBtn      = document.getElementById('live-dot');
+
+  if (isPrivate) {
+    // Show privacy lock screen, hide drivers + chat
+    if(privScreen) privScreen.classList.add('show');
+    if(driversTab) driversTab.style.display = 'none';
+    if(chatPanel)  chatPanel.classList.remove('show');
+    if(tabBar)     tabBar.style.display = 'none';
+    // Clear all other drivers from map and memory
+    Object.keys(liveUsers).forEach(function(id){
+      if(liveMarkers[id]){ map.removeLayer(liveMarkers[id]); delete liveMarkers[id]; }
+    });
+    liveUsers = {};
+    refreshLivePanel();
+    // Update header
+    if(liveBtn) liveBtn.style.display = 'none';
+    document.getElementById('live-lbl').textContent = '🔒 Private';
+  } else {
+    // Show drivers + chat, hide privacy screen
+    if(privScreen) privScreen.classList.remove('show');
+    if(driversTab) driversTab.style.display = 'block';
+    if(tabBar)     tabBar.style.display = 'flex';
+    document.getElementById('live-lbl').textContent = '0 online';
+  }
+  updatePrivacySettingsRow();
+}
+
+function updatePrivacySettingsRow() {
+  var lbl  = document.getElementById('privacy-row-label');
+  var desc = document.getElementById('privacy-row-desc');
+  if (!lbl) return;
+  if (isLive()) {
+    lbl.textContent  = '🟢 Live Mode';
+    desc.textContent = 'You are visible to other drivers and can use chat.';
+  } else {
+    lbl.textContent  = '🔴 Private Mode';
+    desc.textContent = 'You are invisible. Enable to see & be seen by other drivers and access chat.';
+  }
+}
+
+// "Go Live" button inside the private screen
+function goLiveFromPanel() {
+  sgSettings.live = true;
+  lsSet('sg_set_live','1');
+  var tog = document.getElementById('tog-live');
+  if(tog) tog.checked = true;
+  applyPrivacyMode(false);
+  showToast('👥 You are now LIVE — visible to other drivers');
+}
+
+// Apply initial privacy state on launch
+function initPrivacyMode() {
+  applyPrivacyMode(!isLive());
+}
+
+// ═══════════════════════════════════════════════════════
+// MUTE CHAT
+// ═══════════════════════════════════════════════════════
+function syncChatMuteState() {
+  var chatTab = document.getElementById('lpt-chat');
+  if (!chatTab) return;
+  // Show mute icon on tab when muted
+  var muteIcon = chatTab.querySelector('.mute-icon');
+  if (sgSettings.muteChat) {
+    if (!muteIcon) {
+      var span = document.createElement('span');
+      span.className = 'mute-icon';
+      span.textContent = '🔕';
+      chatTab.appendChild(span);
+    }
+  } else {
+    if (muteIcon) muteIcon.remove();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// CHAT: REPLY FEATURE
+// ═══════════════════════════════════════════════════════
+var replyingTo = null; // {id, nick, text}
+
+function startReply(msgId, nick, text) {
+  replyingTo = {id: msgId, nick: nick, text: text};
+  var bar  = document.getElementById('chat-reply-bar');
+  var bnick= document.getElementById('reply-bar-nick');
+  var btxt = document.getElementById('reply-bar-text');
+  if(bar)  bar.classList.add('show');
+  if(bnick)bnick.textContent = nick;
+  if(btxt) btxt.textContent  = text;
+  var input = document.getElementById('chat-input');
+  if(input) input.focus();
+  closeActionMenu();
+}
+
+function cancelReply() {
+  replyingTo = null;
+  var bar = document.getElementById('chat-reply-bar');
+  if(bar) bar.classList.remove('show');
+}
+
+// ═══════════════════════════════════════════════════════
+// CHAT: MESSAGE ACTION MENU (long press / hover)
+// ═══════════════════════════════════════════════════════
+var actionMenuTarget = null; // {msgId, isMine, nick, text}
+var longPressTimer   = null;
+
+function openActionMenu(e, msgId, isMine, nick, text) {
+  actionMenuTarget = {msgId, isMine, nick, text};
+  var menu = document.getElementById('chat-action-menu');
+  var del  = document.getElementById('cam-delete-btn');
+  if(!menu) return;
+  // Show delete only for own messages
+  if(del) del.style.display = isMine ? 'flex' : 'none';
+  // Position near touch/click
+  var x = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+  var y = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+  // Keep menu inside viewport
+  var menuW = 160, menuH = isMine ? 100 : 70;
+  x = Math.min(x, window.innerWidth  - menuW - 10);
+  y = Math.min(y, window.innerHeight - menuH - 10);
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+  menu.classList.add('show');
+  // Close on outside tap
+  setTimeout(function(){
+    document.addEventListener('touchstart', closeActionMenuOutside, {once:true});
+    document.addEventListener('mousedown',  closeActionMenuOutside, {once:true});
+  }, 50);
+}
+
+function closeActionMenuOutside(e) {
+  var menu = document.getElementById('chat-action-menu');
+  if(menu && !menu.contains(e.target)) closeActionMenu();
+}
+
+function closeActionMenu() {
+  var menu = document.getElementById('chat-action-menu');
+  if(menu) menu.classList.remove('show');
+  actionMenuTarget = null;
+}
+
+function actionMenuReply() {
+  if(!actionMenuTarget) return;
+  startReply(actionMenuTarget.msgId, actionMenuTarget.nick, actionMenuTarget.text);
+}
+
+function actionMenuDelete() {
+  if(!actionMenuTarget || !actionMenuTarget.isMine) return;
+  deleteChatMsg(actionMenuTarget.msgId);
+  closeActionMenu();
+}
+
+// ═══════════════════════════════════════════════════════
+// CHAT: DELETE FOR EVERYONE
+// ═══════════════════════════════════════════════════════
+function deleteChatMsg(msgId) {
+  // Broadcast delete signal to all drivers
+  if(channel && realtimeConnected && isOnline) {
+    try {
+      channel.send(JSON.stringify({
+        topic:   'realtime:m1_drivers',
+        event:   'broadcast',
+        payload: { type:'chat_delete', msgId: msgId, byId: myId },
+        ref:     null
+      }));
+    } catch(e) {}
+  }
+  // Also remove locally
+  processChatDelete(msgId);
+}
+
+function processChatDelete(msgId) {
+  // Find and mark message as deleted in DOM
+  var el = document.getElementById('chat-messages');
+  if(!el) return;
+  var nodes = el.querySelectorAll('.chat-msg[data-ts="'+msgId+'"]');
+  nodes.forEach(function(node) {
+    node.classList.add('deleted');
+    var textEl = node.querySelector('.msg-text');
+    if(textEl) textEl.textContent = '🚫 This message was deleted.';
+    // Remove quote, remove action listeners
+    var quoteEl = node.querySelector('.msg-quote');
+    if(quoteEl) quoteEl.remove();
+    // Fade out after 3 seconds
+    setTimeout(function(){ node.style.opacity='0.3'; }, 3000);
+  });
+  // Remove from memory
+  chatMessages = chatMessages.filter(function(m){ return m.pl.ts !== msgId; });
+}
+
 // ═══════════════════════════════════════════
 // STARTUP
 // ═══════════════════════════════════════════
@@ -2232,11 +3097,22 @@ function submitReview() {
 
     <div class="sp-row">
       <div class="sp-row-info">
-        <div class="sp-row-label">👥 Live Drivers</div>
-        <div class="sp-row-desc">Show other drivers on the map</div>
+        <div class="sp-row-label" id="privacy-row-label">🔴 Private Mode</div>
+        <div class="sp-row-desc" id="privacy-row-desc">You are invisible. Enable to see &amp; be seen by other drivers and access chat.</div>
       </div>
       <label class="sg-toggle">
-        <input type="checkbox" id="tog-live" checked onchange="settingChanged('live',this.checked)">
+        <input type="checkbox" id="tog-live" onchange="settingChanged('live',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">🔕 Mute Chat Notifications</div>
+        <div class="sp-row-desc">Messages still arrive but no pop-ups or badge</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-mute-chat" onchange="settingChanged('muteChat',this.checked)">
         <span class="sg-slider"></span>
       </label>
     </div>
@@ -2353,6 +3229,20 @@ function submitReview() {
       <button class="mc-cancel" onclick="closeNickEdit()">Cancel</button>
       <button class="mc-ok" id="nick-edit-save" onclick="saveNickEdit()">Save Name ✓</button>
     </div>
+  </div>
+</div>
+
+
+<!-- CHAT MESSAGE ACTION MENU -->
+<div id="chat-action-menu">
+  <div class="cam-btn" id="cam-reply-btn" onclick="actionMenuReply()">
+    ↩️ Reply
+  </div>
+  <div class="cam-btn danger" id="cam-delete-btn" onclick="actionMenuDelete()" style="display:none">
+    🗑️ Delete for everyone
+  </div>
+  <div class="cam-btn" onclick="closeActionMenu()">
+    ✕ Cancel
   </div>
 </div>
 
