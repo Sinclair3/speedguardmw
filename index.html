@@ -6,8 +6,6 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="SpeedGuard MW">
-<meta name="theme-color" content="#0a0f14">
-<link rel="manifest" href="manifest.json">
 <title>SpeedGuard Malawi — M1 Road</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
@@ -186,20 +184,6 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 
 
 
-
-
-/* ── OFFLINE MODE INDICATOR ── */
-#offline-bar{
-  position:fixed;top:0;left:0;right:0;z-index:2000;
-  background:#c0392b;color:#fff;
-  font-size:12px;font-weight:700;text-align:center;
-  padding:5px 14px;
-  display:none;align-items:center;justify-content:center;gap:7px;
-  letter-spacing:.03em;
-}
-#offline-bar.show{display:flex}
-body.offline #hdr{padding-top:calc(env(safe-area-inset-top,12px) + 26px)}
-.offline-dot{width:7px;height:7px;border-radius:50%;background:#fff;opacity:.8;animation:bk .8s infinite}
 
 /* ── NICKNAME EDIT MODAL ── */
 #nick-edit-mo .mc{border-top:3px solid #27ae60}
@@ -429,12 +413,6 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 </style>
 </head>
 <body>
-
-<!-- OFFLINE BAR -->
-<div id="offline-bar">
-  <span class="offline-dot"></span>
-  📡 No internet — GPS &amp; speed alerts still work · Live features paused
-</div>
 
 <!-- TERMS -->
 <div id="terms-screen">
@@ -755,7 +733,6 @@ function supaFetch(path, method, body){
   }).catch(function(){return null;});
 }
 function loadCommunityTraps(){
-  if (!navigator.onLine) { console.log('[App] Offline — skipping community trap load'); return; }
   supaFetch('sg_traps?select=*&order=created_at.desc').then(function(rows){
     if(!rows||!Array.isArray(rows))return;
     rows.forEach(function(row){
@@ -901,7 +878,7 @@ function initRealtime(){
   }catch(e){console.warn('Realtime failed:',e.message);}
 }
 function broadcastPos(lat,lng,spd){
-  if(!isOnline||!channel||!realtimeConnected)return;
+  if(!channel||!realtimeConnected)return;
   try{channel.send(JSON.stringify({topic:'realtime:m1_drivers',event:'broadcast',payload:{type:'pos',id:myId,nickname:myNickname,lat:parseFloat(lat.toFixed(5)),lng:parseFloat(lng.toFixed(5)),speed:Math.round(spd),progress:Math.round(latProg(lat))},ref:null}));}catch(e){}
 }
 setInterval(function(){var now=Date.now();Object.keys(liveUsers).forEach(function(id){if(now-liveUsers[id].ts>30000){delete liveUsers[id];if(liveMarkers[id]){map.removeLayer(liveMarkers[id]);delete liveMarkers[id];}}});refreshLivePanel();},10000);
@@ -1329,9 +1306,6 @@ function launchApp(){
   addFuelMarkers();
   fetchWeatherInitial();
   logSession();
-  registerServiceWorker();
-  // Check initial online state
-  if (!navigator.onLine) updateOfflineBar(false);
   initRealtime();
   loadCommunityTraps();
 }
@@ -1714,7 +1688,6 @@ function wbClass(s) {
 
 // Fetch weather from Open-Meteo (no key needed)
 function fetchWeather(lat, lng) {
-  if (!navigator.onLine) return; // skip when offline
   var url = 'https://api.open-meteo.com/v1/forecast'
     + '?latitude='  + lat.toFixed(4)
     + '&longitude=' + lng.toFixed(4)
@@ -2204,59 +2177,6 @@ function submitReview() {
     showToast('❌ Submission failed. Please try again.');
   });
 }
-
-
-// ═══════════════════════════════════════════════════════
-// SERVICE WORKER REGISTRATION + OFFLINE DETECTION
-// ═══════════════════════════════════════════════════════
-var isOnline = navigator.onLine;
-
-function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) {
-    console.log('[App] Service workers not supported on this browser.');
-    return;
-  }
-  navigator.serviceWorker.register('./sw.js').then(function(reg) {
-    console.log('[App] Service Worker registered. Scope:', reg.scope);
-
-    // Check for updates — if new SW is waiting, prompt user
-    reg.addEventListener('updatefound', function() {
-      var newWorker = reg.installing;
-      newWorker.addEventListener('statechange', function() {
-        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-          // New version available — show update toast
-          showToast('🔄 App updated! Reload to get latest version.');
-        }
-      });
-    });
-  }).catch(function(err) {
-    console.warn('[App] Service Worker registration failed:', err);
-  });
-}
-
-function updateOfflineBar(online) {
-  isOnline = online;
-  var bar = document.getElementById('offline-bar');
-  if (!bar) return;
-  if (online) {
-    bar.classList.remove('show');
-    document.body.classList.remove('offline');
-    showToast('✅ Back online — live features restored');
-  } else {
-    bar.classList.add('show');
-    document.body.classList.add('offline');
-    showToast('📡 Gone offline — GPS & alerts still working');
-  }
-  // Update GPS label to show offline state
-  var gpsLbl = document.getElementById('gps-lbl');
-  if (gpsLbl && isTracking) {
-    gpsLbl.textContent = online ? 'GPS active' : 'GPS active (offline)';
-  }
-}
-
-// Listen for online/offline events
-window.addEventListener('online',  function() { updateOfflineBar(true);  });
-window.addEventListener('offline', function() { updateOfflineBar(false); });
 
 // ═══════════════════════════════════════════
 // STARTUP
