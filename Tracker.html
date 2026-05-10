@@ -224,19 +224,19 @@ const FEATURES = [
     id:7, num:'#7', name:'Weather Alerts', phase:2, phaseLabel:'Phase 2 — Resilience & Coverage',
     category:'navigation', effort:'Medium', impact:'high',
     desc:'Integrate OpenWeatherMap (free API) to show live conditions for key M1 points. Alert drivers to heavy rain, fog, and storms — especially the Ntcheu escarpment.',
-    detect:['openweathermap','weatherAlert','weather-icon','fetchWeather'],
+    detect:['open-meteo','fetchWeather','weather-bar','wmoInfo'],
   },
   {
     id:8, num:'#8', name:'Night Mode Auto-Detection', phase:2, phaseLabel:'Phase 2 — Resilience & Coverage',
     category:'navigation', effort:'Low', impact:'medium',
     desc:'Detects sunset/sunrise from GPS latitude. Switches to a dim red-tinted scheme after dark. Manual toggle also available for drivers who prefer dark mode all the time.',
-    detect:['nightMode','night-mode','getSunset','toggleNightMode'],
+    detect:['body.night','getSunTimes','toggleNightMode','startNightAutoCheck'],
   },
   {
     id:6, num:'#6', name:'Fuel Stations & Rest Stop Markers', phase:2, phaseLabel:'Phase 2 — Resilience & Coverage',
     category:'navigation', effort:'Low', impact:'medium',
     desc:'Static markers for petrol stations, rest stops, lodges, and restaurants along the M1. Tap to see name and distance.',
-    detect:['fuelStation','fuel-station','restStop','petrol-marker'],
+    detect:['FUEL_STATIONS','fuel-panel','openFuel','fuelMarkers'],
   },
   {
     id:4, num:'#4', name:'Emergency SOS Button', phase:3, phaseLabel:'Phase 3 — Community & Trust',
@@ -266,7 +266,7 @@ const FEATURES = [
     id:17, num:'#17', name:'Admin Dashboard', phase:3, phaseLabel:'Phase 3 — Community & Trust',
     category:'trust', effort:'High', impact:'medium',
     desc:'Password-protected page to approve/remove traps, ban users, push announcements, and view usage stats.',
-    detect:['adminDashboard','admin-panel','admin-password','adminAuth'],
+    detect:['admin-banner','showAdminBanner','admin_broadcast','dismissAdminBanner'],
   },
   {
     id:10, num:'#10', name:'Trip History & Journey Log', phase:4, phaseLabel:'Phase 4 — Engagement & Retention',
