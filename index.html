@@ -183,6 +183,31 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 
 
 
+
+/* ── REVIEW MODAL ── */
+.mo.review-mo .mc{border-top:3px solid #f39c12}
+.star-row{display:flex;gap:6px;justify-content:center;margin:10px 0 16px}
+.star{font-size:32px;cursor:pointer;opacity:.3;transition:opacity .15s,transform .15s}
+.star.lit{opacity:1}
+.star:hover{transform:scale(1.15)}
+.review-textarea{
+  width:100%;padding:12px;border-radius:11px;
+  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);
+  color:#fff;font-size:14px;resize:none;outline:none;
+  font-family:-apple-system,sans-serif;margin-bottom:10px;
+}
+.review-textarea::placeholder{color:rgba(255,255,255,.25)}
+.review-textarea:focus{border-color:rgba(243,156,18,.4)}
+.review-category{
+  display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;
+}
+.rev-cat{
+  padding:5px 11px;border-radius:16px;font-size:11px;font-weight:600;cursor:pointer;
+  border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);
+  color:rgba(255,255,255,.55);transition:all .15s;
+}
+.rev-cat.active{background:rgba(243,156,18,.2);border-color:rgba(243,156,18,.5);color:#f8c060}
+
 /* ── ADMIN BROADCAST BANNER ── */
 #admin-banner{
   position:fixed;z-index:1001;left:0;right:0;
@@ -1888,7 +1913,18 @@ function changeNickname() {
   if (n && n.trim()) {
     myNickname = n.trim();
     lsSet('sg_nick', myNickname);
+    // Update the map marker immediately
+    if (myMk) myMk.setIcon(myIcon(myNickname, curSpd));
+    // Update nickname in Supabase session record for this device
+    supaFetch('sg_sessions?device_id=eq.'+myId, 'PATCH', {nickname: myNickname})
+      .then(function(){ console.log('Nickname updated in DB'); })
+      .catch(function(){});
+    // Reset the 24h log timer so next session logs with new name
+    lsSet('sg_last_log', '0');
     showToast('✅ Name updated: ' + myNickname);
+    // Refresh settings panel display
+    var nickEl = document.getElementById('sp-nick-display');
+    if (nickEl) nickEl.textContent = '🚗 ' + myNickname;
   }
 }
 
@@ -1986,6 +2022,82 @@ function positionAlertsBelow() {
     var alertH = (alert && alert.style.display !== 'none') ? alert.offsetHeight + 8 : 0;
     wxBar.style.top = (alertTop + alertH) + 'px';
   }
+}
+
+
+// ═══════════════════════════════════════════════════════
+// REVIEWS SYSTEM
+// Drivers can rate the app and leave comments.
+// Stored in sg_reviews table in Supabase.
+// Read from admin page.
+// ═══════════════════════════════════════════════════════
+var reviewRating  = 0;
+var reviewCats    = [];
+
+function openReview() {
+  reviewRating = 0;
+  reviewCats   = [];
+  // Reset UI
+  document.querySelectorAll('.star').forEach(function(s){ s.classList.remove('lit'); });
+  document.querySelectorAll('.rev-cat').forEach(function(c){ c.classList.remove('active'); });
+  document.getElementById('review-text').value = '';
+  var nickLbl = document.getElementById('review-nick-lbl');
+  if (nickLbl) nickLbl.textContent = myNickname || 'Anonymous';
+  document.getElementById('review-mo').classList.add('open');
+}
+
+function closeReview() {
+  document.getElementById('review-mo').classList.remove('open');
+}
+
+function setRating(n) {
+  reviewRating = n;
+  document.querySelectorAll('.star').forEach(function(s) {
+    s.classList.toggle('lit', parseInt(s.getAttribute('data-r')) <= n);
+  });
+}
+
+function toggleCat(el, cat) {
+  el.classList.toggle('active');
+  if (el.classList.contains('active')) {
+    if (!reviewCats.includes(cat)) reviewCats.push(cat);
+  } else {
+    reviewCats = reviewCats.filter(function(c){ return c !== cat; });
+  }
+}
+
+function submitReview() {
+  if (reviewRating === 0) { showToast('⭐ Please select a star rating first'); return; }
+  var text = document.getElementById('review-text').value.trim();
+  var btn  = document.getElementById('review-submit-btn');
+  btn.textContent = 'Submitting...';
+  btn.disabled = true;
+
+  supaFetch('sg_reviews', 'POST', {
+    nickname:    myNickname || 'Anonymous',
+    device_id:   myId,
+    rating:      reviewRating,
+    categories:  reviewCats.join(', ') || 'General',
+    review_text: text || null,
+    app_version: '2.0',
+    platform:    /iPhone|iPad/.test(navigator.userAgent) ? 'iOS'
+               : /Android/.test(navigator.userAgent) ? 'Android'
+               : /Windows/.test(navigator.userAgent) ? 'Windows' : 'Other'
+  }).then(function(r) {
+    btn.textContent = 'Submit Review ★';
+    btn.disabled = false;
+    if (r && r[0]) {
+      closeReview();
+      showToast('✅ Thank you for your review!');
+      lsSet('sg_last_review', Date.now().toString());
+    } else {
+      showToast('❌ Could not submit — check sg_reviews table exists.');
+    }
+  }).catch(function() {
+    btn.textContent = 'Submit Review ★';
+    btn.disabled = false;
+    showToast('❌ Submission failed. Please try again.');
+  });
 }
 
 // ═══════════════════════════════════════════
@@ -2114,10 +2226,68 @@ function positionAlertsBelow() {
     </div>
   </div>
 
+  <!-- REVIEW -->
+  <div class="sp-section" style="margin-top:4px">
+    <div class="sp-section-label">Feedback</div>
+    <div class="sp-row" style="border:none">
+      <div class="sp-row-info">
+        <div class="sp-row-label">⭐ Leave a Review</div>
+        <div class="sp-row-desc">Help us improve SpeedGuard Malawi</div>
+      </div>
+      <span class="sp-link" onclick="closeSettings();openReview()">Write</span>
+    </div>
+  </div>
   <!-- VERSION -->
   <div style="padding:16px 18px;font-size:11px;color:rgba(255,255,255,.2);text-align:center;margin-top:auto">
     SpeedGuard Malawi v2.0 · M1 Road<br>
     Built for Malawi 🇲🇼
+  </div>
+</div>
+
+
+<!-- REVIEW MODAL -->
+<div class="mo review-mo" id="review-mo">
+  <div class="mc">
+    <div class="mc-hndl"></div>
+    <div class="mc-t">⭐ Rate SpeedGuard Malawi</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:4px">
+      Your feedback helps improve the app for all M1 drivers.
+    </div>
+
+    <!-- Star rating -->
+    <div class="star-row" id="star-row">
+      <span class="star" onclick="setRating(1)" data-r="1">★</span>
+      <span class="star" onclick="setRating(2)" data-r="2">★</span>
+      <span class="star" onclick="setRating(3)" data-r="3">★</span>
+      <span class="star" onclick="setRating(4)" data-r="4">★</span>
+      <span class="star" onclick="setRating(5)" data-r="5">★</span>
+    </div>
+
+    <!-- Category tags -->
+    <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.35);margin-bottom:7px">What's this about?</div>
+    <div class="review-category" id="review-cats">
+      <span class="rev-cat" onclick="toggleCat(this,'General')">General</span>
+      <span class="rev-cat" onclick="toggleCat(this,'Speed Traps')">Speed Traps</span>
+      <span class="rev-cat" onclick="toggleCat(this,'SOS Button')">SOS Button</span>
+      <span class="rev-cat" onclick="toggleCat(this,'Fuel Stations')">Fuel Stations</span>
+      <span class="rev-cat" onclick="toggleCat(this,'Weather')">Weather</span>
+      <span class="rev-cat" onclick="toggleCat(this,'Night Mode')">Night Mode</span>
+      <span class="rev-cat" onclick="toggleCat(this,'Live Tracking')">Live Tracking</span>
+      <span class="rev-cat" onclick="toggleCat(this,'Bug Report')">Bug Report</span>
+    </div>
+
+    <!-- Review text -->
+    <textarea class="review-textarea" id="review-text" rows="3"
+      placeholder="Share your experience — what works well? What needs improvement?"></textarea>
+
+    <div style="font-size:11px;color:rgba(255,255,255,.3);margin-bottom:12px">
+      Submitted as: <b style="color:rgba(255,255,255,.5)" id="review-nick-lbl">Anonymous</b>
+    </div>
+
+    <div class="mc-btns">
+      <button class="mc-cancel" onclick="closeReview()">Cancel</button>
+      <button class="mc-ok" onclick="submitReview()" id="review-submit-btn">Submit Review ★</button>
+    </div>
   </div>
 </div>
 
