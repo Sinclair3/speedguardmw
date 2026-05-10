@@ -234,3 +234,55 @@ self.addEventListener('message', function(event) {
     self.skipWaiting();
   }
 });
+
+// ═══════════════════════════════════════════════════════
+// PUSH NOTIFICATION HANDLER
+// Receives push events and shows lock screen notifications
+// even when the app is closed or the phone is locked
+// ═══════════════════════════════════════════════════════
+self.addEventListener('push', function(event) {
+  var data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch(e) {
+    data = { title: '⚠️ SpeedGuard Alert', body: event.data ? event.data.text() : 'Speed trap nearby' };
+  }
+
+  var title   = data.title || '⚠️ SpeedGuard Malawi';
+  var options = {
+    body:     data.body || 'Speed trap alert',
+    icon:     './icon-192.png',
+    badge:    './icon-96.png',
+    tag:      data.tag  || 'speedguard',
+    renotify: true,
+    vibrate:  data.urgency === 'critical' ? [200,100,200,100,200] : [100,50,100],
+    data:     { url: data.url || './' },
+    actions:  [{ action:'open', title:'🗺️ View Map' }]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(title, options)
+  );
+});
+
+// ── Handle notification click ──
+// Opens/focuses the app when driver taps the notification
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close();
+  var targetUrl = (event.notification.data && event.notification.data.url)
+    ? event.notification.data.url : './';
+
+  event.waitUntil(
+    clients.matchAll({ type:'window', includeUncontrolled:true }).then(function(clientList) {
+      // If app already open, focus it
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if (client.url.includes('speedguardmw') || client.url.includes('index.html')) {
+          return client.focus();
+        }
+      }
+      // Otherwise open a new window
+      if (clients.openWindow) return clients.openWindow(targetUrl);
+    })
+  );
+});
