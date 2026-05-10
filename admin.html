@@ -201,6 +201,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;co
   <div class="tab-bar">
     <div class="tab active" onclick="switchTab('usage',this)">📈 Usage</div>
     <div class="tab" onclick="switchTab('traps',this)">🚔 Trap Reports</div>
+    <div class="tab" onclick="switchTab('reviews',this)">⭐ Reviews</div>
     <div class="tab" onclick="switchTab('broadcast',this)">📢 Broadcast</div>
     <div class="tab" onclick="switchTab('settings',this)">⚙️ Settings</div>
   </div>
@@ -330,6 +331,61 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;co
     </div>
   </div>
 
+
+  <!-- ══ TAB: REVIEWS ══ -->
+  <div id="tab-reviews" class="content" style="display:none">
+    <div class="section-hdr">
+      <div>
+        <div class="section-title">Driver Reviews</div>
+        <div class="section-sub">Feedback submitted by drivers from the app</div>
+      </div>
+      <button class="btn-refresh" onclick="loadReviews()">↻ Refresh</button>
+    </div>
+
+    <!-- Review summary cards -->
+    <div style="display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+      <div class="strip-card" style="min-width:140px">
+        <div class="strip-num" id="rv-total" style="color:#f39c12">--</div>
+        <div class="strip-lbl">Total Reviews</div>
+      </div>
+      <div class="strip-card" style="min-width:140px">
+        <div class="strip-num" id="rv-avg" style="color:#27ae60">--</div>
+        <div class="strip-lbl">Average Rating</div>
+      </div>
+      <div class="strip-card" style="min-width:140px">
+        <div class="strip-num" id="rv-5star" style="color:#f8c060">--</div>
+        <div class="strip-lbl">5-Star Reviews</div>
+      </div>
+    </div>
+
+    <!-- Star distribution bar -->
+    <div class="chart-card" style="margin-bottom:16px">
+      <div class="chart-title">Rating Distribution</div>
+      <div id="rv-dist">
+        <div style="color:rgba(255,255,255,.3);font-size:13px;text-align:center;padding:16px">
+          <span class="spinner"></span> Loading...
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter by rating -->
+    <div class="filter-row" style="margin-bottom:14px">
+      <div class="f-pill active" onclick="setRevFilter(0,this)">All</div>
+      <div class="f-pill" onclick="setRevFilter(5,this)">★★★★★</div>
+      <div class="f-pill" onclick="setRevFilter(4,this)">★★★★</div>
+      <div class="f-pill" onclick="setRevFilter(3,this)">★★★</div>
+      <div class="f-pill" onclick="setRevFilter(2,this)">★★</div>
+      <div class="f-pill" onclick="setRevFilter(1,this)">★</div>
+    </div>
+
+    <!-- Reviews list -->
+    <div id="reviews-list">
+      <div style="text-align:center;padding:30px;color:rgba(255,255,255,.3)">
+        <span class="spinner"></span> Loading reviews...
+      </div>
+    </div>
+  </div>
+
   <!-- ══ TAB: BROADCAST ══ -->
   <div id="tab-broadcast" class="content" style="display:none">
     <div class="section-hdr">
@@ -404,7 +460,34 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;co
 );
 alter table sg_sessions enable row level security;
 create policy "Anyone can insert" on sg_sessions for insert with check (true);
-create policy "Anyone can read"  on sg_sessions for select using (true);</pre>
+create policy "Anyone can read"  on sg_sessions for select using (true);
+
+-- Run this too for reviews:
+create table sg_reviews (
+  id          bigint generated always as identity primary key,
+  nickname    text,
+  device_id   text,
+  rating      int not null,
+  categories  text,
+  review_text text,
+  app_version text,
+  platform    text,
+  created_at  timestamptz default now()
+);
+alter table sg_reviews enable row level security;
+create policy "Anyone can insert" on sg_reviews for insert with check (true);
+create policy "Anyone can read"   on sg_reviews for select using (true);
+
+-- Run this too for admin password:
+create table sg_admin_config (
+  id    bigint generated always as identity primary key,
+  key   text unique not null,
+  value text not null
+);
+alter table sg_admin_config enable row level security;
+create policy "Anyone can read"   on sg_admin_config for select using (true);
+create policy "Anyone can insert" on sg_admin_config for insert with check (true);
+create policy "Anyone can update" on sg_admin_config for update using (true);</pre>
     </div>
   </div>
 
@@ -436,27 +519,65 @@ var DEFAULT_PW     = 'speedguard2025';
 
 // ── AUTH ──
 function tryLogin() {
-  var pw    = document.getElementById('pw-input').value;
-  var saved = localStorage.getItem('sg_admin_pw') || DEFAULT_PW;
-  if (pw === saved) {
-    localStorage.setItem('sg_admin_sess', Date.now().toString());
-    document.getElementById('login-screen').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
-    initApp();
-  } else {
-    var e = document.getElementById('login-err');
-    e.textContent = '❌ Incorrect password.';
-    document.getElementById('pw-input').value = '';
-    setTimeout(function(){ e.textContent=''; }, 3000);
-  }
+  var pw  = document.getElementById('pw-input').value;
+  var err = document.getElementById('login-err');
+  err.textContent = 'Checking...';
+
+  // Check Supabase first (works across all devices), fall back to local
+  supa('sg_admin_config?key=eq.admin_password&select=value').then(function(rows){
+    var saved = (rows && rows[0]) ? rows[0].value : (localStorage.getItem('sg_admin_pw') || DEFAULT_PW);
+    if (pw === saved) {
+      localStorage.setItem('sg_admin_sess', Date.now().toString());
+      localStorage.setItem('sg_admin_pw', saved); // cache locally
+      err.textContent = '';
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      initApp();
+    } else {
+      err.textContent = '❌ Incorrect password.';
+      document.getElementById('pw-input').value = '';
+      setTimeout(function(){ err.textContent=''; }, 3000);
+    }
+  }).catch(function(){
+    // Supabase unreachable — fall back to local password
+    var saved = localStorage.getItem('sg_admin_pw') || DEFAULT_PW;
+    if (pw === saved) {
+      localStorage.setItem('sg_admin_sess', Date.now().toString());
+      err.textContent = '';
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      initApp();
+    } else {
+      err.textContent = '❌ Incorrect password.';
+      document.getElementById('pw-input').value = '';
+      setTimeout(function(){ err.textContent=''; }, 3000);
+    }
+  });
 }
 function logout(){ localStorage.removeItem('sg_admin_sess'); location.reload(); }
 function changePw() {
   var pw = document.getElementById('new-pw').value.trim();
   if (pw.length < 6){ showToast('❌ Min 6 characters'); return; }
-  localStorage.setItem('sg_admin_pw', pw);
-  document.getElementById('new-pw').value = '';
-  showToast('✅ Password updated');
+  // Save to Supabase so it works on ALL devices
+  supa('sg_admin_config?key=eq.admin_password', 'GET').then(function(rows){
+    var method = (rows && rows.length > 0) ? 'PATCH' : 'POST';
+    var path   = method === 'PATCH'
+      ? 'sg_admin_config?key=eq.admin_password'
+      : 'sg_admin_config';
+    var body   = method === 'POST'
+      ? { key:'admin_password', value: pw }
+      : { value: pw };
+    return supa(path, method, body);
+  }).then(function(){
+    // Also cache locally as fallback
+    localStorage.setItem('sg_admin_pw', pw);
+    document.getElementById('new-pw').value = '';
+    showToast('✅ Password updated across all devices');
+  }).catch(function(){
+    // Fallback: at least save locally
+    localStorage.setItem('sg_admin_pw', pw);
+    showToast('⚠️ Saved locally only — check sg_admin_config table');
+  });
 }
 (function(){
   var sess = parseInt(localStorage.getItem('sg_admin_sess')||'0');
@@ -536,10 +657,11 @@ function initApp(){
 function switchTab(tab, el){
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
-  ['usage','traps','broadcast','settings'].forEach(function(t){
+  ['usage','traps','reviews','broadcast','settings'].forEach(function(t){
     document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
   });
-  if(tab==='traps') loadTraps();
+  if(tab==='traps')   loadTraps();
+  if(tab==='reviews') loadReviews();
 }
 
 // ══════════════════════════════════════════════════════
@@ -823,6 +945,110 @@ function showToast(msg){
   if(toastTmr)clearTimeout(toastTmr);
   toastTmr=setTimeout(function(){t.classList.remove('show');},3500);
 }
+
+
+
+// ══════════════════════════════════════════════════════
+// REVIEWS
+// ══════════════════════════════════════════════════════
+var allReviews = [];
+var revFilter  = 0; // 0 = all
+
+function loadReviews() {
+  document.getElementById('reviews-list').innerHTML =
+    '<div style="text-align:center;padding:30px;color:rgba(255,255,255,.3)"><span class="spinner"></span> Loading...</div>';
+
+  supa('sg_reviews?select=*&order=created_at.desc').then(function(rows){
+    if (!rows) {
+      document.getElementById('reviews-list').innerHTML =
+        '<div class="empty">Could not load reviews.<br>Make sure the sg_reviews table exists in Supabase.</div>';
+      return;
+    }
+    allReviews = rows;
+    renderReviews();
+    renderRevSummary();
+  });
+}
+
+function renderRevSummary() {
+  var rows = allReviews;
+  var total = rows.length;
+  var avg   = total ? (rows.reduce(function(s,r){return s+(r.rating||0);},0)/total).toFixed(1) : '--';
+  var five  = rows.filter(function(r){return r.rating===5;}).length;
+
+  document.getElementById('rv-total').textContent = total;
+  document.getElementById('rv-avg').textContent   = total ? avg + ' ★' : '--';
+  document.getElementById('rv-5star').textContent = five;
+
+  // Rating distribution bars
+  var dist = {1:0,2:0,3:0,4:0,5:0};
+  rows.forEach(function(r){ if(dist[r.rating]!==undefined) dist[r.rating]++; });
+  var max = Math.max.apply(null, Object.values(dist)) || 1;
+  var el  = document.getElementById('rv-dist');
+  el.innerHTML = '';
+  [5,4,3,2,1].forEach(function(star){
+    var count = dist[star];
+    var pct   = Math.round(count/max*100);
+    var stars = '';
+    for(var i=0;i<star;i++) stars+='★';
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:8px';
+    row.innerHTML =
+      '<span style="font-size:12px;color:#f39c12;width:40px;flex-shrink:0">'+stars+'</span>'
+      +'<div style="flex:1;height:10px;background:rgba(255,255,255,.07);border-radius:5px;overflow:hidden">'
+        +'<div style="height:100%;width:'+pct+'%;background:#f39c12;border-radius:5px;transition:width .4s"></div>'
+      +'</div>'
+      +'<span style="font-size:12px;color:rgba(255,255,255,.4);width:24px;text-align:right">'+count+'</span>';
+    el.appendChild(row);
+  });
+}
+
+function setRevFilter(rating, el) {
+  document.querySelectorAll('.f-pill').forEach(function(p){p.classList.remove('active');});
+  el.classList.add('active');
+  revFilter = rating;
+  renderReviews();
+}
+
+function renderReviews() {
+  var rows = revFilter > 0
+    ? allReviews.filter(function(r){return r.rating===revFilter;})
+    : allReviews;
+
+  var el = document.getElementById('reviews-list');
+  if (rows.length === 0) {
+    el.innerHTML = '<div class="empty"><span style="font-size:32px">📭</span><br>No reviews for this filter yet.</div>';
+    return;
+  }
+  el.innerHTML = '';
+  rows.forEach(function(r) {
+    var stars = '';
+    for(var i=0;i<5;i++) stars += (i < r.rating) ? '<span style="color:#f39c12">★</span>' : '<span style="color:rgba(255,255,255,.15)">★</span>';
+    var card = document.createElement('div');
+    card.style.cssText = 'background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:14px 16px;margin-bottom:10px';
+    card.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">'
+        +'<div>'
+          +'<span style="font-size:14px;font-weight:700;color:#fff">'+esc(r.nickname||'Anonymous')+'</span>'
+          +'<span style="font-size:11px;color:rgba(255,255,255,.3);margin-left:8px">'+fmtDate(r.created_at)+'</span>'
+        +'</div>'
+        +'<div>'+stars+'</div>'
+      +'</div>'
+      +(r.categories ? '<div style="margin-bottom:6px">'
+        + r.categories.split(',').map(function(cat){
+            return '<span style="font-size:10px;font-weight:600;padding:2px 8px;border-radius:8px;background:rgba(243,156,18,.15);color:#f8c060;border:1px solid rgba(243,156,18,.2);margin-right:5px">'+esc(cat.trim())+'</span>';
+          }).join('')
+        +'</div>' : '')
+      +(r.review_text
+        ? '<div style="font-size:13px;color:rgba(255,255,255,.7);line-height:1.6;margin-top:4px">'+esc(r.review_text)+'</div>'
+        : '<div style="font-size:12px;color:rgba(255,255,255,.3);font-style:italic">No written comment.</div>')
+      +'<div style="font-size:11px;color:rgba(255,255,255,.25);margin-top:7px">'
+        +(r.platform||'')+(r.app_version?' · v'+r.app_version:'')
+      +'</div>';
+    el.appendChild(card);
+  });
+}
+
 
 document.getElementById('pw-input').addEventListener('keydown',function(e){ if(e.key==='Enter')tryLogin(); });
 </script>
