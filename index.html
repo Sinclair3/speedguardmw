@@ -1575,10 +1575,15 @@ setInterval(function(){
   var now=Date.now();
   Object.keys(liveUsers).forEach(function(id){
     if(now-liveUsers[id].ts>30000){
-      var nick = liveUsers[id].nickname;
+      var u = liveUsers[id];
+      // Move to recentDrivers cache before deleting from live
+      // so @mention can still find them for 10 minutes after they go offline.
+      // Think of it as the "recently seen" section of a contacts app.
+      if(!recentDrivers) recentDrivers = {};
+      recentDrivers[id] = Object.assign({}, u, {ts: u.ts});
       delete liveUsers[id];
       if(liveMarkers[id]){map.removeLayer(liveMarkers[id]);delete liveMarkers[id];}
-      chatNotifyLeave(nick);
+      chatNotifyLeave(u.nickname);
     }
   });
   refreshLivePanel();
@@ -1662,6 +1667,7 @@ var myNickname=lsGet('sg_nick')||null;
 var myId=lsGet('sg_id')||('d_'+Math.random().toString(36).substr(2,9));
 lsSet('sg_id',myId);
 var liveUsers={},liveMarkers={};
+var recentDrivers={}; // drivers seen in last 10min — used for @mention autocomplete
 var watchId=null,isTracking=false;
 var curLat=null,curLng=null,curSpd=0;
 var lastLat=null,lastLng=null,lastTime=null;
@@ -2071,12 +2077,29 @@ function actuallyStartGPS(){
     var spd=0;
     if(sp!=null&&sp>=0){spd=sp*3.6;}
     else if(lastLat!=null){var dt=(Date.now()-lastTime)/3600000;spd=dt>0?hav(lastLat,lastLng,la,lo)/dt:0;}
-    // Rolling 3-point average to smooth GPS jitter
+    // ── SPEED SPIKE FILTER ──
+    // GPS occasionally produces a position jump of 500m in one ping,
+    // making the calculated speed look like 220+ km/h while the car
+    // is parked in a driveway. This is the GPS lying. We catch the lie.
+    //
+    // Rule: if speed jumps by more than 80 km/h from the last REAL reading,
+    // discard it entirely. A car cannot physically accelerate that fast in 2 seconds.
+    // (A Bugatti Veyron can do 0-100 in 2.5s. Most M1 vehicles are not Bugattis.)
+    var MAX_SPEED_DELTA = 80; // km/h max change between pings
+    var lastRealSpd = speedHistory.length > 0 ? speedHistory[speedHistory.length-1] : 0;
+    if(Math.abs(spd - lastRealSpd) > MAX_SPEED_DELTA && lastRealSpd < 150) {
+      // This reading is physically impossible — discard it completely
+      // and keep the previous speed. The next ping will hopefully be sane.
+      console.log('[Speed] Spike detected: ' + Math.round(spd) + ' km/h discarded (delta > 80 from ' + Math.round(lastRealSpd) + ')');
+      spd = lastRealSpd; // pretend the spike never happened
+    }
+
+    // Rolling 3-point average to smooth remaining GPS jitter
     speedHistory.push(spd);
     if(speedHistory.length > 3) speedHistory.shift();
     var avgSpd = speedHistory.reduce(function(a,b){return a+b;},0) / speedHistory.length;
-    // Clamp speeds below threshold to 0 — removes the 1 km/h ghost
-    curSpd = avgSpd < SPEED_THRESHOLD ? 0 : Math.min(avgSpd, 220);
+    // Clamp speeds below threshold to 0 — removes the ghost 1 km/h while stationary
+    curSpd = avgSpd < SPEED_THRESHOLD ? 0 : Math.min(avgSpd, 200); // cap at 200, not 220
     lastLat=la;lastLng=lo;lastTime=Date.now();
     map.panTo([la,lo],{animate:true,duration:.5});
     updateUI(la,lo,curSpd);
@@ -2196,13 +2219,25 @@ function closeLive(){
 // speed limit, type, timestamp. It expires in 2 hours
 // because mobile police units don't wait around.
 // ═══════════════════════════════════════════════════════
-function openReport(){document.getElementById('report-mo').classList.add('open');}
+function openReport(){
+  // You literally cannot report where a trap is if you don't know where YOU are.
+  // This is basic logic. And also now enforced in code.
+  if(!isTracking || curLat === null){
+    showToast('📍 Start GPS first — trap location uses your current position');
+    return;
+  }
+  document.getElementById('report-mo').classList.add('open');
+}
 function closeReport(){document.getElementById('report-mo').classList.remove('open');}
 function submitReport(){
   var nm=document.getElementById('r-name').value.trim();
   if(!nm){document.getElementById('r-name').focus();return;}
   var lim=parseInt(document.getElementById('r-lim').value),tp=document.getElementById('r-type').value;
-  var la=curLat||map.getCenter().lat,lo=curLng||map.getCenter().lng;
+  // curLat is guaranteed non-null here because openReport() blocked without GPS.
+  // But just in case someone calls submitReport() directly (they shouldn't),
+  // we bail out rather than submit a trap from the middle of the Atlantic Ocean.
+  if(curLat === null){ showToast('📍 GPS required to report a trap'); return; }
+  var la=curLat, lo=curLng;
   var km=Math.round(latProg(la)/100*306);
   var trap={id:nextTrapId++,name:nm,lat:la,lng:lo,limit:lim,type:tp,km:km,community:true,verified:false,yes_votes:0,no_votes:0,created_at:Date.now()};
   traps.push(trap);renderTrapMarker(trap);
@@ -2285,6 +2320,7 @@ function launchApp(){
   if (!navigator.onLine) updateOfflineBar(false);
   initRealtime();
   loadCommunityTraps();
+  loadChatHistory(); // load last 2hrs of chat from Supabase
 }
 
 
@@ -2549,13 +2585,18 @@ function openFuel() {
 }
 function closeFuel() {
   document.getElementById('fuel-panel').classList.remove('open');
+  fuelShowAll = false; // reset to nearby-only for next open
 }
+
+// Whether to show ALL stations or just nearby ones.
+// Starts as false (nearby only). Toggled by "Show All" button.
+var fuelShowAll = false;
 
 function renderFuelList() {
   var el  = document.getElementById('fp-list');
   var sub = document.getElementById('fp-sub');
 
-  // Sort by distance if GPS on, else by km
+  // Calculate distances and sort
   var sorted = FUEL_STATIONS.map(function(s) {
     var d = (curLat !== null) ? hav(curLat, curLng, s.lat, s.lng) : null;
     return Object.assign({}, s, {dist: d});
@@ -2564,12 +2605,21 @@ function renderFuelList() {
     return a.km - b.km;
   });
 
+  // Filter to within 100km of driver unless "Show All" is active.
+  // Nobody needs to know about a Blantyre petrol station
+  // when they're still in Lilongwe. That's not helpful, that's just noise.
+  var nearby   = curLat ? sorted.filter(function(s){ return s.dist !== null && s.dist <= 100; }) : sorted;
+  var displayed = fuelShowAll ? sorted : nearby;
+  var hiddenCount = sorted.length - displayed.length;
+
   if (sub) sub.textContent = curLat
-    ? sorted.length + ' stations · sorted by distance from you'
+    ? (fuelShowAll
+        ? sorted.length + ' stations · all M1 stations shown'
+        : displayed.length + ' stations within 100 km · sorted by distance')
     : sorted.length + ' stations · start GPS for distances';
 
   el.innerHTML = '';
-  sorted.forEach(function(s) {
+  displayed.forEach(function(s) {
     var col    = fuelBrandColor(s.brand);
     var ds     = s.dist !== null
       ? (s.dist < 1 ? Math.round(s.dist*1000)+' m' : s.dist.toFixed(1)+' km')
@@ -2593,6 +2643,22 @@ function renderFuelList() {
     };
     el.appendChild(card);
   });
+
+  // Show "Show All" or "Show Nearby" button at the bottom
+  // depending on current state. Gives the driver control
+  // without drowning them in 18 petrol stations by default.
+  if(curLat) {
+    var toggleBtn = document.createElement('div');
+    toggleBtn.style.cssText = 'padding:12px;text-align:center;cursor:pointer;font-size:12px;font-weight:600;color:rgba(39,174,96,.8);border-top:1px solid rgba(255,255,255,.07);margin-top:6px';
+    if(fuelShowAll) {
+      toggleBtn.textContent = '📍 Show nearby only (within 100 km)';
+      toggleBtn.onclick = function(){ fuelShowAll=false; renderFuelList(); };
+    } else if(hiddenCount > 0) {
+      toggleBtn.textContent = '📋 Show all ' + sorted.length + ' stations on M1';
+      toggleBtn.onclick = function(){ fuelShowAll=true; renderFuelList(); };
+    }
+    if(hiddenCount > 0 || fuelShowAll) el.appendChild(toggleBtn);
+  }
 }
 
 // ── NEAREST FUEL CHIP in bottom scroll ──
@@ -3309,6 +3375,7 @@ function sendChat() {
     }));
     // Add own message to UI immediately (WS has self:false so we do it manually)
     appendChatMsg(payload, true);
+    saveChatMessage(payload); // persist to Supabase for chat history
     input.value = '';
     document.getElementById('chat-char-left').textContent = '120';
     cancelReply(); // clear reply bar
@@ -3704,7 +3771,10 @@ function deleteChatMsg(msgId) {
 }
 
 function processChatDelete(msgId) {
-  // Find and mark message as deleted in DOM
+  // Find and mark message as deleted in DOM.
+  // This runs on ALL devices when anyone deletes a message —
+  // it's broadcast via WebSocket to make deletion universal.
+  // "Delete for everyone" means EVERYONE, not just you.
   var el = document.getElementById('chat-messages');
   if(!el) return;
   var nodes = el.querySelectorAll('.chat-msg[data-ts="'+msgId+'"]');
@@ -3712,14 +3782,18 @@ function processChatDelete(msgId) {
     node.classList.add('deleted');
     var textEl = node.querySelector('.msg-text');
     if(textEl) textEl.textContent = '🚫 This message was deleted.';
-    // Remove quote, remove action listeners
     var quoteEl = node.querySelector('.msg-quote');
     if(quoteEl) quoteEl.remove();
-    // Fade out after 3 seconds
     setTimeout(function(){ node.style.opacity='0.3'; }, 3000);
   });
-  // Remove from memory
   chatMessages = chatMessages.filter(function(m){ return m.pl.ts !== msgId; });
+
+  // Also delete from Supabase chat history so it doesn't
+  // reappear next time someone opens the app.
+  // Using msg_id field which stores the timestamp as a string.
+  if(isOnline) {
+    supaFetch('sg_chat?msg_id=eq.' + msgId, 'DELETE').catch(function(){});
+  }
 }
 
 
@@ -4453,10 +4527,30 @@ function checkForMention(val) {
 function showMentionDropdown(query) {
   var dd = document.getElementById('mention-dropdown');
   if (!dd) return;
-  // Get live drivers + myself as options
+
+  // Pull from liveUsers (active right now) PLUS recentDrivers
+  // (seen in last 10 minutes but now gone offline).
+  // This means @mention works even when you're the only one
+  // currently broadcasting — you can still mention someone
+  // who was just on the road with you.
+  var tenMinAgo = Date.now() - 10 * 60 * 1000;
+  var seen = {};
+
+  // Active drivers first
   var drivers = Object.values(liveUsers).filter(function(u) {
-    return !query || u.nickname.toLowerCase().includes(query);
+    seen[u.nickname] = true;
+    return !query || u.nickname.toLowerCase().includes(query.toLowerCase());
   });
+
+  // Recently seen drivers (stored in recentDrivers cache)
+  Object.values(recentDrivers || {}).forEach(function(u) {
+    if(seen[u.nickname]) return;              // already in list
+    if(u.ts < tenMinAgo) return;              // too old
+    if(query && !u.nickname.toLowerCase().includes(query.toLowerCase())) return;
+    drivers.push(Object.assign({}, u, {offline: true})); // flag as offline
+    seen[u.nickname] = true;
+  });
+
   if (drivers.length === 0) { closeMentionDropdown(); return; }
   dd.innerHTML = '';
   drivers.forEach(function(u) {
@@ -4469,10 +4563,12 @@ function showMentionDropdown(query) {
           : hav(curLat,curLng,u.lat,u.lng).toFixed(1)+'km')
       : '';
     div.innerHTML =
-      '<span style="font-size:16px">👤</span>'
+      '<span style="font-size:16px">' + (u.offline ? '👻' : '👤') + '</span>'
       + '<span class="mention-nick">@' + escChat(u.nickname) + '</span>'
       + (u.progress ? '<span class="mention-km">km '+Math.round(u.progress/100*306)+'</span>' : '')
-      + (dist ? '<span class="mention-dist">'+dist+' away</span>' : '');
+      + (u.offline
+          ? '<span class="mention-dist" style="color:rgba(255,255,255,.3)">recently online</span>'
+          : (dist ? '<span class="mention-dist">'+dist+' away</span>' : ''));
     div.addEventListener('click', function() { insertMention(u.nickname); });
     div.addEventListener('keydown', function(e) {
       if(e.key==='Enter') insertMention(u.nickname);
@@ -4759,6 +4855,94 @@ function syncToneSettings() {
 // as a style element because CSS-in-JS wasn't cool yet in 2024
 // and we were already committed to a single HTML file anyway.
 // ═══════════════════════════════════════════════════════
+
+
+// ═══════════════════════════════════════════════════════
+// CHAT HISTORY PERSISTENCE
+//
+// When a driver closes the app and reopens it, the chat
+// was previously empty. A ghostly void. Very sad.
+//
+// Now: messages are saved to Supabase (sg_chat table)
+// and loaded when the app opens. 2-hour expiry means
+// you only see relevant recent conversation, not a wall
+// of "Bwana K joined the M1" from 3 days ago.
+//
+// Privacy note: messages are stored with the sender's
+// nickname only (no device ID). The chat is public to
+// all M1 app users by design — this is road radio, not WhatsApp.
+// ═══════════════════════════════════════════════════════
+var CHAT_DB_EXPIRY_MS = 2 * 60 * 60 * 1000; // 2 hours
+
+/**
+ * saveChatMessage(pl)
+ * Writes a sent chat message to Supabase.
+ * Only saves your OWN messages (others save their own).
+ * Fails silently — if the DB is down, chat still works in-session.
+ */
+function saveChatMessage(pl) {
+  if(!isOnline) return; // offline = in-memory only, that's fine
+  supaFetch('sg_chat', 'POST', {
+    msg_id:   String(pl.ts),
+    nickname: pl.nickname || 'Anonymous',
+    text:     pl.text,
+    lat:      pl.lat ? Math.round(pl.lat * 100)/100 : null,  // ~1km precision
+    lng:      pl.lng ? Math.round(pl.lng * 100)/100 : null,
+    progress: pl.progress || null,
+    reply_nick: pl.replyNick || null,
+    reply_text: pl.replyText || null,
+  }).catch(function(){}); // silence is golden when the DB is having a moment
+}
+
+/**
+ * loadChatHistory()
+ * Fetches the last 2 hours of chat messages from Supabase.
+ * Called on app open. Shows a "conversation history" header
+ * so drivers know this is stored, not live.
+ */
+function loadChatHistory() {
+  if(!isOnline) return;
+  var twoHoursAgo = new Date(Date.now() - CHAT_DB_EXPIRY_MS).toISOString();
+  supaFetch('sg_chat?select=*&created_at=gt.' + encodeURIComponent(twoHoursAgo) + '&order=created_at.asc&limit=50')
+    .then(function(rows) {
+      if(!rows || !Array.isArray(rows) || rows.length === 0) return;
+      // Show a divider to separate history from new messages
+      addChatSystem('── Last ' + rows.length + ' messages from the past 2 hours ──');
+      rows.forEach(function(row) {
+        // Reconstruct a payload object from the DB row
+        var pl = {
+          id:        'history_' + row.msg_id, // prefix to avoid ID collisions
+          nickname:  row.nickname,
+          text:      row.text,
+          ts:        new Date(row.created_at).getTime(),
+          lat:       row.lat,
+          lng:       row.lng,
+          progress:  row.progress,
+          replyNick: row.reply_nick,
+          replyText: row.reply_text,
+        };
+        // 'false' = not mine (we don't know whose device sent historical msgs),
+        // 'false' = not mentioned (avoid spamming mention alerts for history)
+        appendChatMsg(pl, false, false);
+      });
+      addChatSystem('── Live conversation starts here ──');
+    })
+    .catch(function(){}); // if history fails, proceed with empty chat gracefully
+}
+
+/**
+ * cleanOldChatMessages()
+ * Deletes messages older than 2 hours from Supabase.
+ * Called periodically so the table doesn't grow forever.
+ * The alternative is a table with 10 million rows. Nobody wants that.
+ */
+function cleanOldChatMessages() {
+  if(!isOnline) return;
+  var twoHoursAgo = new Date(Date.now() - CHAT_DB_EXPIRY_MS).toISOString();
+  supaFetch('sg_chat?created_at=lt.' + encodeURIComponent(twoHoursAgo), 'DELETE')
+    .catch(function(){}); // if cleanup fails, the next cleanup will get it
+}
+setInterval(cleanOldChatMessages, 30 * 60 * 1000); // clean every 30 minutes
 
 // ═══════════════════════════════════════════
 // STARTUP
