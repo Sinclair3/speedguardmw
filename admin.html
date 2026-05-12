@@ -876,7 +876,33 @@ function renderTraps(){
 
 function approveTrap(id){ supa('sg_traps?id=eq.'+id,'PATCH',{yes_votes:VOTES_TO_VERIFY}).then(function(){ showToast('✅ Trap approved!'); loadTraps(); }); }
 function resetVotes(id)  { supa('sg_traps?id=eq.'+id,'PATCH',{yes_votes:0,no_votes:0}).then(function(){ showToast('↺ Votes reset'); loadTraps(); }); }
-function delTrap(id,name){ showConfirm('🗑️ Delete "'+name+'"?','This trap will be permanently deleted.','Delete',function(){ supa('sg_traps?id=eq.'+id,'DELETE').then(function(){ showToast('🗑️ Trap deleted'); loadTraps(); }); }); }
+function delTrap(id,name){
+  showConfirm('🗑️ Delete "'+name+'"?','This trap will be permanently deleted from the database.','Delete',function(){
+    fetch(SUPA_URL+'/rest/v1/sg_traps?id=eq.'+id, {
+      method:'DELETE',
+      headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'}
+    }).then(function(r){
+      if(r.ok || r.status===204){
+        // Success — remove from local array and re-render immediately
+        allTraps = allTraps.filter(function(t){ return t.id !== id; });
+        renderTraps();
+        updateStatCards(allTraps);
+        showToast('🗑️ Trap deleted successfully');
+      } else {
+        // Failed — almost certainly a missing RLS DELETE policy on sg_traps.
+        // Go to Supabase → SQL Editor and run:
+        // create policy "Anyone can delete" on sg_traps for delete using (true);
+        r.text().then(function(body){
+          showToast('❌ Delete failed (status '+r.status+') — check Supabase RLS policy');
+          console.error('Delete failed:', r.status, body);
+        });
+      }
+    }).catch(function(e){
+      showToast('❌ Network error — could not delete trap');
+      console.error('Delete error:', e);
+    });
+  });
+}
 
 // ══════════════════════════════════════════════════════
 // BROADCAST
