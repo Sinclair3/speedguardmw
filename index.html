@@ -65,6 +65,20 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .dot{width:6px;height:6px;border-radius:50%;background:#333;flex-shrink:0}
 .dot.gps.on{background:#27ae60;animation:bk 1.5s infinite}
 .dot.live{background:#e74c3c;animation:bk .8s infinite}
+/* GPS blinking text label */
+.gps-label{
+  font-size:10px;font-weight:800;letter-spacing:.06em;
+  color:rgba(255,255,255,.25);transition:color .3s;
+  text-transform:uppercase;
+}
+.gps-label.on{
+  color:#27ae60;
+  animation:gpsBlink 1.5s infinite;
+}
+@keyframes gpsBlink{
+  0%,100%{opacity:1;text-shadow:0 0 6px rgba(39,174,96,.8)}
+  50%{opacity:.5;text-shadow:none}
+}
 @keyframes bk{0%,100%{opacity:1}50%{opacity:.3}}
 .hdr-btns{display:flex;align-items:center;gap:7px}
 .hdr-btn{border-radius:8px;padding:5px 9px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid;white-space:nowrap}
@@ -313,6 +327,78 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 /* ── CHAT ENHANCEMENTS ── */
 
 
+
+
+/* ── PRIVACY MODE EXPLAINER SHEET ── */
+#privacy-sheet{
+  position:fixed;inset:0;z-index:4000;
+  background:rgba(0,0,0,.75);
+  display:none;align-items:flex-end;justify-content:center;
+}
+#privacy-sheet.show{display:flex;animation:fadeIn .2s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.privacy-sheet-card{
+  background:#0e1820;
+  border-radius:22px 22px 0 0;
+  border:1px solid rgba(255,255,255,.1);
+  border-bottom:none;
+  padding:8px 20px env(safe-area-inset-bottom,24px);
+  width:100%;max-width:500px;
+  animation:slideUp .25s ease;
+}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.ps-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.18);margin:0 auto 18px}
+.ps-icon{font-size:38px;text-align:center;margin-bottom:10px}
+.ps-title{font-size:18px;font-weight:800;text-align:center;margin-bottom:16px}
+
+/* Mode comparison cards */
+.ps-modes{display:flex;gap:10px;margin-bottom:18px}
+.ps-mode{
+  flex:1;border-radius:14px;padding:13px 12px;text-align:center;
+  border:2px solid;transition:all .2s;
+}
+.ps-mode.private{
+  background:rgba(243,156,18,.08);
+  border-color:rgba(243,156,18,.3);
+}
+.ps-mode.live{
+  background:rgba(39,174,96,.08);
+  border-color:rgba(39,174,96,.3);
+}
+.ps-mode-icon{font-size:24px;margin-bottom:6px}
+.ps-mode-name{font-size:13px;font-weight:800;margin-bottom:4px}
+.ps-mode.private .ps-mode-name{color:#f8c060}
+.ps-mode.live .ps-mode-name{color:#5ddb8a}
+.ps-mode-desc{font-size:11px;color:rgba(255,255,255,.5);line-height:1.5}
+.ps-current-badge{
+  font-size:9px;font-weight:800;padding:2px 7px;
+  border-radius:8px;margin-top:6px;display:inline-block;
+}
+.ps-mode.private .ps-current-badge{background:rgba(243,156,18,.2);color:#f8c060}
+.ps-mode.live .ps-current-badge{background:rgba(39,174,96,.2);color:#5ddb8a}
+
+/* Action buttons */
+.ps-btn-live{
+  width:100%;padding:15px;border-radius:14px;
+  background:linear-gradient(135deg,#1a6b3a,#27ae60);
+  color:#fff;border:none;font-size:15px;font-weight:800;
+  cursor:pointer;margin-bottom:10px;
+  box-shadow:0 4px 16px rgba(39,174,96,.3);
+}
+.ps-btn-cancel{
+  width:100%;padding:13px;border-radius:14px;
+  background:rgba(255,255,255,.06);
+  color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);
+  font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;
+}
+.ps-settings-hint{
+  text-align:center;font-size:11px;color:rgba(255,255,255,.3);
+  padding-bottom:4px;
+}
+.ps-settings-hint span{
+  color:rgba(39,174,96,.6);cursor:pointer;text-decoration:underline;
+  text-underline-offset:2px;
+}
 
 /* ── PUSH NOTIFICATION PERMISSION BANNER ── */
 #push-banner{
@@ -826,8 +912,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 </svg>SpeedGuard Malawi
     </div>
     <div class="hdr-sub">
-      <span class="dot gps" id="gps-dot"></span><span id="gps-lbl">GPS off</span>
-      <span class="wakelock-dot" id="wakelock-dot" title="Screen kept awake"></span>
+      <span class="gps-label" id="gps-lbl">GPS</span>
       &nbsp;·&nbsp;
       <span class="dot live" id="live-dot" style="display:none"></span>
       <span id="live-lbl">0 online</span>
@@ -891,6 +976,9 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
     <button class="btn-gps" id="btn-gps" onclick="toggleGPS()">📍 Start GPS</button>
     <button class="btn-sm" onclick="openReport()">+ Trap</button>
     <button class="btn-fuel" onclick="openFuel()" title="Fuel stations">⛽</button>
+    <button class="btn-sm" id="btn-chat-bottom" onclick="openChat()" title="Road chat" style="border-color:rgba(39,174,96,.28);color:#5ddb8a;position:relative">
+      💬<span id="chat-badge-bottom" style="display:none;position:absolute;top:-5px;right:-5px;background:#e74c3c;color:#fff;font-size:9px;font-weight:800;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;border:1.5px solid #0a0f14">0</span>
+    </button>
     <!-- SOS BUTTON — hold for 3 seconds to send -->
     <button class="btn-sos" id="btn-sos"
       onmousedown="sosPressStart()" onmouseup="sosPressEnd()" onmouseleave="sosPressEnd()"
@@ -1575,8 +1663,7 @@ function startGPS(){
   isTracking=true;
   document.getElementById('btn-gps').textContent='⏹ Stop GPS';
   document.getElementById('btn-gps').classList.add('on');
-  document.getElementById('gps-dot').classList.add('on');
-  document.getElementById('gps-lbl').textContent='GPS active';
+  document.getElementById('gps-lbl').classList.add('on');
   primeAudio();
   requestWakeLock(); // keep screen on during navigation
   watchId=navigator.geolocation.watchPosition(function(pos){
@@ -1606,8 +1693,7 @@ function stopGPS(){
   isTracking=false;if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}
   document.getElementById('btn-gps').textContent='📍 Start GPS';
   document.getElementById('btn-gps').classList.remove('on');
-  document.getElementById('gps-dot').classList.remove('on');
-  document.getElementById('gps-lbl').textContent='GPS off';
+  document.getElementById('gps-lbl').classList.remove('on');
   // Release driving lock when GPS stops
   drivingLockActive=false;
   document.body.classList.remove('driving-lock');
@@ -1640,8 +1726,17 @@ function refreshLivePanel(){
 function openLive(){
   document.getElementById('live-panel').classList.add('open');
   refreshLivePanel();
-  // Reset to drivers tab when opening
   switchLiveTab('drivers');
+}
+function openChat(){
+  if(!isLive()){
+    // Show the explainer sheet instead of a plain toast
+    showPrivacySheet();
+    return;
+  }
+  document.getElementById('live-panel').classList.add('open');
+  refreshLivePanel();
+  switchLiveTab('chat');
 }
 function closeLive(){
   var lp = document.getElementById('live-panel');
@@ -2648,10 +2743,7 @@ function updateOfflineBar(online) {
     showToast('📡 Gone offline — GPS & alerts still working');
   }
   // Update GPS label to show offline state
-  var gpsLbl = document.getElementById('gps-lbl');
-  if (gpsLbl && isTracking) {
-    gpsLbl.textContent = online ? 'GPS active' : 'GPS active (offline)';
-  }
+  // GPS label stays as blinking "GPS" text — offline state shown in toast
 }
 
 // Listen for online/offline events
@@ -2706,6 +2798,7 @@ function switchLiveTab(tab) {
 
 // ── SEND MESSAGE ──
 function sendChat() {
+  if (!isLive()) { showPrivacySheet(); return; }
   if (!isOnline) { showToast('📡 No internet — chat unavailable offline'); return; }
   if (!channel || !realtimeConnected) { showToast('⚠️ Not connected to live channel'); return; }
   var input = document.getElementById('chat-input');
@@ -2885,13 +2978,15 @@ function scrollChatToBottom() {
 }
 
 function updateChatBadge() {
-  var badge = document.getElementById('chat-unread-badge');
-  if (!badge) return;
+  var badge  = document.getElementById('chat-unread-badge');
+  var badge2 = document.getElementById('chat-badge-bottom');
+  var label  = chatUnread > 9 ? '9+' : String(chatUnread);
   if (chatUnread > 0) {
-    badge.style.display = 'inline';
-    badge.textContent = chatUnread > 9 ? '9+' : chatUnread;
+    if(badge)  { badge.style.display='inline'; badge.textContent=label; }
+    if(badge2) { badge2.style.display='flex';  badge2.textContent=label; }
   } else {
-    badge.style.display = 'none';
+    if(badge)  badge.style.display='none';
+    if(badge2) badge2.style.display='none';
   }
 }
 
@@ -2964,12 +3059,22 @@ function applyPrivacyMode(isPrivate) {
     // Update header
     if(liveBtn) liveBtn.style.display = 'none';
     document.getElementById('live-lbl').textContent = '🔒 Private';
+    // Disable chat input when private
+    var chatInp = document.getElementById('chat-input');
+    var chatBtn = document.getElementById('btn-chat-send');
+    if(chatInp){ chatInp.disabled=true; chatInp.placeholder='Go Live to use chat'; }
+    if(chatBtn) chatBtn.disabled=true;
   } else {
     // Show drivers + chat, hide privacy screen
     if(privScreen) privScreen.classList.remove('show');
     if(driversTab) driversTab.style.display = 'block';
     if(tabBar)     tabBar.style.display = 'flex';
     document.getElementById('live-lbl').textContent = '0 online';
+    // Re-enable chat input when going live
+    var chatInp = document.getElementById('chat-input');
+    var chatBtn = document.getElementById('btn-chat-send');
+    if(chatInp){ chatInp.disabled=false; chatInp.placeholder='Message all M1 drivers...'; }
+    if(chatBtn) chatBtn.disabled=false;
   }
   updatePrivacySettingsRow();
 }
@@ -3462,6 +3567,36 @@ function urlBase64ToUint8Array(base64String) {
   return output;
 }
 
+
+// ═══════════════════════════════════════════════════════
+// PRIVACY MODE EXPLAINER SHEET
+// Shown when a private driver tries to open chat.
+// Explains the two modes clearly and lets them
+// switch to Live with one tap — or stay private.
+// ═══════════════════════════════════════════════════════
+function showPrivacySheet() {
+  document.getElementById('privacy-sheet').classList.add('show');
+}
+
+function closePrivacySheet(event) {
+  // Close if tapping the dark backdrop (not the card itself)
+  if (event && event.target !== document.getElementById('privacy-sheet')) return;
+  document.getElementById('privacy-sheet').classList.remove('show');
+}
+
+function goLiveFromSheet() {
+  document.getElementById('privacy-sheet').classList.remove('show');
+  // Switch to live mode
+  sgSettings.live = true;
+  lsSet('sg_set_live', '1');
+  var tog = document.getElementById('tog-live');
+  if (tog) tog.checked = true;
+  applyPrivacyMode(false);
+  showToast('👥 You are now Live — opening chat');
+  // Open the chat panel
+  setTimeout(function() { openChat(); }, 300);
+}
+
 // ═══════════════════════════════════════════
 // STARTUP
 // ═══════════════════════════════════════════
@@ -3665,6 +3800,47 @@ function urlBase64ToUint8Array(base64String) {
   </div>
 </div>
 
+
+
+<!-- PRIVACY MODE EXPLAINER SHEET -->
+<div id="privacy-sheet" onclick="closePrivacySheet(event)">
+  <div class="privacy-sheet-card">
+    <div class="ps-handle"></div>
+    <div class="ps-icon">💬</div>
+    <div class="ps-title">Chat requires Live Mode</div>
+
+    <!-- Side-by-side mode comparison -->
+    <div class="ps-modes">
+      <div class="ps-mode private">
+        <div class="ps-mode-icon">🔒</div>
+        <div class="ps-mode-name">Private Mode</div>
+        <div class="ps-mode-desc">
+          You are invisible to other drivers. No one can see your location. Chat is disabled.
+        </div>
+        <span class="ps-current-badge">YOU ARE HERE</span>
+      </div>
+      <div class="ps-mode live">
+        <div class="ps-mode-icon">👥</div>
+        <div class="ps-mode-name">Live Mode</div>
+        <div class="ps-mode-desc">
+          Other drivers can see you on the map. You can see them and use the road chat.
+        </div>
+        <span class="ps-current-badge" style="opacity:0">·</span>
+      </div>
+    </div>
+
+    <button class="ps-btn-live" onclick="goLiveFromSheet()">
+      👥 Switch to Live Mode &amp; Open Chat
+    </button>
+    <button class="ps-btn-cancel" onclick="closePrivacySheet()">
+      Stay in Private Mode
+    </button>
+    <div class="ps-settings-hint">
+      You can switch modes anytime in
+      <span onclick="closePrivacySheet();openSettings()">⚙️ Settings</span>
+    </div>
+  </div>
+</div>
 
 <!-- PUSH NOTIFICATION PERMISSION BANNER -->
 <div id="push-banner">
