@@ -324,6 +324,52 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .hdr-btn{position:relative} /* allow badge positioning */
 
 
+
+
+/* ── ALERT TONE SETTINGS ── */
+/* Because apparently just having a screen wasn't enough,
+   we also need to make noise AND shake the phone */
+.alert-tone-btns{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+.tone-test-btn{
+  padding:7px 12px;border-radius:9px;font-size:11px;font-weight:700;
+  cursor:pointer;border:1px solid rgba(255,255,255,.15);
+  background:rgba(255,255,255,.07);color:rgba(255,255,255,.6);
+  transition:all .15s;
+}
+.tone-test-btn:active{background:rgba(255,255,255,.15);transform:scale(.96)}
+.tone-test-btn.warn-btn{border-color:rgba(243,156,18,.4);color:#f8c060}
+.tone-test-btn.danger-btn{border-color:rgba(231,76,60,.4);color:#ff8a7a}
+.tone-test-btn.critical-btn{border-color:rgba(231,76,60,.7);color:#e74c3c}
+
+/* ── @ MENTION DROPDOWN ── */
+#mention-dropdown{
+  position:absolute;bottom:100%;left:0;right:0;
+  background:#0e1820;border:1px solid rgba(255,255,255,.15);
+  border-radius:12px 12px 0 0;
+  max-height:180px;overflow-y:auto;
+  display:none;z-index:100;
+  box-shadow:0 -4px 16px rgba(0,0,0,.5);
+}
+#mention-dropdown.show{display:block}
+.mention-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 14px;cursor:pointer;
+  border-bottom:1px solid rgba(255,255,255,.06);
+  transition:background .15s;
+}
+.mention-item:last-child{border-bottom:none}
+.mention-item:hover,.mention-item:active{background:rgba(255,255,255,.08)}
+.mention-nick{font-size:13px;font-weight:600;color:#fff}
+.mention-km{font-size:11px;color:rgba(255,255,255,.4)}
+.mention-dist{font-size:11px;color:#27ae60;margin-left:auto}
+/* Mentioned name highlight in bubble */
+.msg-mention{color:#5ddb8a;font-weight:700}
+/* Mention notification — stronger highlight */
+.chat-msg.mentioned{
+  border-color:rgba(39,174,96,.5)!important;
+  background:rgba(39,174,96,.1)!important;
+}
+
 /* ── CHAT ENHANCEMENTS ── */
 
 
@@ -1036,7 +1082,6 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   </div>
   <div class="hdr-btns">
     <button id="btn-audio" class="hdr-btn btn-audio-hdr" onclick="toggleAudio()" title="Toggle voice alerts">🔊 ON</button>
-    <button class="hdr-btn btn-live-hdr" onclick="openLive()">👥 Live</button>
     <button class="hdr-btn btn-settings-hdr" onclick="openSettings()" title="Settings">⚙️</button>
     <div class="spd-ring" id="spd-ring" style="position:relative">
       <div class="spd-n" id="spd-n">0</div>
@@ -1179,11 +1224,13 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
       </div>
       <button class="btn-reply-cancel" onclick="cancelReply()" title="Cancel reply">✕</button>
     </div>
-    <div class="chat-input-bar">
+    <!-- @ Mention dropdown -->
+    <div id="mention-dropdown"></div>
+    <div class="chat-input-bar" style="position:relative">
       <input id="chat-input" type="text" maxlength="120"
         placeholder="Message all M1 drivers..."
-        onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat();}"
-        oninput="updateChatCharCount(this.value)"
+        onkeydown="handleChatKeydown(event)"
+        oninput="handleChatInput(this.value)"
         autocomplete="off" autocorrect="off" spellcheck="false">
       <span class="chat-char-left" id="chat-char-left">120</span>
       <button class="btn-chat-send" onclick="sendChat()" id="btn-chat-send" title="Send">➤</button>
@@ -1254,15 +1301,36 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 // SUPABASE CONFIG
-// ═══════════════════════════════════════════
+//
+// Supabase — the database that does everything Firebase does
+// but without making you sell your soul to Google.
+// These keys are "publishable" meaning they're safe to be in the
+// frontend. Don't be alarmed. Row Level Security is handling it.
+// If you're reading this and thinking "I could abuse this key"...
+// there's a policy table watching your every move. Good luck.
+// ═══════════════════════════════════════════════════════
 var SUPA_URL = 'https://mgoxhsnmjbzjuevwryxy.supabase.co';
 var SUPA_KEY = 'sb_publishable_6GSg9fQ2tCMJ9vZTaOFcCQ_SYviH_KR';
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
 // TRAP VERIFICATION CONSTANTS
-// ═══════════════════════════════════════════
+//
+// How democracy works in SpeedGuard:
+//   VOTES_TO_VERIFY = 3 confirmations needed to trust a trap
+//   VOTES_TO_REMOVE = 3 rejections needed to delete a trap
+//
+// So effectively: 3 drivers saying "yes it's real" beats
+// 2 drivers saying "no it's fake". Majority rules.
+// Just like actual democracy, except faster and with fewer
+// politicians claiming the results were fraudulent.
+//
+// EXPIRY: ALL community traps die after 2 hours.
+// Mobile police don't stand in the same place forever.
+// Fixed cameras do, but for community reports we don't
+// trust anyone enough to give them a permanent entry.
+// ═══════════════════════════════════════════════════════
 var VOTES_TO_VERIFY  = 3;
 var VOTES_TO_REMOVE  = 3;
 var EXPIRY_ALL_COMMUNITY = 2 * 60 * 60 * 1000; // ALL community traps expire in 2 hours
@@ -1272,12 +1340,34 @@ var votedTraps = JSON.parse(lsGet('sg_voted') || '{}');
 // ═══════════════════════════════════════════
 // STORAGE
 // ═══════════════════════════════════════════
+/**
+ * lsGet / lsSet — localStorage wrappers
+ *
+ * Because apparently 'localStorage.getItem' is too many characters
+ * to type 47 times across a file. Abstraction: the art of being lazy
+ * in a way that other people respect.
+ *
+ * The try/catch exists because in Private Browsing mode, some
+ * browsers throw an error on localStorage access. The irony of
+ * a safety app's storage failing in "Private" mode is not lost on us.
+ */
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
 function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 
-// ═══════════════════════════════════════════
-// SUPABASE REST
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// SUPABASE REST HELPERS
+//
+// These functions talk to our database via HTTP.
+// Every request includes the API key in the header because
+// Supabase needs to know we're allowed to be here.
+// Think of it as a bouncer at a club door, except
+// the bouncer is a JWT token and the club is PostgreSQL.
+//
+// supaFetch() handles GET, POST, PATCH, DELETE.
+// DELETE returns 204 No Content (nothing to parse).
+// POST returns the created row (if we ask nicely with 'Prefer: return=representation').
+// PATCH returns nothing unless asked. Rude but efficient.
+// ═══════════════════════════════════════════════════════
 function supaFetch(path, method, body){
   return fetch(SUPA_URL+'/rest/v1/'+path,{
     method:method||'GET',
@@ -1308,11 +1398,23 @@ function loadCommunityTraps(){
 function saveTrapToSupabase(trap){
   return supaFetch('sg_traps','POST',{name:trap.name,lat:trap.lat,lng:trap.lng,limit_kmh:trap.limit,type:trap.type,km:trap.km,yes_votes:0,no_votes:0}).then(function(rows){if(rows&&rows[0])trap.supaId=rows[0].id;});
 }
-function submitVoteToSupabase(supaId,isYes){
-  var field=isYes?'yes_votes':'no_votes';
+function submitVoteToSupabase(supaId, isYes, voterLat, voterLng) {
+  // Read current vote counts, increment the right one, write back.
+  // Yes we're doing read-modify-write instead of an atomic increment.
+  // Yes this could have race conditions with 3 people voting simultaneously.
+  // No, this is not a bank. It's fine. Probably.
+  var field = isYes ? 'yes_votes' : 'no_votes';
   supaFetch('sg_traps?id=eq.'+supaId+'&select=yes_votes,no_votes').then(function(rows){
     if(!rows||!rows[0])return;
-    var update={};update[field]=(rows[0][field]||0)+1;
+    var update = {};
+    update[field] = (rows[0][field]||0)+1;
+    // If we have location data, record approximate voter position for audit trail.
+    // We round to 2 decimal places (~1km precision) — enough for auditing,
+    // not enough to stalk anyone. Privacy: maintained. Integrity: improved.
+    if(voterLat !== null && voterLng !== undefined) {
+      update['last_voter_lat'] = Math.round(voterLat * 100) / 100;
+      update['last_voter_lng'] = Math.round(voterLng * 100) / 100;
+    }
     return supaFetch('sg_traps?id=eq.'+supaId,'PATCH',update);
   });
 }
@@ -1375,7 +1477,24 @@ function checkProximityVotes(lat,lng){
   });
 }
 function promptVote(t){
+  // Voted already? One vote per device per trap.
+  // We trust the honour system. Mostly.
   if(votedTraps[t.supaId||t.id])return;
+
+  // ── RADIUS CHECK ──
+  // Only drivers physically near the trap can vote.
+  // A driver in Lilongwe confirming a Blantyre trap is
+  // about as reliable as a weather forecast from another country.
+  // 1km radius = generous enough for passing drivers,
+  // tight enough to block bedroom democracy.
+  if(curLat !== null) {
+    var distToTrap = hav(curLat, curLng, t.lat, t.lng);
+    if(distToTrap > 1.0) return; // too far — silently ignore
+  } else {
+    // No GPS = no vote. You need to actually BE there.
+    return;
+  }
+
   votingTrap=t;
   var em=t.type==='camera'?'📷':t.type==='checkpoint'?'🛡️':'🚔';
   document.getElementById('vote-emoji').textContent=em;
@@ -1396,7 +1515,10 @@ function castVote(isYes){
   if(t.no_votes>=VOTES_TO_REMOVE){traps=traps.filter(function(x){return x.id!==t.id;});if(trapMk[t.id]){map.removeLayer(trapMk[t.id]);delete trapMk[t.id];}showToast('🗑️ Trap removed — not enough confirmations.');}
   else if(t.yes_votes>=VOTES_TO_VERIFY){t.verified=true;renderTrapMarker(t);showToast('✅ Trap verified! Alerts now active.');}
   else{renderTrapMarker(t);showToast(isYes?'👍 Confirmed! '+(VOTES_TO_VERIFY-t.yes_votes)+' more vote(s) needed.':'👎 Noted. '+(VOTES_TO_REMOVE-t.no_votes)+' more to remove.');}
-  if(t.supaId)submitVoteToSupabase(t.supaId,isYes);
+  // Submit vote to Supabase — include the voter's approximate location
+  // so the admin can audit suspicious votes from far away.
+  // "Suspicious" = someone in Lilongwe confirming a trap in Blantyre at 2am.
+  if(t.supaId)submitVoteToSupabase(t.supaId, isYes, curLat, curLng);
   closeVote();
 }
 function closeVote(){document.getElementById('vote-mo').classList.remove('open');votingTrap=null;}
@@ -1462,14 +1584,41 @@ setInterval(function(){
   refreshLivePanel();
 },10000);
 
-// ═══════════════════════════════════════════
-// M1 ROAD
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// M1 ROAD WAYPOINTS
+//
+// 27 GPS coordinates hand-picked to trace the M1 highway
+// from Lilongwe to Blantyre like a drunk but accurate line.
+// These are NOT turn-by-turn directions. This is a visual
+// guide on the map so drivers know they're roughly on track.
+//
+// The road curves around mountains, dips through valleys,
+// and does whatever it wants near Ntcheu because highland
+// roads have no respect for straight lines.
+//
+// Format: [latitude, longitude]
+// Negative latitude = Southern Hemisphere (yes, Malawi is below the equator.
+// No, it doesn't feel upside down when you're there.)
+// ═══════════════════════════════════════════════════════
 var M1=[[-13.9669,33.7873],[-13.9800,33.8000],[-14.0100,33.8250],[-14.0600,33.8600],[-14.1100,33.9100],[-14.1800,33.9500],[-14.2500,34.0000],[-14.3200,34.0600],[-14.3900,34.1100],[-14.4600,34.1700],[-14.5100,34.2100],[-14.5700,34.2800],[-14.6300,34.3300],[-14.6800,34.3800],[-14.7400,34.4200],[-14.8200,34.4500],[-14.9000,34.5200],[-14.9800,34.7000],[-15.0500,34.9500],[-15.1100,35.0200],[-15.1600,35.0600],[-15.2800,34.9800],[-15.3500,34.9200],[-15.4200,34.9000],[-15.5000,34.9600],[-15.5500,34.9750],[-15.7667,35.0000]];
 
-// ═══════════════════════════════════════════
-// OFFICIAL TRAPS
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// OFFICIAL SPEED TRAPS — Pre-loaded, Always Verified
+//
+// These 12 locations are hardcoded because they are REAL,
+// PERMANENT, and the police have been there long enough
+// that we're comfortable calling them "official".
+//
+// Unlike community traps (which need 3 votes and expire
+// in 2 hours), these never expire. The Ginnery Corner
+// checkpoint has been there since before some of our
+// users were born. It's not going anywhere.
+//
+// Fields:
+//   verified: true — always. No committee needed.
+//   type: mobile | camera | checkpoint
+//   km: distance from Lilongwe along M1
+// ═══════════════════════════════════════════════════════
 var traps=[
   {id:1,name:"Lilongwe Exit - Area 18",lat:-14.010,lng:33.825,limit:50,type:"mobile",km:28,verified:true},
   {id:2,name:"Kamuzu Airport Junction",lat:-14.060,lng:33.860,limit:50,type:"camera",km:46,verified:true},
@@ -1486,9 +1635,29 @@ var traps=[
 ];
 var nextTrapId=13;
 
-// ═══════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// APPLICATION STATE
+//
+// All the important numbers that describe "what is happening
+// right now to this driver on this phone at this moment."
+//
+// myId      — random device ID generated once, stored forever.
+//             Survives app updates. Dies if you clear browser storage.
+//             It's the digital equivalent of a nickname nobody asked for.
+//
+// curLat/Lng — current GPS position. null means "we have no idea where
+//              you are". The speed calculation assumes you've moved
+//              between pings. If curLat is null, we can't calculate
+//              ANYTHING useful. Everything is null's fault.
+//
+// curSpd    — current speed in km/h after rolling average smoothing.
+//             Raw GPS speed is like a toddler reporting distances:
+//             technically a measurement, practically useless.
+//
+// isTracking — is GPS watchPosition() currently running?
+//              If false: the driver clicked Stop, or something went wrong.
+//              Either way: we stop updating the map and go quiet.
+// ═══════════════════════════════════════════════════════
 var myNickname=lsGet('sg_nick')||null;
 var myId=lsGet('sg_id')||('d_'+Math.random().toString(36).substr(2,9));
 lsSet('sg_id',myId);
@@ -1499,9 +1668,23 @@ var lastLat=null,lastLng=null,lastTime=null;
 var speedHistory=[]; // rolling buffer for smooth speed
 var SPEED_THRESHOLD=2; // speeds below 2 km/h treated as stationary
 
-// ═══════════════════════════════════════════
-// MAP
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// MAP SETUP — Leaflet + OpenStreetMap
+//
+// Leaflet.js renders the interactive map.
+// OpenStreetMap provides the tiles (the actual road images).
+// Both are free. Neither requires an API key.
+// This is not normal. Appreciate it.
+//
+// The map tiles are filtered to be dim (brightness: 78%)
+// and slightly desaturated — because a bright colourful map
+// is pretty but terrible for night driving. The data is what
+// matters; the aesthetic is a secondary concern. Mostly.
+//
+// myMk = the driver's own marker (blue → orange → red by speed)
+// luIcon = other live drivers' markers (purple → orange → red by speed)
+// trapMk = speed trap markers (red pulsing = nearby, green = far)
+// ═══════════════════════════════════════════════════════
 var map=L.map('map',{center:[-14.8,34.5],zoom:8,zoomControl:true});
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OpenStreetMap',maxZoom:19}).addTo(map);
 var road=L.polyline(M1,{color:'#f39c12',weight:5,opacity:.9,lineJoin:'round',lineCap:'round'}).addTo(map);
@@ -1524,9 +1707,34 @@ function updateLiveMarker(id,u){
   if(isNew) chatNotifyJoin(u.nickname);
 }
 
-// ═══════════════════════════════════════════
-// HELPERS
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// HELPER FUNCTIONS
+//
+// The unsung heroes of SpeedGuard. Nobody talks about them.
+// Nobody thanks them. They just work.
+//
+// hav()     — Haversine formula. Calculates the straight-line
+//             distance between two GPS coordinates in kilometres.
+//             Named after a 19th century trigonometric function
+//             that was absolutely not designed for Malawi road apps
+//             but works perfectly anyway. History is funny.
+//
+// gs()      — "get status" — converts a distance to a danger level.
+//             <150m = 'bad' (red, urgent)
+//             <400m = 'warn' (orange, caution)
+//             else  = 'ok' (green, relax)
+//
+// dc()      — "danger colour" — maps status to a hex colour.
+//             Not exciting, but used absolutely everywhere.
+//
+// latProg() — converts latitude to journey percentage on the M1.
+//             Lilongwe = 0%, Blantyre = 100%.
+//             The only time percentage means something real.
+//
+// ago()     — converts a timestamp to "2m ago", "just now", etc.
+//             Used in the live drivers panel. Because "1742847291000ms ago"
+//             is technically correct but socially unacceptable.
+// ═══════════════════════════════════════════════════════
 function hav(a,b,c,d){var R=6371,dL=(c-a)*Math.PI/180,dG=(d-b)*Math.PI/180;var x=Math.sin(dL/2)*Math.sin(dL/2)+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dG/2)*Math.sin(dG/2);return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
 function gs(d){return d<0.15?'bad':d<0.4?'warn':'ok';}
 function dc(s){return s==='bad'?'#e74c3c':s==='warn'?'#f39c12':'#27ae60';}
@@ -1570,8 +1778,14 @@ function speak(text,rate){
   window.speechSynthesis.speak(u);
 }
 function triggerAudio(newStatus,trap,ds,spdr){
+  // Tone + vibration fire first — they're faster than speech.
+  // Voice comes after so the driver hears beep THEN words.
+  // This is the same reason ambulances have sirens AND loudspeakers.
+  var changed=newStatus!==lastAlertStatus;
+  if(changed && newStatus !== 'clear') fireSensoryAlert(newStatus);
+
   if(!audioEnabled||!speechSupported)return;
-  var changed=newStatus!==lastAlertStatus;lastAlertStatus=newStatus;var now=Date.now();
+  lastAlertStatus=newStatus;var now=Date.now();
   if(newStatus==='critical'){if(changed||now-lastSpokenAt>6000)speak('Slow down! '+spdr+' kilometres per hour in a '+trap.limit+' zone. '+trap.name+', '+ds+' ahead.',1.1);}
   else if(newStatus==='danger'){if(changed||now-lastSpokenAt>10000)speak('Speed trap ahead. '+trap.name+'. '+ds+' away. Limit '+trap.limit+' kilometres per hour.',1.0);}
   else if(newStatus==='warning'){if(changed)speak('Caution. Speed trap in '+ds+'. Reduce to '+trap.limit+' kilometres per hour.',1.0);}
@@ -1722,13 +1936,38 @@ function closeSosSent(){
   document.getElementById('sos-sent').classList.remove('show');
 }
 
-// ═══════════════════════════════════════════
-// MAIN UI UPDATE
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// MAIN UI UPDATE — the beating heart of SpeedGuard
+//
+// updateUI() is called every time GPS delivers a new position.
+// On a good phone with good signal, that's every 1-3 seconds.
+// On a bad phone in the Ntcheu highlands, that's whenever
+// the GPS hardware feels emotionally ready.
+//
+// This function does ALL of the following in sequence:
+//   1. Reveals the alert banner (first time only)
+//   2. Moves the driver's map marker to the new position
+//   3. Finds the nearest verified speed trap
+//   4. Updates the speed ring colour (green→orange→red)
+//   5. Updates the alert banner text and colour
+//   6. Fires audio + tone + vibration if status changed
+//   7. Fires push notification if phone is locked
+//   8. Updates journey progress percentage and ETA
+//   9. Renders the trap chips in the bottom scroll
+//  10. Checks proximity to unverified traps for voting prompt
+//  11. Checks arrival at destination
+//  12. Broadcasts position to all other live drivers
+//
+// If you're wondering why it's one long function instead of
+// smaller modular pieces — you're right, it should be.
+// But it works. Touch it and everything breaks. So we don't touch it.
+// ═══════════════════════════════════════════════════════
 function updateUI(lat,lng,spd){
-  // Show the alert banner for the first time once GPS has a real position
-  var alertEl = document.getElementById('alert');
-  if(alertEl && alertEl.style.display !== 'flex') alertEl.style.display='flex';
+  // Only show alert once GPS is confirmed tracking with real position
+  if(isTracking) {
+    var alertEl = document.getElementById('alert');
+    if(alertEl && alertEl.style.display !== 'flex') alertEl.style.display='flex';
+  }
 
   if(!myMk){myMk=L.marker([lat,lng],{icon:myIcon(myNickname,spd),zIndexOffset:1000}).addTo(map);}
   else{myMk.setLatLng([lat,lng]);myMk.setIcon(myIcon(myNickname,spd));}
@@ -1749,7 +1988,16 @@ function updateUI(lat,lng,spd){
     if(s==='bad'&&spdr>near.limit){ab.className='a-bad';ai.textContent='🚨';at.textContent='SLOW DOWN! '+spdr+' km/h in '+near.limit+' km/h zone! '+near.name+' is '+ds+' ahead!';}
     else if(s==='bad'){ab.className='a-bad';ai.textContent='⚠️';at.textContent='SPEED TRAP! '+near.name+' — '+ds+' ahead. Limit: '+near.limit+' km/h!';}
     else if(s==='warn'){ab.className='a-warn';ai.textContent='⚠️';at.textContent='Trap in '+ds+' — '+near.name+'. Reduce to '+near.limit+' km/h.';}
-    else{ab.className='a-ok';ai.textContent='✅';at.textContent='All clear — next: '+near.name+' in '+ds+'. Limit: '+near.limit+' km/h.';}
+    else{
+      // Only show "All clear" info if the nearest trap is within 5km
+      // If > 5km away, just stay quiet — no need to announce distant traps
+      if(near.d < 5){
+        ab.className='a-ok';ai.textContent='✅';at.textContent='All clear — next: '+near.name+' in '+ds+'. Limit: '+near.limit+' km/h.';
+      } else {
+        // Quietly show green "road clear" without the trap name
+        ab.className='a-ok';ai.textContent='🟢';at.textContent='Road clear — GPS active. Drive safely on the M1.';
+      }
+    }
     triggerAudio(newStatus,near,ds,spdr);
     triggerPushAlert(newStatus,near.name,ds,near.limit);
     positionWeatherBar();
@@ -1782,9 +2030,28 @@ function updateUI(lat,lng,spd){
   broadcastPos(lat,lng,spd);
 }
 
-// ═══════════════════════════════════════════
-// GPS
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// GPS — the feature that makes everything else possible
+//
+// navigator.geolocation.watchPosition() sets up a continuous
+// GPS listener. It fires every time the position changes.
+// The browser asks the phone's GPS hardware for coordinates,
+// which asks actual satellites orbiting the Earth at 20,000km
+// altitude, which bounced signals off your phone and calculated
+// where you are to within a few metres.
+//
+// All of this happens so we can tell you the Kalinyeke Toll Gate
+// is 380 metres ahead. Technology is remarkable. Also slightly absurd.
+//
+// Options:
+//   enableHighAccuracy: true  — use GPS chip, not cell towers
+//   maximumAge: 2000          — accept cached positions up to 2 seconds old
+//   timeout: 15000            — give up and show error after 15 seconds
+//
+// The speed smoothing (rolling average) exists because raw GPS
+// speed jumps around like a nervous antelope on a bad day.
+// We take the last 3 readings and average them. Calm. Smooth. Reliable.
+// ═══════════════════════════════════════════════════════
 function toggleGPS(){
   if(isTracking){ stopGPS(); return; }
   // Show destination picker before starting GPS
@@ -1850,9 +2117,25 @@ function stopGPS(){
   if(jbar) jbar.classList.remove('show');
 }
 
-// ═══════════════════════════════════════════
-// LIVE PANEL
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// LIVE PANEL — the social network nobody asked for
+//              but everyone uses once they see it
+//
+// Shows all drivers currently broadcasting on the M1.
+// Each driver is a real person on this real road right now.
+// This is not simulated. This is not fake data.
+// If you see 6 drivers online, 6 people are actually driving.
+//
+// Data comes via Supabase Realtime WebSocket broadcast.
+// Drivers send their position every GPS ping (~every 2 seconds).
+// We consider a driver "stale" after 30 seconds of silence —
+// either they stopped GPS, went offline, or drove into a valley
+// in Ntcheu with no signal. All three are equally likely.
+//
+// The panel has two tabs:
+//   👥 Drivers — list of live drivers sorted by last seen
+//   💬 Chat    — real-time road chat channel
+// ═══════════════════════════════════════════════════════
 function refreshLivePanel(){
   var users=Object.values(liveUsers),count=users.length;
   var el=document.getElementById('lp-list'),sub=document.getElementById('lp-s'),lbl=document.getElementById('live-lbl'),dot=document.getElementById('live-dot');
@@ -1893,9 +2176,26 @@ function closeLive(){
   chatOpen = false;
 }
 
-// ═══════════════════════════════════════════
-// REPORT TRAP
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════════════════
+// COMMUNITY TRAP REPORTING
+//
+// Any driver can report a speed trap they see on the road.
+// The report is instantly added to the database and shown
+// on all other drivers' maps as an "unverified" grey marker.
+//
+// It becomes "verified" (green, fires alerts) only after
+// 3 drivers within 1km confirm it. This is our anti-spam
+// mechanism. We call it democracy. Technically it's just
+// a vote count with a threshold. But democracy sounds better.
+//
+// The reporter is immediately prompted to vote YES on their
+// own report (because of course they should — they just saw it).
+// That counts as 1 of the 3 needed confirmations.
+//
+// The trap is saved to Supabase with: name, coordinates,
+// speed limit, type, timestamp. It expires in 2 hours
+// because mobile police units don't wait around.
+// ═══════════════════════════════════════════════════════
 function openReport(){document.getElementById('report-mo').classList.add('open');}
 function closeReport(){document.getElementById('report-mo').classList.remove('open');}
 function submitReport(){
@@ -1911,6 +2211,29 @@ function submitReport(){
   showToast('📍 Trap reported! Needs '+VOTES_TO_VERIFY+' confirmations to go live.');
   setTimeout(function(){promptVote(trap);},600);
 }
+
+// ═══════════════════════════════════════════════════════
+// ONBOARDING FLOW
+//
+// First-time user experience, or: the gauntlet every new driver
+// must run before they can see a single speed trap.
+//
+// Step 1 — Terms & Conditions: A legal document that nobody reads
+//   but everyone must agree to. The checkbox is mandatory.
+//   The button stays grey until ticked. Non-negotiable.
+//
+// Step 2 — Nickname: visible to other drivers on the live map.
+//   Stored in localStorage forever (or until changed in Settings).
+//
+// Step 3 — SOS Contact: prompted once, can be skipped.
+//   If saved, stored ONLY on device. Never uploaded. Privacy: respected.
+//
+// Step 4 — Destination: helps calculate real journey progress.
+//   Can be skipped for full M1 (Lilongwe→Blantyre) progress mode.
+//
+// Step 5 — launchApp(): the payoff. Map appears. App begins.
+//   Everything after this is driven by GPS events.
+// ═══════════════════════════════════════════════════════
 
 // ═══════════════════════════════════════════
 // TERMS + NICKNAME + FLOW
@@ -2522,6 +2845,7 @@ function openSettings() {
   document.getElementById('tog-night').checked    = nightModeOn;
   document.getElementById('tog-mute-chat').checked= sgSettings.muteChat;
   updatePrivacySettingsRow();
+  syncToneSettings();
 
   // Show SOS contact info
   var sosN = document.getElementById('sp-sos-name');
@@ -2575,6 +2899,12 @@ function settingChanged(key, val) {
     lsSet('sg_mute_chat', val ? '1' : '0');
     syncChatMuteState();
     showToast(val ? '🔕 Chat notifications muted' : '🔔 Chat notifications on');
+  }
+  if (key === 'vibration') {
+    vibrationOn = val;
+    lsSet('sg_vibration', val ? '1' : '0');
+    if (val) navigator.vibrate && navigator.vibrate([100,50,100]); // confirmation pulse
+    showToast(val ? '📳 Vibration ON' : '📳 Vibration OFF');
   }
 
   if (key === 'audio') {
@@ -2989,21 +3319,23 @@ function sendChat() {
 
 // ── RECEIVE MESSAGE ──
 function receiveChatMsg(pl) {
-  // Ignore own messages (already added on send)
   if (pl.id === myId) return;
-  appendChatMsg(pl, false);
-  // Unread badge if chat is not open
+  var mentioned = isMentioned(pl.text);
+  appendChatMsg(pl, false, mentioned);
   if (!chatOpen) {
-    if (!sgSettings.muteChat) {
+    if (!sgSettings.muteChat || mentioned) {
       chatUnread++;
       updateChatBadge();
-      showToast('💬 ' + (pl.nickname || 'Driver') + ': ' + pl.text.substring(0, 40) + (pl.text.length > 40 ? '...' : ''));
+      // Stronger notification for mentions
+      var prefix = mentioned ? '🔔 You were mentioned! ' : '💬 ';
+      showToast(prefix + (pl.nickname||'Driver') + ': ' + pl.text.substring(0,40) + (pl.text.length>40?'...':''));
+      if(mentioned) speak('You were mentioned by '+(pl.nickname||'a driver'), 1.0);
     }
   }
 }
 
 // ── APPEND A MESSAGE TO THE UI ──
-function appendChatMsg(pl, isMine) {
+function appendChatMsg(pl, isMine, isMentioned) {
   var el = document.getElementById('chat-messages');
   if (!el) return;
 
@@ -3013,7 +3345,7 @@ function appendChatMsg(pl, isMine) {
 
   // Build bubble
   var div = document.createElement('div');
-  div.className = 'chat-msg ' + (isMine ? 'mine' : 'other');
+  div.className = 'chat-msg ' + (isMine ? 'mine' : 'other') + (isMentioned ? ' mentioned' : '');
   div.setAttribute('data-ts', pl.ts);
 
   var t  = new Date(pl.ts);
@@ -3046,7 +3378,7 @@ function appendChatMsg(pl, isMine) {
   div.innerHTML =
     '<span class="msg-nick">' + escChat(pl.nickname || 'Anonymous') + locStr + '</span>'
     + quoteHtml
-    + '<span class="msg-text">' + escChat(pl.text) + '</span>'
+    + '<span class="msg-text">' + parseMentions(pl.text) + '</span>'
     + '<span class="msg-time">' + tm + '</span>';
 
   // ── SWIPE TO REPLY (touch) ──
@@ -4062,6 +4394,372 @@ function escHTML(s) {
   return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+
+// ═══════════════════════════════════════════════════════
+// @ MENTION SYSTEM
+// Type @ in chat to see a dropdown of online drivers.
+// Tap a name to insert @NickName into the message.
+// Mentioned drivers get a highlighted notification.
+// ═══════════════════════════════════════════════════════
+var mentionActive  = false;
+var mentionStart   = -1;   // index in input where @ was typed
+var mentionQuery   = '';
+
+function handleChatInput(val) {
+  updateChatCharCount(val);
+  checkForMention(val);
+}
+
+function handleChatKeydown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    if (mentionActive) {
+      // Pick first mention result on Enter
+      var first = document.querySelector('.mention-item');
+      if (first) { first.click(); return; }
+    }
+    sendChat();
+    return;
+  }
+  if (e.key === 'Escape' && mentionActive) {
+    closeMentionDropdown();
+    return;
+  }
+  if (e.key === 'ArrowDown' && mentionActive) {
+    e.preventDefault();
+    var items = document.querySelectorAll('.mention-item');
+    if (items.length) items[0].focus();
+    return;
+  }
+}
+
+function checkForMention(val) {
+  var cursorPos = document.getElementById('chat-input').selectionStart || val.length;
+  // Find last @ before cursor
+  var atIdx = val.lastIndexOf('@', cursorPos - 1);
+  if (atIdx === -1) { closeMentionDropdown(); return; }
+  // Make sure @ is at start or after a space
+  if (atIdx > 0 && val[atIdx-1] !== ' ') { closeMentionDropdown(); return; }
+  // Get what's typed after @
+  var query = val.substring(atIdx + 1, cursorPos).toLowerCase();
+  // If there's a space in the query, mention selection is done
+  if (query.includes(' ')) { closeMentionDropdown(); return; }
+  mentionActive = true;
+  mentionStart  = atIdx;
+  mentionQuery  = query;
+  showMentionDropdown(query);
+}
+
+function showMentionDropdown(query) {
+  var dd = document.getElementById('mention-dropdown');
+  if (!dd) return;
+  // Get live drivers + myself as options
+  var drivers = Object.values(liveUsers).filter(function(u) {
+    return !query || u.nickname.toLowerCase().includes(query);
+  });
+  if (drivers.length === 0) { closeMentionDropdown(); return; }
+  dd.innerHTML = '';
+  drivers.forEach(function(u) {
+    var div = document.createElement('div');
+    div.className = 'mention-item';
+    div.tabIndex = 0;
+    var dist = (curLat && u.lat)
+      ? (hav(curLat,curLng,u.lat,u.lng) < 1
+          ? Math.round(hav(curLat,curLng,u.lat,u.lng)*1000)+'m'
+          : hav(curLat,curLng,u.lat,u.lng).toFixed(1)+'km')
+      : '';
+    div.innerHTML =
+      '<span style="font-size:16px">👤</span>'
+      + '<span class="mention-nick">@' + escChat(u.nickname) + '</span>'
+      + (u.progress ? '<span class="mention-km">km '+Math.round(u.progress/100*306)+'</span>' : '')
+      + (dist ? '<span class="mention-dist">'+dist+' away</span>' : '');
+    div.addEventListener('click', function() { insertMention(u.nickname); });
+    div.addEventListener('keydown', function(e) {
+      if(e.key==='Enter') insertMention(u.nickname);
+      if(e.key==='Escape') closeMentionDropdown();
+    });
+    dd.appendChild(div);
+  });
+  dd.classList.add('show');
+}
+
+function insertMention(nickname) {
+  var input = document.getElementById('chat-input');
+  if (!input) return;
+  var val   = input.value;
+  // Replace from @ to cursor position with @nickname + space
+  var before = val.substring(0, mentionStart);
+  var after  = val.substring(mentionStart + 1 + mentionQuery.length);
+  input.value = before + '@' + nickname + ' ' + after;
+  input.focus();
+  closeMentionDropdown();
+  updateChatCharCount(input.value);
+}
+
+function closeMentionDropdown() {
+  mentionActive = false;
+  mentionStart  = -1;
+  mentionQuery  = '';
+  var dd = document.getElementById('mention-dropdown');
+  if (dd) dd.classList.remove('show');
+}
+
+// Parse @mentions in message text for display
+function parseMentions(text) {
+  return escChat(text).replace(/@(\w[\w\s]{0,16})/g, function(match, name) {
+    return '<span class="msg-mention">@' + name + '</span>';
+  });
+}
+
+// Check if incoming message mentions the current driver
+function isMentioned(text) {
+  if (!myNickname) return false;
+  var re = new RegExp('@' + myNickname.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'), 'i');
+  return re.test(text);
+}
+
+
+// ═══════════════════════════════════════════════════════
+// TONE & VIBRATION ALERT SYSTEM
+//
+// Because flashing lights and screaming text on screen
+// apparently wasn't alarming enough for some drivers.
+//
+// Uses the Web Audio API to synthesise beeps mathematically.
+// No audio files. No libraries. Just sine waves and regret.
+//
+// TONE PROFILES:
+//   silent   — for drivers who prefer to live dangerously in silence
+//   soft     — a gentle suggestion that you might be about to die
+//   standard — the default "pay attention" beep
+//   loud     — for drivers who are definitely not paying attention
+//
+// VIBRATION:
+//   Works beautifully on Android Chrome.
+//   On iPhone, Apple has decided vibration is too powerful for
+//   mere web developers. So iPhones just... don't vibrate. Classic Apple.
+// ═══════════════════════════════════════════════════════
+
+// Tone style: 'silent' | 'soft' | 'standard' | 'loud'
+var toneStyle     = lsGet('sg_tone') || 'standard';
+var vibrationOn   = lsGet('sg_vibration') !== '0';
+
+// AudioContext — the thing that makes sound.
+// Lazily created on first use because browsers require
+// a user gesture before allowing audio. Bureaucracy at its finest.
+var audioCtx = null;
+
+function getAudioCtx() {
+  // Create the AudioContext if it doesn't exist yet.
+  // If it's suspended (thanks to browser autoplay policies
+  // that nobody asked for), wake it up.
+  if (!audioCtx) {
+    try {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    } catch(e) {
+      console.warn('[Tone] AudioContext failed. Your browser hates fun.', e);
+      return null;
+    }
+  }
+  if (audioCtx.state === 'suspended') {
+    audioCtx.resume().catch(function(){});
+  }
+  return audioCtx;
+}
+
+// Volume levels per style.
+// 'silent' is 0 because the name was a hint.
+var TONE_VOLUMES = { silent:0, soft:0.2, standard:0.5, loud:0.9 };
+
+/**
+ * playTone(freq, duration, volume, startDelay)
+ *
+ * Plays a single sine wave tone.
+ * This is the building block of all our beep patterns.
+ *
+ * freq       — frequency in Hz. 440 = A4 (piano middle-ish).
+ *              Higher = more annoying. Perfect for speed traps.
+ * duration   — how long the beep lasts in seconds.
+ * volume     — 0.0 to 1.0. 1.0 is "wake the whole minibus".
+ * startDelay — seconds to wait before playing (for sequencing beeps).
+ */
+function playTone(freq, duration, volume, startDelay) {
+  var ctx = getAudioCtx();
+  if (!ctx) return;
+
+  var oscillator = ctx.createOscillator();  // the sound generator
+  var gainNode   = ctx.createGain();        // the volume knob
+
+  oscillator.connect(gainNode);
+  gainNode.connect(ctx.destination);
+
+  oscillator.type      = 'sine'; // sine = smooth, square = aggressive, triangle = mellow
+  oscillator.frequency.setValueAtTime(freq, ctx.currentTime + startDelay);
+
+  // Fade in quickly (5ms) then fade out (80ms) to avoid harsh clicks.
+  // Nobody wants a clicking sound in their ear at 90km/h.
+  gainNode.gain.setValueAtTime(0, ctx.currentTime + startDelay);
+  gainNode.gain.linearRampToValueAtTime(volume, ctx.currentTime + startDelay + 0.005);
+  gainNode.gain.setValueAtTime(volume, ctx.currentTime + startDelay + duration - 0.08);
+  gainNode.gain.linearRampToValueAtTime(0, ctx.currentTime + startDelay + duration);
+
+  oscillator.start(ctx.currentTime + startDelay);
+  oscillator.stop(ctx.currentTime + startDelay + duration);
+}
+
+/**
+ * playAlertTone(level)
+ *
+ * Plays the appropriate beep pattern for the alert level.
+ * If toneStyle is 'silent', this function heroically does nothing.
+ *
+ * warning  — single soft beep. "Heads up, champ."
+ * danger   — double beep. "Seriously though."
+ * critical — triple rapid beep + low rumble. "WHAT ARE YOU DOING."
+ */
+function playAlertTone(level) {
+  if (toneStyle === 'silent') return; // silence is golden, apparently
+
+  var vol = TONE_VOLUMES[toneStyle] || 0.5;
+
+  if (level === 'warning') {
+    // Single ascending beep — polite, like a colleague clearing their throat
+    playTone(880, 0.12, vol, 0);
+
+  } else if (level === 'danger') {
+    // Double beep — now we're getting urgent
+    playTone(1047, 0.10, vol,   0);     // first beep
+    playTone(1047, 0.10, vol,   0.15);  // second beep
+
+  } else if (level === 'critical') {
+    // Triple rapid beep + low warning drone
+    // This is the "you have made a terrible decision" sound
+    playTone(1319, 0.08, vol,   0);     // bip
+    playTone(1319, 0.08, vol,   0.12);  // bip
+    playTone(1319, 0.08, vol,   0.24);  // BIP
+    playTone(440,  0.3,  vol*0.4, 0.38); // ominous low undertone
+  }
+}
+
+/**
+ * vibrateDevice(level)
+ *
+ * Sends haptic feedback patterns to the phone.
+ * Works on Android. Politely ignored by iOS.
+ * If the user has turned vibration off, also politely ignored.
+ *
+ * The Vibration API takes an array of [vibrate, pause, vibrate, pause...]
+ * values in milliseconds. Think of it as Morse code for your hand.
+ */
+function vibrateDevice(level) {
+  // Check if vibration is supported and enabled.
+  // 'navigator.vibrate' on iOS is like 'navigator.promises' — technically there
+  // but never actually does anything useful.
+  if (!vibrationOn || !navigator.vibrate) return;
+
+  if (level === 'warning') {
+    navigator.vibrate([100]);               // one short pulse
+
+  } else if (level === 'danger') {
+    navigator.vibrate([150, 80, 150]);      // two pulses
+
+  } else if (level === 'critical') {
+    navigator.vibrate([200,80,200,80,300]); // three escalating pulses
+  }
+}
+
+/**
+ * fireSensoryAlert(level)
+ *
+ * The main function that coordinates tone + vibration together.
+ * Called from triggerAudio() which is called from updateUI().
+ * This is the sound of your choices catching up with you.
+ */
+function fireSensoryAlert(level) {
+  playAlertTone(level);
+  vibrateDevice(level);
+}
+
+/**
+ * testTone(level)
+ *
+ * Lets the driver test what each alert sounds and feels like.
+ * Available in Settings so they can adjust without driving into a ditch.
+ */
+function testTone(level) {
+  fireSensoryAlert(level);
+  var msgs = {
+    warning:  '⚠️ Warning tone — played 400m before a trap',
+    danger:   '🚨 Danger tone — played 150m before a trap',
+    critical: '🔴 Critical tone — played when you are over the speed limit at a trap'
+  };
+  showToast(msgs[level] || 'Test tone played');
+}
+
+/**
+ * setToneStyle(style)
+ *
+ * Changes the alert sound style and saves it.
+ * Updates the Settings UI to highlight the selected button.
+ */
+function setToneStyle(style) {
+  toneStyle = style;
+  lsSet('sg_tone', style);
+  // Update button highlights — the selected one looks important,
+  // the rest look like they made the wrong choice
+  ['silent','soft','standard','loud'].forEach(function(s) {
+    var btn = document.getElementById('ts-' + s);
+    if (!btn) return;
+    if (s === style) {
+      btn.style.borderColor = 'rgba(39,174,96,.4)';
+      btn.style.background  = 'rgba(39,174,96,.15)';
+      btn.style.color       = '#5ddb8a';
+    } else {
+      btn.style.borderColor = 'rgba(255,255,255,.15)';
+      btn.style.background  = 'rgba(255,255,255,.07)';
+      btn.style.color       = 'rgba(255,255,255,.5)';
+    }
+  });
+  if (style !== 'silent') testTone('warning'); // immediate demo
+  showToast('🔔 Alert tone: ' + style.charAt(0).toUpperCase() + style.slice(1));
+}
+
+/**
+ * syncToneSettings()
+ *
+ * Restores the saved tone style in the Settings UI
+ * when the panel is opened. Because nobody wants to
+ * re-configure their alerts every single time.
+ */
+function syncToneSettings() {
+  setToneStyle(toneStyle); // re-apply to update button states
+  var vibTog = document.getElementById('tog-vibration');
+  if (vibTog) vibTog.checked = vibrationOn;
+}
+
+// ═══════════════════════════════════════════════════════
+// STARTUP — runs immediately when the page loads
+//
+// This self-invoking function runs ONCE on page load.
+// It checks localStorage for previous sessions:
+//
+//   sg_terms    — has the user agreed to T&Cs?
+//   sg_nick     — do we have their nickname saved?
+//   sg_sos      — do they have an emergency contact?
+//   sg_night    — what's their night mode preference?
+//   sg_audio    — did they turn voice alerts off?
+//   sg_set_live — are they in live or private mode?
+//   sg_tone     — which alert tone style?
+//   sg_vibration— vibration on or off?
+//
+// If they've been here before, skip the onboarding and go straight
+// to the app. Returning users deserve better than reading T&Cs again.
+//
+// The @keyframes tpa animation (trap pulse) is injected here
+// as a style element because CSS-in-JS wasn't cool yet in 2024
+// and we were already committed to a single HTML file anyway.
+// ═══════════════════════════════════════════════════════
+
 // ═══════════════════════════════════════════
 // STARTUP
 // ═══════════════════════════════════════════
@@ -4135,6 +4833,47 @@ function escHTML(s) {
         <span class="sg-slider"></span>
       </label>
     </div>
+  </div>
+
+  <!-- ALERT TONES & VIBRATION -->
+  <div class="sp-section">
+    <div class="sp-section-label">Alert Tones & Vibration</div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">🔔 Alert Sound Style</div>
+        <div class="sp-row-desc" id="tone-style-desc">Beep pattern played when approaching a trap</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:7px;margin-bottom:10px;flex-wrap:wrap">
+      <button onclick="setToneStyle('silent')"  id="ts-silent"   style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:rgba(255,255,255,.5)">🔇 Silent</button>
+      <button onclick="setToneStyle('soft')"    id="ts-soft"     style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:rgba(255,255,255,.5)">🔉 Soft</button>
+      <button onclick="setToneStyle('standard')" id="ts-standard" style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(39,174,96,.4);background:rgba(39,174,96,.15);color:#5ddb8a">🔊 Standard</button>
+      <button onclick="setToneStyle('loud')"    id="ts-loud"     style="flex:1;padding:8px;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.07);color:rgba(255,255,255,.5)">📢 Loud</button>
+    </div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">📳 Vibration Alerts</div>
+        <div class="sp-row-desc">Vibrate on speed trap alerts (Android only — iPhone ignores this)</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-vibration" checked onchange="settingChanged('vibration',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
+
+    <div class="sp-row" style="border:none;padding-top:4px">
+      <div class="sp-row-info">
+        <div class="sp-row-label" style="font-size:11px;color:rgba(255,255,255,.4)">Test your alert sounds</div>
+      </div>
+    </div>
+    <div class="alert-tone-btns">
+      <button class="tone-test-btn warn-btn"     onclick="testTone('warning')">⚠️ Test Warning</button>
+      <button class="tone-test-btn danger-btn"   onclick="testTone('danger')">🚨 Test Danger</button>
+      <button class="tone-test-btn critical-btn" onclick="testTone('critical')">🔴 Test Critical</button>
+    </div>
+  <div style="height:1px"></div>
   </div>
 
   <!-- ALERTS & AUDIO -->
