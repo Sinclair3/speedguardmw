@@ -2322,7 +2322,41 @@ function toggleGPS(){
   // Show destination picker before starting GPS
   openDestPicker();
 }
+var _simMode = false;
 function actuallyStartGPS(){
+  // ── SIMULATOR MODE BRIDGE ──
+  // When the admin Route Simulator is running it writes sg_sim_active='1'
+  // and updates sg_sim_lat/lng/speed via localStorage every 400ms.
+  // We hook that here instead of real GPS so the full app reacts
+  // to the simulated drive without needing to leave the building.
+  if(localStorage.getItem('sg_sim_active')==='1'){
+    _simMode=true;
+    isTracking=true;
+    document.getElementById('btn-gps').textContent='⏹ Stop GPS';
+    document.getElementById('btn-gps').classList.add('on');
+    document.getElementById('gps-lbl').classList.add('on');
+    showNavBtn(true);
+    primeAudio();
+    requestWakeLock();
+    var al=document.getElementById('alert');
+    al.innerHTML='🎮 <b>Simulator Mode</b> — driven from Admin Panel';
+    al.style.background='linear-gradient(135deg,rgba(41,128,185,.9),rgba(52,152,219,.9))';
+    al.style.display='block';
+    watchId=setInterval(function(){
+      if(localStorage.getItem('sg_sim_active')!=='1'){stopGPS();return;}
+      var sLat=parseFloat(localStorage.getItem('sg_sim_lat')||'0');
+      var sLng=parseFloat(localStorage.getItem('sg_sim_lng')||'0');
+      var sSpd=parseFloat(localStorage.getItem('sg_sim_speed')||'0');
+      if(!sLat||!sLng) return;
+      curLat=sLat;curLng=sLng;curSpd=sSpd;
+      lastLat=sLat;lastLng=sLng;lastTime=Date.now();
+      speedHistory=[sSpd];
+      map.panTo([sLat,sLng],{animate:true,duration:.4});
+      updateUI(sLat,sLng,sSpd);
+    },500);
+    return;
+  }
+  _simMode=false;
   if(!navigator.geolocation){alert('Geolocation not supported.');return;}
   isTracking=true;
   document.getElementById('btn-gps').textContent='⏹ Stop GPS';
@@ -2372,7 +2406,14 @@ function actuallyStartGPS(){
   },{enableHighAccuracy:true,maximumAge:2000,timeout:15000});
 }
 function stopGPS(){
-  isTracking=false;if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  isTracking=false;
+  if(watchId!=null){
+    if(_simMode){clearInterval(watchId);}
+    else{navigator.geolocation.clearWatch(watchId);}
+    watchId=null;
+  }
+  _simMode=false;
+  localStorage.removeItem('sg_sim_active');
   lsSet('sg_score_pings', _scorePings); lsSet('sg_score_over', _scoreOver);
   lsSet('sg_score_trips', (parseInt(lsGet('sg_score_trips')||'0')+1));
   updateScoreChip();

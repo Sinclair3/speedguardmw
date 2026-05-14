@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SpeedGuard Malawi — Admin</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;color:#fff;min-height:100vh}
@@ -157,6 +159,30 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;co
 
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+
+/* SIMULATOR */
+#sim-map{height:260px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.1);margin-bottom:14px}
+.sim-ctrl{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin-bottom:12px}
+.sim-ctrl-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.4);margin-bottom:10px}
+.sim-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.btn-sim{padding:10px 18px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;border:none;transition:all .15s}
+.btn-sim-go{background:linear-gradient(135deg,#1a6b3a,#27ae60);color:#fff}
+.btn-sim-pause{background:rgba(243,156,18,.2);border:1px solid rgba(243,156,18,.4)!important;color:#f8c060}
+.btn-sim-stop{background:rgba(231,76,60,.13);border:1px solid rgba(231,76,60,.35)!important;color:#ff7a7a}
+.sim-status{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.sim-stat{flex:1;min-width:80px;background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.08);border-radius:11px;padding:10px;text-align:center}
+.sim-stat-val{font-size:22px;font-weight:800;margin-bottom:2px;line-height:1.2}
+.sim-stat-lbl{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.04em}
+.sim-select{padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:13px;cursor:pointer;outline:none}
+.sim-select option{background:#0e1820}
+input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;height:4px}
+.sim-trap-list{list-style:none;margin-top:8px}
+.sim-trap-list li{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.06);margin-bottom:6px;font-size:12px;gap:8px}
+.sim-trap-list li span{color:rgba(255,255,255,.7);flex:1}
+.btn-rm-trap{padding:4px 10px;border-radius:7px;background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);color:#ff8a7a;font-size:11px;cursor:pointer;flex-shrink:0}
+.sim-input{padding:9px 12px;border-radius:9px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:13px;outline:none;min-width:0}
+.sim-input::placeholder{color:rgba(255,255,255,.25)}
+.sim-input:focus{border-color:rgba(39,174,96,.4)}
 </style>
 </head>
 <body>
@@ -203,6 +229,7 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;co
     <div class="tab" onclick="switchTab('traps',this)">🚔 Trap Reports</div>
     <div class="tab" onclick="switchTab('reviews',this)">⭐ Reviews</div>
     <div class="tab" onclick="switchTab('broadcast',this)">📢 Broadcast</div>
+    <div class="tab" onclick="switchTab('simulator',this)">🎮 Simulator</div>
     <div class="tab" onclick="switchTab('settings',this)">⚙️ Settings</div>
   </div>
 
@@ -491,6 +518,78 @@ create policy "Anyone can update" on sg_admin_config for update using (true);</p
     </div>
   </div>
 
+  <!-- ══ TAB: SIMULATOR ══ -->
+  <div id="tab-simulator" class="content" style="display:none">
+    <div class="section-hdr">
+      <div>
+        <div class="section-title">🎮 Route Simulator</div>
+        <div class="section-sub">Drive the full M1 route from your desk — test alerts, nav ribbon, score &amp; fuel stations</div>
+      </div>
+      <a href="http://localhost:3000" target="_blank" style="padding:8px 14px;border-radius:9px;background:rgba(39,174,96,.13);border:1px solid rgba(39,174,96,.3);color:#5ddb8a;font-size:12px;font-weight:600;text-decoration:none">Open App ↗</a>
+    </div>
+
+    <!-- Live status chips -->
+    <div class="sim-status">
+      <div class="sim-stat"><div class="sim-stat-val" id="sim-spd" style="color:#e74c3c">0</div><div class="sim-stat-lbl">km/h</div></div>
+      <div class="sim-stat"><div class="sim-stat-val" id="sim-km" style="color:#27ae60">--</div><div class="sim-stat-lbl">km on M1</div></div>
+      <div class="sim-stat"><div class="sim-stat-val" id="sim-loc" style="font-size:13px;color:#7fb3d3">--</div><div class="sim-stat-lbl">Location</div></div>
+      <div class="sim-stat"><div class="sim-stat-val" id="sim-nearest-trap" style="font-size:11px;color:#f39c12">None</div><div class="sim-stat-lbl">Nearest Trap</div></div>
+    </div>
+
+    <!-- Mini Leaflet map -->
+    <div id="sim-map"></div>
+
+    <!-- Controls -->
+    <div class="sim-ctrl">
+      <div class="sim-ctrl-title">Simulation Controls</div>
+      <div style="margin-bottom:12px">
+        <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:6px">Speed: <b id="sim-spd-lbl" style="color:#fff">60 km/h</b></div>
+        <input type="range" class="sim-range" id="sim-speed" min="20" max="160" step="5" value="60"
+          oninput="document.getElementById('sim-spd-lbl').textContent=this.value+' km/h'">
+      </div>
+      <div class="sim-row" style="margin-bottom:12px">
+        <select class="sim-select" id="sim-start" style="flex:2"><option>Loading…</option></select>
+        <select class="sim-select" id="sim-dir" style="flex:1">
+          <option value="ns">N → S (↓)</option>
+          <option value="sn">S → N (↑)</option>
+        </select>
+      </div>
+      <div class="sim-row">
+        <button class="btn-sim btn-sim-go"   id="btn-sim-start" onclick="simStart()">▶ Start Simulation</button>
+        <button class="btn-sim btn-sim-pause" id="btn-sim-pause" onclick="simPauseToggle()" style="display:none">⏸ Pause</button>
+        <button class="btn-sim btn-sim-stop"  id="btn-sim-stop"  onclick="simStop()"        style="display:none">⏹ Stop</button>
+      </div>
+      <div style="margin-top:12px;padding:10px 14px;border-radius:10px;background:rgba(39,174,96,.07);border:1px solid rgba(39,174,96,.15);font-size:12px;color:rgba(255,255,255,.5);line-height:1.8">
+        💡 <b style="color:rgba(255,255,255,.75)">How to test:</b>
+        Start simulation here →
+        <a href="http://localhost:3000" target="_blank" style="color:#5ddb8a;font-weight:700">Open App</a>
+        in a new tab → tap <b style="color:#fff">Start GPS</b> in the app →
+        watch it respond to the simulated M1 drive in real time.
+      </div>
+    </div>
+
+    <!-- Custom traps -->
+    <div class="sim-ctrl">
+      <div class="sim-ctrl-title">Custom Test Traps</div>
+      <div class="sim-row" style="margin-bottom:10px">
+        <input class="sim-input" id="st-name"  placeholder="Trap name (e.g. Lumbadzi Police)" style="flex:3">
+        <select class="sim-select" id="st-type" style="flex:1.5">
+          <option value="mobile">🚔 Mobile</option>
+          <option value="camera">📷 Camera</option>
+          <option value="checkpoint">🛡️ Checkpoint</option>
+        </select>
+      </div>
+      <div class="sim-row" style="margin-bottom:12px">
+        <input class="sim-input" id="st-limit" type="number" placeholder="Limit km/h" value="80" style="flex:1">
+        <input class="sim-input" id="st-km"    type="number" placeholder="km on M1" style="flex:1">
+        <button class="btn-sim btn-sim-go" onclick="simAddTrap()" style="padding:9px 16px;font-size:13px">+ Add Trap</button>
+      </div>
+      <ul class="sim-trap-list" id="sim-trap-list">
+        <li style="color:rgba(255,255,255,.3);justify-content:center">No custom traps yet</li>
+      </ul>
+    </div>
+  </div><!-- end tab-simulator -->
+
 </div><!-- end #app -->
 
 <!-- CONFIRM DIALOG -->
@@ -657,11 +756,12 @@ function initApp(){
 function switchTab(tab, el){
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
-  ['usage','traps','reviews','broadcast','settings'].forEach(function(t){
+  ['usage','traps','reviews','broadcast','simulator','settings'].forEach(function(t){
     document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
   });
-  if(tab==='traps')   loadTraps();
-  if(tab==='reviews') loadReviews();
+  if(tab==='traps')     loadTraps();
+  if(tab==='reviews')   loadReviews();
+  if(tab==='simulator') simInit();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1077,6 +1177,301 @@ function renderReviews() {
 
 
 document.getElementById('pw-input').addEventListener('keydown',function(e){ if(e.key==='Enter')tryLogin(); });
+
+// ══════════════════════════════════════════════════════
+// ROUTE SIMULATOR
+// ══════════════════════════════════════════════════════
+// M1 waypoints: [lat, lng, name, kmFromNorth]
+var SIM_ROUTE = [
+  [-9.70,  33.92, 'Songwe Border (TZ)',   0],
+  [-9.93,  33.93, 'Karonga',             27],
+  [-10.20, 33.87, 'Nkhata Bay Rd Junc',  62],
+  [-10.60, 33.83, 'Livingstonia Turn',  108],
+  [-10.87, 33.85, 'Rumphi',             148],
+  [-11.10, 33.90, 'Chikangawa Junc',    182],
+  [-11.45, 34.02, 'Mzuzu',              235],
+  [-11.62, 34.01, 'Nkhata Bay Junc',    258],
+  [-11.83, 34.05, 'Luwinga',            283],
+  [-12.20, 34.15, 'Dwangwa',            330],
+  [-12.50, 34.22, 'Nkhotakota Junc',    369],
+  [-12.92, 34.30, 'Nkhotakota',         408],
+  [-13.50, 34.35, 'Benga Junction',     476],
+  [-13.78, 34.46, 'Salima Junction',    509],
+  [-13.97, 33.79, 'Lilongwe',           562],
+  [-14.12, 33.98, 'Lumbadzi Junc',      588],
+  [-14.38, 34.34, 'Dedza',              634],
+  [-14.72, 34.62, 'Golomoti',           682],
+  [-14.98, 34.96, 'Balaka',             720],
+  [-15.06, 35.23, 'Liwonde',            745],
+  [-15.38, 35.32, 'Zomba Junction',     789],
+  [-15.62, 35.10, 'Limbe',              820],
+  [-15.79, 35.00, 'Blantyre',           840],
+  [-16.07, 35.15, 'Thyolo Junction',    870],
+  [-16.40, 35.22, 'Luchenza',           910],
+  [-16.85, 35.26, 'Mozambique Border',  960]
+];
+
+var simMap       = null;
+var simMarker    = null;
+var simPolyline  = null;
+var simTrapMarkers = [];
+var simTraps     = [];
+var simTrapId    = 0;
+var simRunning   = false;
+var simPaused    = false;
+var simInterval  = null;
+var simIdx       = 14; // start at Lilongwe
+var simFrac      = 0;  // 0-1 fraction between simIdx and simIdx+1
+var simDir       = 1;  // 1 = N→S, -1 = S→N
+var SIM_TICK_MS  = 400;
+
+function simInit() {
+  if (simMap) { simMap.invalidateSize(); return; }
+
+  simMap = L.map('sim-map', {zoomControl:true, attributionControl:false});
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {className:'sim-tiles'}).addTo(simMap);
+
+  // Route polyline
+  simPolyline = L.polyline(
+    SIM_ROUTE.map(function(w){ return [w[0],w[1]]; }),
+    {color:'#27ae60', weight:4, opacity:.75}
+  ).addTo(simMap);
+
+  // Waypoint dots
+  SIM_ROUTE.forEach(function(w){
+    L.circleMarker([w[0],w[1]], {radius:4, color:'#27ae60', fillColor:'#0e1820', fillOpacity:1, weight:2})
+      .bindTooltip(w[2]+' · km '+w[3], {direction:'right'}).addTo(simMap);
+  });
+
+  // Car marker
+  simMarker = L.marker([SIM_ROUTE[simIdx][0], SIM_ROUTE[simIdx][1]], {
+    icon: L.divIcon({
+      html:'<div style="background:#e74c3c;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(231,76,60,.8)"></div>',
+      className:'', iconAnchor:[8,8]
+    })
+  }).addTo(simMap);
+
+  simMap.fitBounds(simPolyline.getBounds(), {padding:[20,20]});
+
+  // Populate start dropdown
+  var sel = document.getElementById('sim-start');
+  sel.innerHTML = '';
+  SIM_ROUTE.forEach(function(w, i){
+    var opt = document.createElement('option');
+    opt.value = i; opt.textContent = w[2]+' (km '+w[3]+')';
+    if(i===14) opt.selected = true;
+    sel.appendChild(opt);
+  });
+
+  simUpdateStatus();
+}
+
+function simStart() {
+  if(!simMap) simInit();
+
+  // Reset to chosen start
+  simIdx  = parseInt(document.getElementById('sim-start').value) || 14;
+  simFrac = 0;
+  simDir  = document.getElementById('sim-dir').value === 'sn' ? -1 : 1;
+  simRunning = true;
+  simPaused  = false;
+
+  localStorage.setItem('sg_sim_active', '1');
+
+  document.getElementById('btn-sim-start').style.display = 'none';
+  document.getElementById('btn-sim-pause').style.display = '';
+  document.getElementById('btn-sim-stop').style.display  = '';
+  document.getElementById('btn-sim-pause').textContent   = '⏸ Pause';
+
+  if(simInterval) clearInterval(simInterval);
+  simInterval = setInterval(simTick, SIM_TICK_MS);
+  showToast('▶ Simulation started — open the app and press Start GPS');
+}
+
+function simPauseToggle() {
+  if(!simRunning) return;
+  if(!simPaused){
+    clearInterval(simInterval); simInterval = null;
+    simPaused = true;
+    document.getElementById('btn-sim-pause').textContent = '▶ Resume';
+  } else {
+    simPaused = false;
+    document.getElementById('btn-sim-pause').textContent = '⏸ Pause';
+    simInterval = setInterval(simTick, SIM_TICK_MS);
+  }
+}
+
+function simStop() {
+  simRunning = false; simPaused = false;
+  if(simInterval){ clearInterval(simInterval); simInterval = null; }
+  localStorage.removeItem('sg_sim_active');
+  localStorage.removeItem('sg_sim_lat');
+  localStorage.removeItem('sg_sim_lng');
+  localStorage.removeItem('sg_sim_speed');
+
+  document.getElementById('btn-sim-start').style.display = '';
+  document.getElementById('btn-sim-pause').style.display = 'none';
+  document.getElementById('btn-sim-stop').style.display  = 'none';
+  document.getElementById('btn-sim-pause').textContent   = '⏸ Pause';
+
+  document.getElementById('sim-spd').textContent = '0';
+  showToast('⏹ Simulation stopped');
+}
+
+function simTick() {
+  var spd = parseInt(document.getElementById('sim-speed').value) || 60;
+  // km advanced this tick
+  var kmStep = spd * (SIM_TICK_MS / 3600000);
+
+  if(!simAdvance(kmStep)){
+    simStop();
+    showToast('🏁 End of M1 reached!');
+    return;
+  }
+
+  var pos = simCurPos();
+  localStorage.setItem('sg_sim_lat',   pos.lat.toFixed(6));
+  localStorage.setItem('sg_sim_lng',   pos.lng.toFixed(6));
+  localStorage.setItem('sg_sim_speed', spd.toString());
+
+  if(simMarker) simMarker.setLatLng([pos.lat, pos.lng]);
+  simCheckTrapProximity(pos.lat, pos.lng);
+  simUpdateStatus(spd, pos);
+}
+
+function simAdvance(km) {
+  var maxIdx = SIM_ROUTE.length - 1;
+  while(km > 0){
+    var nextIdx = simIdx + simDir;
+    if(nextIdx < 0 || nextIdx > maxIdx) return false;
+    var curr = SIM_ROUTE[simIdx], next = SIM_ROUTE[nextIdx];
+    var segKm = simHav(curr[0],curr[1], next[0],next[1]);
+    if(segKm < 0.001) segKm = 0.001;
+    var remaining = segKm * (1 - simFrac);
+    if(km >= remaining){
+      km -= remaining;
+      simIdx = nextIdx;
+      simFrac = 0;
+    } else {
+      simFrac += km / segKm;
+      km = 0;
+    }
+  }
+  return true;
+}
+
+function simCurPos() {
+  var a = SIM_ROUTE[simIdx];
+  var nextIdx = simIdx + simDir;
+  if(nextIdx < 0 || nextIdx >= SIM_ROUTE.length)
+    return {lat:a[0], lng:a[1], km:a[3], name:a[2]};
+  var b = SIM_ROUTE[nextIdx];
+  return {
+    lat:  a[0]+(b[0]-a[0])*simFrac,
+    lng:  a[1]+(b[1]-a[1])*simFrac,
+    km:   Math.round(a[3]+(b[3]-a[3])*simFrac),
+    name: a[2]
+  };
+}
+
+function simHav(lat1,lng1,lat2,lng2){
+  var R=6371, dL=(lat2-lat1)*Math.PI/180, dG=(lng2-lng1)*Math.PI/180;
+  var a=Math.sin(dL/2)*Math.sin(dL/2)+Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dG/2)*Math.sin(dG/2);
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function simUpdateStatus(spd, pos) {
+  if(!pos) pos = simCurPos();
+  if(!spd)  spd = 0;
+  document.getElementById('sim-spd').textContent = spd;
+  document.getElementById('sim-km').textContent  = pos.km;
+  document.getElementById('sim-loc').textContent = pos.name;
+
+  // Nearest custom trap distance
+  var near = null, bestD = 999;
+  simTraps.forEach(function(t){
+    var d = simHav(pos.lat,pos.lng, t.lat,t.lng);
+    if(d<bestD){ bestD=d; near=t; }
+  });
+  document.getElementById('sim-nearest-trap').textContent =
+    near ? (bestD<1 ? '⚠️ ' : '') + near.name+' '+bestD.toFixed(1)+'km' : 'None';
+}
+
+function simCheckTrapProximity(lat, lng) {
+  simTraps.forEach(function(t){
+    var d = simHav(lat,lng, t.lat,t.lng);
+    if(d < 0.5 && !t._alerted){
+      t._alerted = true;
+      showToast('⚠️ Trap ahead: '+t.name+' — '+t.limitKmh+' km/h ('+t.type+')');
+    }
+    if(d > 2) t._alerted = false;
+  });
+}
+
+function simLatLngFromKm(targetKm) {
+  for(var i=0; i<SIM_ROUTE.length-1; i++){
+    var a=SIM_ROUTE[i], b=SIM_ROUTE[i+1];
+    if(targetKm>=a[3] && targetKm<=b[3]){
+      var f=(targetKm-a[3])/(b[3]-a[3]);
+      return {lat:a[0]+(b[0]-a[0])*f, lng:a[1]+(b[1]-a[1])*f};
+    }
+  }
+  var last=SIM_ROUTE[SIM_ROUTE.length-1];
+  return {lat:last[0], lng:last[1]};
+}
+
+function simAddTrap() {
+  var name  = document.getElementById('st-name').value.trim();
+  var type  = document.getElementById('st-type').value;
+  var limit = parseInt(document.getElementById('st-limit').value) || 80;
+  var km    = parseFloat(document.getElementById('st-km').value);
+  if(!name){ showToast('❌ Enter a trap name'); return; }
+  if(isNaN(km)||km<0||km>960){ showToast('❌ Enter a valid km (0–960)'); return; }
+  var pos = simLatLngFromKm(km);
+  var trap = {id:++simTrapId, name:name, type:type, limitKmh:limit, km:km, lat:pos.lat, lng:pos.lng, _alerted:false};
+  simTraps.push(trap);
+  document.getElementById('st-name').value = '';
+  document.getElementById('st-km').value   = '';
+  simRenderTrapList();
+  simRenderTrapMarkers();
+  showToast('✅ Trap added at km '+km);
+}
+
+function simRemoveTrap(id) {
+  simTraps = simTraps.filter(function(t){ return t.id!==id; });
+  simRenderTrapList();
+  simRenderTrapMarkers();
+}
+
+function simRenderTrapList() {
+  var el = document.getElementById('sim-trap-list');
+  if(simTraps.length===0){
+    el.innerHTML='<li style="color:rgba(255,255,255,.3);justify-content:center">No custom traps yet</li>';
+    return;
+  }
+  el.innerHTML='';
+  simTraps.forEach(function(t){
+    var em=t.type==='camera'?'📷':t.type==='checkpoint'?'🛡️':'🚔';
+    var li=document.createElement('li');
+    li.innerHTML='<span>'+em+' <b>'+esc(t.name)+'</b> — '+t.type+' · '+t.limitKmh+' km/h · km '+t.km+'</span>'
+      +'<button class="btn-rm-trap" onclick="simRemoveTrap('+t.id+')">Remove</button>';
+    el.appendChild(li);
+  });
+}
+
+function simRenderTrapMarkers() {
+  if(!simMap) return;
+  simTrapMarkers.forEach(function(m){ simMap.removeLayer(m); });
+  simTrapMarkers=[];
+  simTraps.forEach(function(t){
+    var em=t.type==='camera'?'📷':t.type==='checkpoint'?'🛡️':'🚔';
+    var m=L.marker([t.lat,t.lng],{
+      icon:L.divIcon({html:'<div style="font-size:18px;filter:drop-shadow(0 1px 4px #000)">'+em+'</div>',className:'',iconAnchor:[9,9]})
+    }).bindTooltip('<b>'+t.name+'</b><br>'+t.limitKmh+' km/h · km '+t.km,{permanent:false}).addTo(simMap);
+    simTrapMarkers.push(m);
+  });
+}
 </script>
 </body>
 </html>
