@@ -124,6 +124,8 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .sc-tier-icon{font-size:17px}
 .sc-close{width:100%;padding:13px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);font-size:14px;font-weight:600;cursor:pointer;margin-top:14px}
 .sc-history-btn{width:100%;padding:13px;border-radius:12px;background:rgba(39,174,96,.12);border:1px solid rgba(39,174,96,.3);color:#27ae60;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px}
+.svc-nav-btn{padding:4px 11px;border-radius:8px;background:rgba(41,128,185,.2);border:1px solid rgba(41,128,185,.4);color:#7fb3d3;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap}
+.svc-nav-hospital{background:rgba(192,57,43,.2);border-color:rgba(192,57,43,.4);color:#e74c3c}
 /* TRIP HISTORY PANEL */
 #trip-history-panel{position:fixed;inset:0;z-index:5100;background:rgba(0,0,0,.8);display:none;align-items:flex-end;justify-content:center}
 #trip-history-panel.open{display:flex}
@@ -1311,6 +1313,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
     <button class="btn-sm" onclick="openReport()">+ Trap</button>
     <button class="btn-fuel" onclick="openFuel()" title="Fuel stations">⛽</button>
     <button class="btn-fuel" onclick="openPolice()" title="Police stations" style="border-color:rgba(41,128,185,.4);color:#7fb3d3">🚓</button>
+    <button class="btn-fuel" onclick="openHospital()" title="Hospitals" style="border-color:rgba(192,57,43,.4);color:#e74c3c">🏥</button>
     <button class="btn-sm" id="btn-chat-bottom" onclick="openChat()" title="Road chat" style="border-color:rgba(39,174,96,.28);color:#5ddb8a;position:relative">
       💬<span id="chat-badge-bottom" style="display:none;position:absolute;top:-5px;right:-5px;background:#e74c3c;color:#fff;font-size:9px;font-weight:800;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;border:1.5px solid #0a0f14">0</span>
     </button>
@@ -1353,6 +1356,22 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div class="fp-list" id="pp-list">
     <div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">
       Start GPS to see distances<br>to each police station.
+    </div>
+  </div>
+</div>
+
+<!-- HOSPITAL PANEL -->
+<div id="hospital-panel" style="display:none;position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);flex-direction:column">
+  <div class="fp-hdr">
+    <div>
+      <div class="fp-title">🏥 Hospitals — M1</div>
+      <div class="fp-sub" id="hp-sub">Nearest hospital shown first</div>
+    </div>
+    <button class="fp-x" onclick="closeHospital()">✕</button>
+  </div>
+  <div class="fp-list" id="hp-list">
+    <div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">
+      Start GPS to see distances<br>to each hospital.
     </div>
   </div>
 </div>
@@ -2711,6 +2730,7 @@ function launchApp(){
   addFuelMarkers();
   renderSchoolMarkers();
   renderPoliceMarkers();
+  renderHospitalMarkers();
   fetchWeatherInitial();
   logSession();
   registerServiceWorker();
@@ -3271,21 +3291,46 @@ var SCHOOLS_M1 = [
 // ── POLICE STATIONS ALONG M1 ──
 var POLICE_STATIONS_M1 = [
   {id:'ps1',  name:'Karonga Police Station',       lat:-9.930,  lng:33.978, km:49,  phone:'+265 1 362 333'},
-  {id:'ps2',  name:'Rumphi Police Station',         lat:-10.875, lng:33.855, km:151, phone:'+265 1 372 333'},
-  {id:'ps3',  name:'Mzuzu Police Headquarters',     lat:-11.452, lng:34.020, km:267, phone:'+265 1 332 333'},
-  {id:'ps4',  name:'Nkhotakota Police Station',     lat:-12.925, lng:34.295, km:409, phone:'+265 1 292 333'},
-  {id:'ps5',  name:'Salima Police Station',         lat:-13.785, lng:34.460, km:511, phone:'+265 1 262 333'},
-  {id:'ps6',  name:'Lilongwe Police HQ (Area 3)',   lat:-13.968, lng:33.787, km:560, phone:'+265 1 753 333'},
-  {id:'ps7',  name:'Area 30 Police Post',           lat:-13.955, lng:33.773, km:556, phone:'+265 1 756 333'},
-  {id:'ps8',  name:'Dedza Police Station',          lat:-14.385, lng:34.335, km:635, phone:'+265 1 223 333'},
-  {id:'ps9',  name:'Ntcheu Police Station',         lat:-14.820, lng:34.775, km:700, phone:'+265 1 243 333'},
-  {id:'ps10', name:'Balaka Police Station',         lat:-14.982, lng:34.960, km:721, phone:'+265 1 543 333'},
-  {id:'ps11', name:'Liwonde Police Station',        lat:-15.060, lng:35.235, km:747, phone:'+265 1 542 333'},
-  {id:'ps12', name:'Zomba Police Headquarters',     lat:-15.388, lng:35.318, km:791, phone:'+265 1 524 333'},
-  {id:'ps13', name:'Limbe Police Station',          lat:-15.820, lng:35.063, km:822, phone:'+265 1 844 333'},
-  {id:'ps14', name:'Blantyre Police Headquarters',  lat:-15.788, lng:35.002, km:840, phone:'+265 1 824 333'},
-  {id:'ps15', name:'Thyolo Police Station',         lat:-16.065, lng:35.148, km:872, phone:'+265 1 473 333'},
-  {id:'ps16', name:'Luchenza Police Station',       lat:-16.402, lng:35.218, km:912, phone:'+265 1 474 333'}
+  {id:'ps2',  name:'Rumphi Police Station',        lat:-10.875, lng:33.855, km:151, phone:'+265 1 372 333'},
+  {id:'ps17', name:'Ekwendeni Police Post',        lat:-11.638, lng:34.007, km:228, phone:'+265 1 330 999', approx:true},
+  {id:'ps3',  name:'Mzuzu Police Headquarters',   lat:-11.452, lng:34.020, km:267, phone:'+265 1 332 333'},
+  {id:'ps18', name:'Dwangwa Police Post',          lat:-12.490, lng:34.175, km:375, phone:'+265 1 295 999', approx:true},
+  {id:'ps4',  name:'Nkhotakota Police Station',   lat:-12.925, lng:34.295, km:409, phone:'+265 1 292 333'},
+  {id:'ps19', name:'Kasungu Police Station',       lat:-13.013, lng:33.488, km:467, phone:'+265 1 253 333'},
+  {id:'ps5',  name:'Salima Police Station',        lat:-13.785, lng:34.460, km:511, phone:'+265 1 262 333'},
+  {id:'ps20', name:'Kanengo Police Post',          lat:-13.940, lng:33.793, km:548, phone:'+265 1 756 999', approx:true},
+  {id:'ps7',  name:'Area 30 Police Post',          lat:-13.955, lng:33.773, km:556, phone:'+265 1 756 333'},
+  {id:'ps6',  name:'Lilongwe Police HQ (Area 3)', lat:-13.968, lng:33.787, km:560, phone:'+265 1 753 333'},
+  {id:'ps8',  name:'Dedza Police Station',         lat:-14.385, lng:34.335, km:635, phone:'+265 1 223 333'},
+  {id:'ps9',  name:'Ntcheu Police Station',        lat:-14.820, lng:34.775, km:700, phone:'+265 1 243 333'},
+  {id:'ps10', name:'Balaka Police Station',        lat:-14.982, lng:34.960, km:721, phone:'+265 1 543 333'},
+  {id:'ps11', name:'Liwonde Police Station',       lat:-15.060, lng:35.235, km:747, phone:'+265 1 542 333'},
+  {id:'ps12', name:'Zomba Police Headquarters',    lat:-15.388, lng:35.318, km:791, phone:'+265 1 524 333'},
+  {id:'ps13', name:'Limbe Police Station',         lat:-15.820, lng:35.063, km:822, phone:'+265 1 844 333'},
+  {id:'ps14', name:'Blantyre Police Headquarters', lat:-15.788, lng:35.002, km:840, phone:'+265 1 824 333'},
+  {id:'ps15', name:'Thyolo Police Station',        lat:-16.065, lng:35.148, km:872, phone:'+265 1 473 333'},
+  {id:'ps16', name:'Luchenza Police Station',      lat:-16.402, lng:35.218, km:912, phone:'+265 1 474 333'}
+];
+
+// ── HOSPITALS ALONG M1 ──
+var HOSPITALS_M1 = [
+  {id:'h1',  name:'Karonga District Hospital',         lat:-9.934,  lng:33.974, km:50,  phone:'+265 1 362 288', type:'district'},
+  {id:'h2',  name:'Rumphi District Hospital',          lat:-10.871, lng:33.856, km:152, phone:'+265 1 372 288', type:'district'},
+  {id:'h3',  name:'Ekwendeni Mission Hospital',        lat:-11.638, lng:33.985, km:228, phone:'+265 1 330 288', type:'mission'},
+  {id:'h4',  name:'Mzuzu Central Hospital',            lat:-11.465, lng:34.017, km:268, phone:'+265 1 332 411', type:'central'},
+  {id:'h5',  name:'Nkhata Bay District Hospital',      lat:-11.601, lng:34.290, km:285, phone:'+265 1 352 288', type:'district'},
+  {id:'h6',  name:'Nkhotakota District Hospital',      lat:-12.923, lng:34.298, km:410, phone:'+265 1 292 288', type:'district'},
+  {id:'h7',  name:'Kasungu District Hospital',         lat:-13.014, lng:33.487, km:467, phone:'+265 1 253 288', type:'district'},
+  {id:'h8',  name:'Salima District Hospital',          lat:-13.783, lng:34.459, km:511, phone:'+265 1 262 288', type:'district'},
+  {id:'h9',  name:'Nkhoma Mission Hospital',           lat:-14.106, lng:33.870, km:538, phone:'+265 1 787 288', type:'mission'},
+  {id:'h10', name:'Kamuzu Central Hospital',           lat:-13.977, lng:33.780, km:558, phone:'+265 1 753 566', type:'central'},
+  {id:'h11', name:'Bwaila Hospital (Maternity)',       lat:-13.966, lng:33.787, km:560, phone:'+265 1 753 066', type:'district'},
+  {id:'h12', name:'Dedza District Hospital',           lat:-14.379, lng:34.337, km:634, phone:'+265 1 223 288', type:'district'},
+  {id:'h13', name:'Ntcheu District Hospital',          lat:-14.817, lng:34.774, km:699, phone:'+265 1 243 288', type:'district'},
+  {id:'h14', name:'St. Luke\'s Hospital — Zomba',      lat:-15.387, lng:35.321, km:790, phone:'+265 1 524 288', type:'mission'},
+  {id:'h15', name:'Zomba Central Hospital',            lat:-15.383, lng:35.319, km:791, phone:'+265 1 524 411', type:'central'},
+  {id:'h16', name:'Queen Elizabeth Central Hospital',  lat:-15.786, lng:35.005, km:840, phone:'+265 1 874 333', type:'central'},
+  {id:'h17', name:'Thyolo District Hospital',          lat:-16.066, lng:35.149, km:872, phone:'+265 1 473 288', type:'district'}
 ];
 
 // Leaflet markers for fuel stations
@@ -3457,9 +3502,87 @@ function renderPoliceMarkers() {
       }),
       zIndexOffset:-150
     }).addTo(map);
-    m.bindPopup('<b>🚓 '+p.name+'</b><br><span style="color:#7fb3d3">📞 '+p.phone+'</span><br><small style="color:rgba(255,255,255,.4)">km '+p.km+' along M1</small>');
+    var navBtn='<br><button onclick="navToFromPopup('+p.lat+','+p.lng+',\''+p.name.replace(/'/g,"\\'")+"',"+p.km+')" style="margin-top:6px;padding:5px 12px;border-radius:8px;background:#2980b9;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;width:100%">🗺️ Navigate Here</button>';
+    m.bindPopup('<b>🚓 '+p.name+'</b>'+(p.approx?' <small style="color:#f39c12">~approx</small>':'')+'<br><span style="color:#7fb3d3">📞 '+p.phone+'</span><br><small style="color:rgba(255,255,255,.4)">km '+p.km+' along M1</small>'+navBtn);
     policeMarkers[p.id] = m;
     if(!show) map.removeLayer(m);
+  });
+}
+
+// ══════════════════════════════════════
+// HOSPITALS MAP LAYER
+// ══════════════════════════════════════
+var hospitalMarkers = {};
+function renderHospitalMarkers() {
+  var show = lsGet('sg_set_hospitals') !== '0'; // default ON
+  var typeCol = {central:'#e74c3c', district:'#e67e22', mission:'#8e44ad'};
+  HOSPITALS_M1.forEach(function(h){
+    if(hospitalMarkers[h.id]) return;
+    var col = typeCol[h.type] || '#e74c3c';
+    var m = L.marker([h.lat, h.lng], {
+      icon: L.divIcon({
+        html:'<div style="background:'+col+';border-radius:50%;width:24px;height:24px;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.6);border:2px solid rgba(255,255,255,.5)">🏥</div>',
+        className:'', iconAnchor:[12,12]
+      }),
+      zIndexOffset:-120
+    }).addTo(map);
+    var typeLabel = h.type==='central'?'Central Hospital':h.type==='mission'?'Mission Hospital':'District Hospital';
+    var navBtn='<br><button onclick="navToFromPopup('+h.lat+','+h.lng+',\''+h.name.replace(/'/g,"\\'")+"',"+h.km+')" style="margin-top:6px;padding:5px 12px;border-radius:8px;background:#c0392b;color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;width:100%">🗺️ Navigate Here</button>';
+    m.bindPopup('<b>🏥 '+h.name+'</b><br><span style="color:'+col+'">'+typeLabel+'</span><br><span style="color:#7fb3d3">📞 '+h.phone+'</span><br><small style="color:rgba(255,255,255,.4)">km '+h.km+' along M1</small>'+navBtn);
+    hospitalMarkers[h.id] = m;
+    if(!show) map.removeLayer(m);
+  });
+}
+
+// ── HOSPITAL PANEL ──
+function openHospital() {
+  document.getElementById('hospital-panel').style.display = 'flex';
+  renderHospitalList();
+}
+function closeHospital() {
+  document.getElementById('hospital-panel').style.display = 'none';
+}
+function renderHospitalList() {
+  var el  = document.getElementById('hp-list');
+  var sub = document.getElementById('hp-sub');
+  var sorted = HOSPITALS_M1.map(function(h){
+    var d = curLat !== null ? hav(curLat,curLng,h.lat,h.lng) : null;
+    return Object.assign({},h,{dist:d});
+  }).sort(function(a,b){
+    if(a.dist!==null && b.dist!==null) return a.dist-b.dist;
+    return a.km-b.km;
+  });
+  if(sub) sub.textContent = curLat
+    ? sorted.length+' hospitals · sorted by distance'
+    : sorted.length+' hospitals · start GPS for distances';
+  el.innerHTML = '';
+  var typeCol = {central:'#e74c3c', district:'#e67e22', mission:'#8e44ad'};
+  var typeLabel = {central:'Central Hospital', district:'District Hospital', mission:'Mission Hospital'};
+  sorted.forEach(function(h){
+    var ds = h.dist!==null
+      ? (h.dist<1 ? Math.round(h.dist*1000)+' m' : h.dist.toFixed(1)+' km')
+      : 'km '+h.km;
+    var col = typeCol[h.type] || '#e74c3c';
+    var lbl = typeLabel[h.type] || 'Hospital';
+    var card = document.createElement('div');
+    card.className = 'fcard';
+    card.innerHTML =
+      '<div class="fcard-top">'
+        +'<div class="fcard-name">🏥 '+h.name+'</div>'
+        +'<div class="fcard-dist">'+ds+'</div>'
+      +'</div>'
+      +'<div class="fcard-brand" style="color:'+col+'">'+lbl+'</div>'
+      +'<div class="fcard-brand" style="color:#7fb3d3;margin-top:2px">📞 '+h.phone+'</div>'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">'
+        +'<div class="fcard-km">km '+h.km+' along M1</div>'
+        +'<button class="svc-nav-btn svc-nav-hospital" onclick="event.stopPropagation();navigateTo({name:\''+h.name.replace(/'/g,"\\'")+"',lat:"+h.lat+',lng:'+h.lng+',km:'+h.km+'})">🗺️ Navigate</button>'
+      +'</div>';
+    card.onclick = function(){
+      map.setView([h.lat,h.lng],15);
+      if(hospitalMarkers[h.id]) hospitalMarkers[h.id].openPopup();
+      closeHospital();
+    };
+    el.appendChild(card);
   });
 }
 
@@ -3468,6 +3591,24 @@ function nearestPolice(lat, lng) {
   return POLICE_STATIONS_M1.map(function(p){
     return Object.assign({},p,{d:hav(lat,lng,p.lat,p.lng)});
   }).sort(function(a,b){return a.d-b.d;})[0];
+}
+
+// ── NAVIGATE TO A SERVICE (police / hospital) ──
+function navigateTo(place) {
+  tripDest = place;
+  tripStartLat = curLat; tripStartLng = curLng;
+  arrivedShown = false;
+  if(curLat) tripStartDist = hav(curLat, curLng, place.lat, place.lng);
+  closePolice(); closeHospital();
+  showJourneyBar();
+  if(!isTracking) actuallyStartGPS();
+  showToast('🏁 Navigating to ' + place.name);
+  speak('Navigating to ' + place.name + '.', 1.0);
+}
+// Called from Leaflet popup onclick strings
+function navToFromPopup(lat, lng, name, km) {
+  navigateTo({name:name, lat:lat, lng:lng, km:km});
+  map.closePopup();
 }
 
 // ── POLICE PANEL ──
@@ -3501,11 +3642,14 @@ function renderPoliceList() {
     card.className = 'fcard';
     card.innerHTML =
       '<div class="fcard-top">'
-        +'<div class="fcard-name">🚓 '+p.name+'</div>'
+        +'<div class="fcard-name">🚓 '+p.name+(p.approx?' <span style="font-size:9px;color:#f39c12">~approx</span>':'')+'</div>'
         +'<div class="fcard-dist">'+ds+'</div>'
       +'</div>'
       +'<div class="fcard-brand" style="color:#7fb3d3">📞 '+p.phone+'</div>'
-      +'<div class="fcard-km">km '+p.km+' along M1</div>';
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">'
+        +'<div class="fcard-km">km '+p.km+' along M1</div>'
+        +'<button class="svc-nav-btn" onclick="event.stopPropagation();navigateTo({name:\''+p.name.replace(/'/g,"\\'")+"',lat:"+p.lat+',lng:'+p.lng+',km:'+p.km+'})">🗺️ Navigate</button>'
+      +'</div>';
     card.onclick = function(){
       map.setView([p.lat,p.lng],15);
       if(policeMarkers[p.id]) policeMarkers[p.id].openPopup();
@@ -3744,9 +3888,10 @@ function fetchWeatherInitial() {
 // SETTINGS PANEL
 // ═══════════════════════════════════════════════════════
 var sgSettings = {
-  fuel:     lsGet('sg_set_fuel')     === '1', // default OFF — opt in
-  schools:  lsGet('sg_set_schools')  === '1', // default OFF — opt in
-  police:   lsGet('sg_set_police')   !== '0', // default ON — safety feature
+  fuel:      lsGet('sg_set_fuel')      === '1', // default OFF — opt in
+  schools:   lsGet('sg_set_schools')   === '1', // default OFF — opt in
+  police:    lsGet('sg_set_police')    !== '0', // default ON — safety feature
+  hospitals: lsGet('sg_set_hospitals') !== '0', // default ON — emergency services
   traps:    lsGet('sg_set_traps')    !== '0',
   live:     lsGet('sg_set_live')     === '1', // DEFAULT: private (opt-in to live)
   audio:    lsGet('sg_audio')        !== '0',
@@ -3760,8 +3905,9 @@ function isLive(){ return sgSettings.live; }
 function openSettings() {
   // Sync toggles to current state
   document.getElementById('tog-fuel').checked     = sgSettings.fuel;
-  document.getElementById('tog-schools').checked  = sgSettings.schools;
-  document.getElementById('tog-police').checked   = sgSettings.police;
+  document.getElementById('tog-schools').checked    = sgSettings.schools;
+  document.getElementById('tog-police').checked     = sgSettings.police;
+  document.getElementById('tog-hospitals').checked  = sgSettings.hospitals;
   document.getElementById('tog-traps').checked    = sgSettings.traps;
   document.getElementById('tog-live').checked     = sgSettings.live;
   document.getElementById('tog-audio').checked    = sgSettings.audio;
@@ -3818,6 +3964,14 @@ function settingChanged(key, val) {
       val ? map.addLayer(m) : map.removeLayer(m);
     });
     showToast(val ? '🚓 Police stations shown' : '🚓 Police stations hidden');
+  }
+
+  if (key === 'hospitals') {
+    lsSet('sg_set_hospitals', val ? '1' : '0');
+    Object.values(hospitalMarkers).forEach(function(m){
+      val ? map.addLayer(m) : map.removeLayer(m);
+    });
+    showToast(val ? '🏥 Hospitals shown' : '🏥 Hospitals hidden');
   }
 
   if (key === 'traps') {
@@ -6106,6 +6260,10 @@ function updateNavHUD(lat, lng, spd) {
     var d = hav(lat,lng,p.lat,p.lng);
     if(d < 30 && d > 0.1 && isAhead(p.lat,p.lng)) items.push({type:'police', name:p.name, dist:d, phone:p.phone, icon:'🚓'});
   });
+  if(sgSettings.hospitals) HOSPITALS_M1.forEach(function(h){
+    var d = hav(lat,lng,h.lat,h.lng);
+    if(d < 20 && d > 0.1 && isAhead(h.lat,h.lng)) items.push({type:'hospital', name:h.name, dist:d, phone:h.phone, icon:'🏥'});
+  });
   M1_PLACES.filter(function(p){ return p.km >= 0; }).forEach(function(p){
     var d = hav(lat,lng,p.lat,p.lng);
     if(d < 80 && d > 0.3 && isAhead(p.lat,p.lng)) items.push({type:'town', name:p.name, dist:d, km:p.km, icon:p.icon||'📍'});
@@ -6264,6 +6422,17 @@ function showNavBtn(show) {
       </div>
       <label class="sg-toggle">
         <input type="checkbox" id="tog-police" checked onchange="settingChanged('police',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">🏥 Hospitals</div>
+        <div class="sp-row-desc">Show hospitals along M1 — navigate to nearest emergency care</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-hospitals" checked onchange="settingChanged('hospitals',this.checked)">
         <span class="sg-slider"></span>
       </label>
     </div>
