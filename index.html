@@ -97,6 +97,32 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .a-ok{background:rgba(14,40,20,.97);border-color:#27ae60;color:#5ddb8a}
 .a-warn{background:rgba(40,30,5,.97);border-color:#f39c12;color:#f8c060}
 .a-bad{background:rgba(42,10,10,.97);border-color:#e74c3c;color:#ff7a7a}
+/* SAFE DRIVER SCORE CHIP */
+#safetyScore{display:flex;flex-direction:column;align-items:center;justify-content:center;width:44px;height:44px;border-radius:12px;border:1.5px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);cursor:pointer;flex-shrink:0;transition:all .2s}
+#safetyScore .ss-badge{font-size:17px;line-height:1}
+#safetyScore .ss-num{font-size:9px;font-weight:700;color:rgba(255,255,255,.55);margin-top:1px}
+#safetyScore.gold{border-color:rgba(243,156,18,.5);background:rgba(243,156,18,.1)}
+#safetyScore.silver{border-color:rgba(192,192,192,.4);background:rgba(192,192,192,.07)}
+#safetyScore.bronze{border-color:rgba(176,141,87,.4);background:rgba(176,141,87,.07)}
+/* SCORE PANEL */
+#score-panel{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.75);display:none;align-items:flex-end;justify-content:center}
+#score-panel.open{display:flex}
+.score-card{background:#0e1820;border-radius:22px 22px 0 0;width:100%;max-width:480px;border:1px solid rgba(255,255,255,.1);border-bottom:none;padding:20px 20px 40px}
+.sc-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:0 auto 16px}
+.sc-badge-big{font-size:50px;text-align:center;margin-bottom:6px}
+.sc-title{font-size:18px;font-weight:800;text-align:center;margin-bottom:2px}
+.sc-sub{font-size:12px;color:rgba(255,255,255,.4);text-align:center;margin-bottom:14px}
+.sc-bar-wrap{background:rgba(255,255,255,.07);border-radius:8px;height:10px;overflow:hidden;margin-bottom:16px}
+.sc-bar-fill{height:100%;border-radius:8px;transition:width .6s}
+.sc-stats{display:flex;gap:10px;margin-bottom:14px}
+.sc-stat{flex:1;background:rgba(255,255,255,.05);border-radius:12px;padding:11px;text-align:center;border:1px solid rgba(255,255,255,.07)}
+.sc-stat-num{font-size:20px;font-weight:800;margin-bottom:2px}
+.sc-stat-lbl{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.04em}
+.sc-tiers{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.sc-tier{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);font-size:11px;color:rgba(255,255,255,.4)}
+.sc-tier.current{border-color:rgba(39,174,96,.4);background:rgba(39,174,96,.08);color:#fff;font-weight:700}
+.sc-tier-icon{font-size:17px}
+.sc-close{width:100%;padding:13px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);font-size:14px;font-weight:600;cursor:pointer;margin-top:14px}
 /* MAP */
 #map{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1;display:none}
 /* BOTTOM */
@@ -1197,6 +1223,10 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div class="hdr-btns">
     <button id="btn-audio" class="hdr-btn btn-audio-hdr" onclick="toggleAudio()" title="Toggle voice alerts">🔊 ON</button>
     <button class="hdr-btn btn-settings-hdr" onclick="openSettings()" title="Settings">⚙️</button>
+    <div id="safetyScore" onclick="openScorePanel()" title="Safe Driver Score">
+      <div class="ss-badge">🥇</div>
+      <div class="ss-num">100</div>
+    </div>
     <div class="spd-ring" id="spd-ring" style="position:relative">
       <div class="spd-n" id="spd-n">0</div>
       <div class="spd-u">km/h</div>
@@ -1911,7 +1941,7 @@ map.fitBounds(road.getBounds(),{padding:[40,20]}); // wider bounds for 1140km ro
 var trapMk={};
 traps.forEach(function(t){renderTrapMarker(t);});
 var myMk=null;
-function myIcon(nick,spd){var col=spd>80?'#e74c3c':spd>50?'#f39c12':'#2980b9';return L.divIcon({html:'<div style="background:'+col+';color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;border:2px solid rgba(255,255,255,.5);box-shadow:0 2px 8px rgba(0,0,0,.5)">🚗 '+(nick||'You')+' <span style="opacity:.7">'+Math.round(spd)+'km/h</span></div>',className:'',iconAnchor:[44,12]});}
+function myIcon(nick,spd){var col=spd>80?'#e74c3c':spd>50?'#f39c12':'#2980b9';var bdg=driverScore>=90?'🥇 ':driverScore>=70?'🥈 ':driverScore>=50?'🥉 ':'';return L.divIcon({html:'<div class="driver-badge" style="background:'+col+';color:#fff;font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;white-space:nowrap;border:2px solid rgba(255,255,255,.5);box-shadow:0 2px 8px rgba(0,0,0,.5)">'+bdg+'🚗 '+(nick||'You')+' <span style="opacity:.7">'+Math.round(spd)+'km/h</span></div>',className:'',iconAnchor:[44,12]});}
 function luIcon(nick,spd){var col=spd>80?'#e74c3c':spd>50?'#f39c12':'#8e44ad';return L.divIcon({html:'<div style="background:'+col+';color:#fff;font-size:10px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;border:2px solid rgba(255,255,255,.35);box-shadow:0 2px 6px rgba(0,0,0,.5)">👤 '+nick+' <span style="opacity:.7">'+Math.round(spd)+'km/h</span></div>',className:'',iconAnchor:[44,12]});}
 function updateLiveMarker(id,u){
   var ico=luIcon(u.nickname,u.speed);
@@ -2201,6 +2231,17 @@ function updateUI(lat,lng,spd){
   document.getElementById('spd-n').textContent=spdr;
   document.getElementById('s-spd').textContent=spdr+' km/h';
   updateDrivingLock(spdr);
+  // ── Score tracking ──
+  if(spdr > 5) {
+    _scorePings++;
+    var _lim = getSpeedLimitAtKm(Math.round(latProg(lat)/100*1140)).limit;
+    if(spdr > _lim) _scoreOver++;
+    if(_scorePings % 20 === 0) {
+      lsSet('sg_score_pings', _scorePings);
+      lsSet('sg_score_over',  _scoreOver);
+      updateScoreChip();
+    }
+  }
   if(wd.length>0){
     var near=wd[0],s=gs(near.d),ds=near.d<1?Math.round(near.d*1000)+'m':near.d.toFixed(1)+'km';
     document.getElementById('spd-ring').className='spd-ring '+(s==='bad'&&spdr>near.limit?'bad':s==='bad'?'warn':'ok');
@@ -2332,6 +2373,9 @@ function actuallyStartGPS(){
 }
 function stopGPS(){
   isTracking=false;if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  lsSet('sg_score_pings', _scorePings); lsSet('sg_score_over', _scoreOver);
+  lsSet('sg_score_trips', (parseInt(lsGet('sg_score_trips')||'0')+1));
+  updateScoreChip();
   document.getElementById('btn-gps').textContent='📍 Start GPS';
   document.getElementById('btn-gps').classList.remove('on');
   document.getElementById('gps-lbl').classList.remove('on');
@@ -2908,6 +2952,63 @@ var FUEL_STATIONS = [
     note:'South Nsanje on M1 — fill up before crossing'
   },
 ];
+
+// ═══════════════════════════════════════════════════════
+// SAFE DRIVER SCORE & BADGES
+// ═══════════════════════════════════════════════════════
+var driverScore  = parseInt(lsGet('sg_score'))        || 100;
+var _scorePings  = parseInt(lsGet('sg_score_pings'))  || 0;
+var _scoreOver   = parseInt(lsGet('sg_score_over'))   || 0;
+
+function calcScore() {
+  if(_scorePings < 5) return driverScore;
+  return Math.max(0, Math.round(100 - (_scoreOver / _scorePings) * 100));
+}
+
+function scoreBadge(s) {
+  if(s >= 90) return {emoji:'🥇', label:'Gold Driver',   cls:'gold'};
+  if(s >= 70) return {emoji:'🥈', label:'Silver Driver', cls:'silver'};
+  if(s >= 50) return {emoji:'🥉', label:'Bronze Driver', cls:'bronze'};
+  if(s >= 25) return {emoji:'💪', label:'Learner',       cls:''};
+  return              {emoji:'⚠️', label:'At Risk',       cls:''};
+}
+
+function updateScoreChip() {
+  driverScore = calcScore();
+  var el = document.getElementById('safetyScore');
+  if(!el) return;
+  var b = scoreBadge(driverScore);
+  el.querySelector('.ss-badge').textContent = b.emoji;
+  el.querySelector('.ss-num').textContent   = driverScore;
+  el.className = b.cls;
+  lsSet('sg_score', driverScore);
+}
+
+function openScorePanel() {
+  driverScore = calcScore();
+  var b   = scoreBadge(driverScore);
+  var pct = driverScore;
+  var barCol = driverScore>=90?'#f39c12':driverScore>=70?'#bdc3c7':driverScore>=50?'#cd7f32':'#e74c3c';
+  document.getElementById('sc-badge-big').textContent   = b.emoji;
+  document.getElementById('sc-title').textContent       = b.label;
+  document.getElementById('sc-sub').textContent         = 'Score: ' + driverScore + ' / 100';
+  document.getElementById('sc-bar-fill').style.width    = pct + '%';
+  document.getElementById('sc-bar-fill').style.background = barCol;
+  var comp = _scorePings > 0 ? Math.round(100 - (_scoreOver / _scorePings) * 100) : 100;
+  document.getElementById('sc-compliance').textContent  = comp + '%';
+  document.getElementById('sc-score-big').textContent   = driverScore;
+  document.getElementById('sc-trips').textContent       = lsGet('sg_score_trips') || '0';
+  ['gold','silver','bronze','learner'].forEach(function(t){
+    document.getElementById('tier-'+t).classList.remove('current');
+  });
+  var tierEl = document.getElementById('tier-'+(b.cls||'learner'));
+  if(tierEl) tierEl.classList.add('current');
+  document.getElementById('score-panel').classList.add('open');
+}
+
+function closeScorePanel() {
+  document.getElementById('score-panel').classList.remove('open');
+}
 
 // Brand colour coding
 function fuelBrandColor(brand) {
@@ -6018,6 +6119,29 @@ function showNavBtn(show) {
     <button class="dest-skip" onclick="skipDestination()">
       Skip — use full M1 route progress
     </button>
+  </div>
+</div>
+
+<!-- SAFE DRIVER SCORE PANEL -->
+<div id="score-panel" onclick="if(event.target===this)closeScorePanel()">
+  <div class="score-card">
+    <div class="sc-handle"></div>
+    <div class="sc-badge-big" id="sc-badge-big">🥇</div>
+    <div class="sc-title" id="sc-title">Gold Driver</div>
+    <div class="sc-sub" id="sc-sub">Score: 100 / 100</div>
+    <div class="sc-bar-wrap"><div class="sc-bar-fill" id="sc-bar-fill" style="width:100%;background:#f39c12"></div></div>
+    <div class="sc-stats">
+      <div class="sc-stat"><div class="sc-stat-num" id="sc-trips">0</div><div class="sc-stat-lbl">Trips</div></div>
+      <div class="sc-stat"><div class="sc-stat-num" id="sc-compliance">100%</div><div class="sc-stat-lbl">Compliance</div></div>
+      <div class="sc-stat"><div class="sc-stat-num" id="sc-score-big">100</div><div class="sc-stat-lbl">Score</div></div>
+    </div>
+    <div class="sc-tiers">
+      <div class="sc-tier" id="tier-gold"><span class="sc-tier-icon">🥇</span><span>Gold · 90–100</span></div>
+      <div class="sc-tier" id="tier-silver"><span class="sc-tier-icon">🥈</span><span>Silver · 70–89</span></div>
+      <div class="sc-tier" id="tier-bronze"><span class="sc-tier-icon">🥉</span><span>Bronze · 50–69</span></div>
+      <div class="sc-tier" id="tier-learner"><span class="sc-tier-icon">💪</span><span>Learner · 25–49</span></div>
+    </div>
+    <button class="sc-close" onclick="closeScorePanel()">Close</button>
   </div>
 </div>
 
