@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 380" fill="white">
+  <!-- TOLL BOOTH (left) -->
+  <!-- Booth main body -->
+  <rect x="30" y="130" width="140" height="210" rx="8" fill="none" stroke="white" stroke-width="14"/>
+  <!-- Booth roof -->
+  <rect x="18" y="100" width="164" height="42" rx="6" fill="white"/>
+  <!-- Booth window -->
+  <rect x="52" y="158" width="96" height="80" rx="5" fill="none" stroke="white" stroke-width="12"/>
+  <!-- Person: head -->
+  <circle cx="100" cy="185" r="26" fill="white"/>
+  <!-- Person: shoulders -->
+  <path d="M55 238 Q100 210 145 238" stroke="white" stroke-width="14" fill="none" stroke-linecap="round"/>
+  <!-- Booth base -->
+  <rect x="30" y="336" width="140" height="18" rx="4" fill="white"/>
+  <!-- Booth side door -->
+  <line x1="170" y1="150" x2="170" y2="336" stroke="white" stroke-width="8"/>
+
+  <!-- BOOM GATE mechanism -->
+  <!-- Pivot housing -->
+  <rect x="170" y="268" width="46" height="54" rx="6" fill="none" stroke="white" stroke-width="12"/>
+  <circle cx="193" cy="295" r="14" fill="none" stroke="white" stroke-width="8"/>
+  <!-- Arm beam - thick white bar with diagonal stripes -->
+  <line x1="193" y1="265" x2="440" y2="35" stroke="white" stroke-width="24" stroke-linecap="round"/>
+  <!-- Stripe overlay (dark diagonal marks on arm) -->
+  <line x1="193" y1="265" x2="440" y2="35" stroke="black" stroke-width="14" stroke-dasharray="26,26" stroke-linecap="butt" stroke-dashoffset="0"/>
+
+  <!-- CAR (right, front view) -->
+  <!-- Lower body -->
+  <rect x="278" y="218" width="172" height="128" rx="14" fill="white"/>
+  <!-- Upper cabin -->
+  <rect x="298" y="130" width="132" height="100" rx="10" fill="white"/>
+  <!-- Windshield (dark cutout) -->
+  <rect x="316" y="146" width="96" height="72" rx="7" fill="black"/>
+  <!-- Left wheel -->
+  <circle cx="306" cy="356" r="36" fill="black" stroke="white" stroke-width="12"/>
+  <circle cx="306" cy="356" r="14" fill="white"/>
+  <!-- Right wheel -->
+  <circle cx="420" cy="356" r="36" fill="black" stroke="white" stroke-width="12"/>
+  <circle cx="420" cy="356" r="14" fill="white"/>
+  <!-- Left headlight -->
+  <rect x="280" y="262" width="48" height="28" rx="5" fill="black"/>
+  <!-- Right headlight -->
+  <rect x="400" y="262" width="48" height="28" rx="5" fill="black"/>
+  <!-- Grille -->
+  <rect x="328" y="298" width="72" height="22" rx="4" fill="black"/>
+</svg>

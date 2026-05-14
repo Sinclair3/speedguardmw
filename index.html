@@ -1603,8 +1603,24 @@ setInterval(function(){
 // ═══════════════════════════════════════════
 function tIcon(t,s){
   var C={bad:'#e74c3c',warn:'#f39c12',ok:'#27ae60'};
-  var em=t.type==='camera'?'📷':t.type==='checkpoint'?'🛡️':'🚔';
   var an=s==='bad'?'animation:tpa 1s infinite;':s==='warn'?'animation:tpa 1.7s infinite;':'';
+
+  // ── Custom toll gate marker ──
+  if(t.subtype==='toll'){
+    var glw=s==='bad'?'box-shadow:0 0 10px rgba(231,76,60,.9),0 2px 8px rgba(0,0,0,.6);':
+             s==='warn'?'box-shadow:0 0 10px rgba(243,156,18,.9),0 2px 8px rgba(0,0,0,.6);':
+             'box-shadow:0 2px 10px rgba(0,0,0,.5);';
+    var bdr=s==='bad'?'border:2px solid #e74c3c;':s==='warn'?'border:2px solid #f39c12;':'border:2px solid rgba(255,255,255,.3);';
+    return L.divIcon({
+      html:'<div style="background:#1a2530;'+bdr+'border-radius:9px;padding:4px 5px;'+glw+'text-align:center;'+an+'">'
+        +'<img src="icons/tollgate.svg" style="width:32px;height:26px;display:block;filter:invert(1)">'
+        +'<div style="font-size:7px;font-weight:800;color:#f39c12;letter-spacing:.05em;margin-top:1px">TOLL</div>'
+        +'</div>',
+      className:'', iconAnchor:[21,36]
+    });
+  }
+
+  var em=t.type==='camera'?'📷':t.type==='checkpoint'?'🛡️':'🚔';
   if(t.community&&!t.verified){
     return L.divIcon({html:'<div style="position:relative;width:34px;height:34px"><div style="position:absolute;inset:0;border-radius:50%;border:2px dashed #888;opacity:.7"></div><div style="position:absolute;inset:4px;border-radius:50%;background:#555;display:flex;align-items:center;justify-content:center;font-size:12px">'+em+'</div><div style="position:absolute;top:-4px;right:-4px;background:#f39c12;color:#fff;font-size:8px;font-weight:800;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid #fff">?</div></div>',className:'',iconAnchor:[17,17]});
   }
@@ -1882,11 +1898,11 @@ var M1=[
 var traps=[
   {id:1,name:"Lilongwe Exit - Area 18",lat:-14.010,lng:33.825,limit:50,type:"mobile",km:28,verified:true},
   {id:2,name:"Kamuzu Airport Junction",lat:-14.060,lng:33.860,limit:50,type:"camera",km:46,verified:true},
-  {id:3,name:"Kalinyeke Toll Gate",lat:-14.110,lng:33.910,limit:50,type:"checkpoint",km:61,verified:true},
+  {id:3,name:"Kalinyeke Toll Gate",lat:-14.110,lng:33.910,limit:50,type:"checkpoint",subtype:"toll",km:61,verified:true},
   {id:4,name:"Dedza Town Entry",lat:-14.390,lng:34.110,limit:50,type:"mobile",km:83,verified:true},
   {id:5,name:"Dedza - Moz Junction",lat:-14.510,lng:34.210,limit:80,type:"mobile",km:101,verified:true},
   {id:6,name:"Ntcheu Town Centre",lat:-14.680,lng:34.380,limit:50,type:"camera",km:138,verified:true},
-  {id:7,name:"Chingeni Toll Gate",lat:-14.740,lng:34.420,limit:50,type:"checkpoint",km:156,verified:true},
+  {id:7,name:"Chingeni Toll Gate",lat:-14.740,lng:34.420,limit:50,type:"checkpoint",subtype:"toll",km:156,verified:true},
   {id:8,name:"Balaka Town",lat:-15.050,lng:34.950,limit:50,type:"mobile",km:187,verified:true},
   {id:9,name:"Liwonde Junction",lat:-15.110,lng:35.020,limit:50,type:"mobile",km:211,verified:true},
   {id:10,name:"Zomba Junction Camera",lat:-15.350,lng:34.920,limit:50,type:"camera",km:236,verified:true},
@@ -4879,7 +4895,7 @@ var M1_PLACES = [
   {name:'Lilongwe City Centre',        lat:-13.970,lng:33.787, km:0,   icon:'🏙️'},
   {name:'Lilongwe Area 18',            lat:-14.012,lng:33.826, km:6,   icon:'📍'},
   {name:'Kamuzu International Airport',lat:-14.058,lng:33.862, km:18,  icon:'✈️'},
-  {name:'Kalinyeke Toll Gate',         lat:-14.110,lng:33.910, km:30,  icon:'🛡️'},
+  {name:'Kalinyeke Toll Gate',         lat:-14.110,lng:33.910, km:30,  icon:'<img src="icons/tollgate.svg" style="width:18px;height:14px;vertical-align:middle;filter:invert(1)">'},
   {name:'Mitundu Trading Centre',      lat:-14.160,lng:33.950, km:40,  icon:'📍'},
   {name:'Nathenje',                    lat:-14.220,lng:34.000, km:52,  icon:'📍'},
   {name:'Dedza Town',                  lat:-14.390,lng:34.110, km:80,  icon:'🏘️'},
@@ -4888,7 +4904,7 @@ var M1_PLACES = [
   // Central/Highland Region
   {name:'Ntcheu Boma',                 lat:-14.672,lng:34.375, km:135, icon:'🏘️'},
   {name:'Ntcheu Town Centre',          lat:-14.680,lng:34.382, km:137, icon:'🏘️'},
-  {name:'Chingeni Toll Gate',          lat:-14.740,lng:34.420, km:153, icon:'🛡️'},
+  {name:'Chingeni Toll Gate',          lat:-14.740,lng:34.420, km:153, icon:'<img src="icons/tollgate.svg" style="width:18px;height:14px;vertical-align:middle;filter:invert(1)">'},
   {name:'Tembwe',                      lat:-14.760,lng:34.440, km:158, icon:'📍'},
   {name:'Zalewa',                      lat:-14.820,lng:34.510, km:165, icon:'⛽'},
   {name:'Neno Junction',               lat:-14.850,lng:34.520, km:170, icon:'🔀'},
