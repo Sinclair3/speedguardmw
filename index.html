@@ -123,6 +123,31 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .sc-tier.current{border-color:rgba(39,174,96,.4);background:rgba(39,174,96,.08);color:#fff;font-weight:700}
 .sc-tier-icon{font-size:17px}
 .sc-close{width:100%;padding:13px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);font-size:14px;font-weight:600;cursor:pointer;margin-top:14px}
+.sc-history-btn{width:100%;padding:13px;border-radius:12px;background:rgba(39,174,96,.12);border:1px solid rgba(39,174,96,.3);color:#27ae60;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px}
+/* TRIP HISTORY PANEL */
+#trip-history-panel{position:fixed;inset:0;z-index:5100;background:rgba(0,0,0,.8);display:none;align-items:flex-end;justify-content:center}
+#trip-history-panel.open{display:flex}
+.th-card-wrap{background:#0e1820;border-radius:22px 22px 0 0;width:100%;max-width:480px;border:1px solid rgba(255,255,255,.1);border-bottom:none;display:flex;flex-direction:column;max-height:88vh}
+.th-hdr{padding:16px 18px 10px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
+.th-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:0 auto 14px}
+.th-title{font-size:17px;font-weight:800}
+.th-sub{font-size:11px;color:rgba(255,255,255,.35);margin-top:3px}
+.th-hdr-row{display:flex;align-items:flex-start;justify-content:space-between}
+.th-x{background:none;border:none;color:rgba(255,255,255,.4);font-size:22px;cursor:pointer;line-height:1;padding:0 2px}
+#th-list{overflow-y:auto;padding:12px 14px 28px;flex:1;-webkit-overflow-scrolling:touch}
+.th-card{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:13px 14px;margin-bottom:10px}
+.th-card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px}
+.th-route{font-size:13px;font-weight:700;color:#fff;line-height:1.35}
+.th-meta{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
+.th-badge-wrap{text-align:center;flex-shrink:0;margin-left:10px}
+.th-badge-emoji{font-size:24px;line-height:1}
+.th-badge-score{font-size:10px;font-weight:800;color:rgba(255,255,255,.4)}
+.th-chips{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px}
+.th-chip{font-size:10px;padding:3px 8px;border-radius:20px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);font-weight:600}
+.th-chip-max{background:rgba(231,76,60,.12);color:#e74c3c}
+.th-chip-trap{background:rgba(243,156,18,.12);color:#f39c12}
+.th-traps{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.th-trap-tag{font-size:10px;padding:2px 7px;border-radius:10px;background:rgba(243,156,18,.1);border:1px solid rgba(243,156,18,.2);color:rgba(255,255,255,.6)}
 /* MAP */
 #map{position:fixed;top:0;left:0;right:0;bottom:0;z-index:1;display:none}
 /* BOTTOM */
@@ -2326,6 +2351,20 @@ function updateUI(lat,lng,spd){
   weatherCheckOnGPS(lat,lng);
   updateNavHUD(lat,lng,spd); // navigation HUD update
   broadcastPos(lat,lng,spd);
+  // ── Trip stat accumulation ──
+  if(spd > 3){
+    _tripMaxSpd = Math.max(_tripMaxSpd, spd);
+    _tripSpdSum += spd; _tripSpdN++;
+  }
+  if(_tripPrevLat !== null) _tripDistKm += hav(_tripPrevLat,_tripPrevLng,lat,lng);
+  _tripPrevLat=lat; _tripPrevLng=lng;
+  if(!_tripStartLat){_tripStartLat=lat;_tripStartLng=lng;}
+  traps.forEach(function(t){
+    if(!_tripSeen[t.id]&&hav(lat,lng,t.lat,t.lng)<0.3){
+      _tripSeen[t.id]=true;
+      _tripTraps.push({name:t.name,km:t.km,type:t.type});
+    }
+  });
 }
 
 // ═══════════════════════════════════════════════════════
@@ -2363,7 +2402,7 @@ function actuallyStartGPS(){
   // We hook that here instead of real GPS so the full app reacts
   // to the simulated drive without needing to leave the building.
   if(localStorage.getItem('sg_sim_active')==='1'){
-    _simMode=true;
+    _simMode=true; _tripResetVars();
     isTracking=true;
     document.getElementById('btn-gps').textContent='⏹ Stop GPS';
     document.getElementById('btn-gps').classList.add('on');
@@ -2393,7 +2432,7 @@ function actuallyStartGPS(){
     },500);
     return;
   }
-  _simMode=false;
+  _simMode=false; _tripResetVars();
   if(!navigator.geolocation){alert('Geolocation not supported.');return;}
   isTracking=true;
   document.getElementById('btn-gps').textContent='⏹ Stop GPS';
@@ -2451,6 +2490,7 @@ function stopGPS(){
   }
   _simMode=false;
   localStorage.removeItem('sg_sim_active');
+  saveTripLog();
   lsSet('sg_score_pings', _scorePings); lsSet('sg_score_over', _scoreOver);
   lsSet('sg_score_trips', (parseInt(lsGet('sg_score_trips')||'0')+1));
   updateScoreChip();
@@ -3039,6 +3079,114 @@ var FUEL_STATIONS = [
 var driverScore  = parseInt(lsGet('sg_score'))        || 100;
 var _scorePings  = parseInt(lsGet('sg_score_pings'))  || 0;
 var _scoreOver   = parseInt(lsGet('sg_score_over'))   || 0;
+
+// ── Trip logging vars (reset each GPS session) ──
+var _tripStart    = 0;       // timestamp when GPS started
+var _tripStartLat = null;
+var _tripStartLng = null;
+var _tripMaxSpd   = 0;
+var _tripSpdSum   = 0;
+var _tripSpdN     = 0;
+var _tripDistKm   = 0;
+var _tripPrevLat  = null;
+var _tripPrevLng  = null;
+var _tripTraps    = [];      // traps passed [{name,km,type}]
+var _tripSeen     = {};      // trap IDs already counted
+
+function _tripResetVars(){
+  _tripStart=Date.now(); _tripStartLat=null; _tripStartLng=null;
+  _tripMaxSpd=0; _tripSpdSum=0; _tripSpdN=0;
+  _tripDistKm=0; _tripPrevLat=null; _tripPrevLng=null;
+  _tripTraps=[]; _tripSeen={};
+}
+
+function nearestPlace(lat,lng){
+  if(!lat||!lng) return 'M1 Route';
+  var best=null,bestD=999;
+  M1_PLACES.forEach(function(p){var d=hav(lat,lng,p.lat,p.lng);if(d<bestD){bestD=d;best=p;}});
+  return best?best.name:'M1 Route';
+}
+
+function saveTripLog(){
+  var dur=Math.round((Date.now()-_tripStart)/1000);
+  if(dur<90||_tripDistKm<0.5) return; // skip parked / accidental presses
+  var avgSpd=_tripSpdN>0?Math.round(_tripSpdSum/_tripSpdN):0;
+  var sc=calcScore();
+  var bdg=scoreBadge(sc);
+  var trip={
+    id:_tripStart,
+    date:new Date(_tripStart).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}),
+    time:new Date(_tripStart).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}),
+    dur:dur,
+    distKm:Math.round(_tripDistKm*10)/10,
+    avgSpd:avgSpd,
+    maxSpd:Math.round(_tripMaxSpd),
+    trapsCount:_tripTraps.length,
+    traps:_tripTraps,
+    from:nearestPlace(_tripStartLat,_tripStartLng),
+    to:tripDest?tripDest.name:nearestPlace(_tripPrevLat,_tripPrevLng),
+    score:sc,
+    badge:bdg.emoji
+  };
+  var hist=JSON.parse(lsGet('sg_trip_history')||'[]');
+  hist.unshift(trip);
+  if(hist.length>25) hist.pop();
+  lsSet('sg_trip_history',JSON.stringify(hist));
+  showToast('🗺️ Trip saved · '+trip.distKm+' km · avg '+trip.avgSpd+' km/h');
+}
+
+function openHistory(){
+  closeScorePanel();
+  document.getElementById('trip-history-panel').classList.add('open');
+  renderHistoryList();
+}
+function closeHistory(){
+  document.getElementById('trip-history-panel').classList.remove('open');
+}
+function renderHistoryList(){
+  var el=document.getElementById('th-list');
+  var hist=JSON.parse(lsGet('sg_trip_history')||'[]');
+  document.getElementById('th-sub').textContent=hist.length+' trip'+(hist.length!==1?'s':'')+' recorded';
+  if(hist.length===0){
+    el.innerHTML='<div style="text-align:center;padding:48px 20px;color:rgba(255,255,255,.3);line-height:2;font-size:14px">🗺️<br>No trips recorded yet.<br>Start GPS to begin logging journeys.</div>';
+    return;
+  }
+  el.innerHTML='';
+  hist.forEach(function(t){
+    var h=Math.floor(t.dur/3600),m=Math.floor((t.dur%3600)/60),s=t.dur%60;
+    var durStr=h>0?h+'h '+m+'m':m>0?m+'m '+s+'s':s+'s';
+    var card=document.createElement('div');
+    card.className='th-card';
+    var trapRows=t.traps&&t.traps.length>0
+      ?'<div class="th-traps">'+t.traps.slice(0,4).map(function(tr){
+          var em=tr.type==='camera'?'📷':tr.type==='checkpoint'?'🛡️':'🚔';
+          return '<span class="th-trap-tag">'+em+' '+tr.name+'</span>';
+        }).join('')+(t.traps.length>4?'<span class="th-trap-tag">+'+( t.traps.length-4)+' more</span>':'')+'</div>'
+      :'';
+    card.innerHTML=
+      '<div class="th-card-hdr">'
+        +'<div>'
+          +'<div class="th-route">'+t.from+' → '+t.to+'</div>'
+          +'<div class="th-meta">'+t.date+' · '+t.time+'</div>'
+        +'</div>'
+        +'<div class="th-badge-wrap"><div class="th-badge-emoji">'+t.badge+'</div><div class="th-badge-score">'+t.score+'</div></div>'
+      +'</div>'
+      +'<div class="th-chips">'
+        +'<span class="th-chip">📏 '+t.distKm+' km</span>'
+        +'<span class="th-chip">⏱ '+durStr+'</span>'
+        +'<span class="th-chip">⚡ avg '+t.avgSpd+' km/h</span>'
+        +'<span class="th-chip th-chip-max">🏎 max '+t.maxSpd+' km/h</span>'
+        +(t.trapsCount>0?'<span class="th-chip th-chip-trap">🚔 '+t.trapsCount+' trap'+(t.trapsCount>1?'s':'')+'</span>':'')
+      +'</div>'
+      +trapRows;
+    el.appendChild(card);
+  });
+  var clr=document.createElement('div');
+  clr.style.cssText='text-align:center;padding:16px 0 8px;cursor:pointer;font-size:12px;color:rgba(231,76,60,.55);font-weight:600';
+  clr.textContent='🗑 Clear all trip history';
+  clr.onclick=function(){lsSet('sg_trip_history','[]');renderHistoryList();};
+  el.appendChild(clr);
+}
 
 function calcScore() {
   if(_scorePings < 5) return driverScore;
@@ -6408,7 +6556,25 @@ function showNavBtn(show) {
       <div class="sc-tier" id="tier-bronze"><span class="sc-tier-icon">🥉</span><span>Bronze · 50–69</span></div>
       <div class="sc-tier" id="tier-learner"><span class="sc-tier-icon">💪</span><span>Learner · 25–49</span></div>
     </div>
+    <button class="sc-history-btn" onclick="openHistory()">🗺️ Trip History</button>
     <button class="sc-close" onclick="closeScorePanel()">Close</button>
+  </div>
+</div>
+
+<!-- TRIP HISTORY PANEL -->
+<div id="trip-history-panel" onclick="if(event.target===this)closeHistory()">
+  <div class="th-card-wrap">
+    <div class="th-hdr">
+      <div class="th-handle"></div>
+      <div class="th-hdr-row">
+        <div>
+          <div class="th-title">🗺️ Trip History</div>
+          <div class="th-sub" id="th-sub">Loading…</div>
+        </div>
+        <button class="th-x" onclick="closeHistory()">✕</button>
+      </div>
+    </div>
+    <div id="th-list"></div>
   </div>
 </div>
 
