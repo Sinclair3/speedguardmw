@@ -1285,6 +1285,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
     <button class="btn-gps" id="btn-gps" onclick="toggleGPS()">📍 Start GPS</button>
     <button class="btn-sm" onclick="openReport()">+ Trap</button>
     <button class="btn-fuel" onclick="openFuel()" title="Fuel stations">⛽</button>
+    <button class="btn-fuel" onclick="openPolice()" title="Police stations" style="border-color:rgba(41,128,185,.4);color:#7fb3d3">🚓</button>
     <button class="btn-sm" id="btn-chat-bottom" onclick="openChat()" title="Road chat" style="border-color:rgba(39,174,96,.28);color:#5ddb8a;position:relative">
       💬<span id="chat-badge-bottom" style="display:none;position:absolute;top:-5px;right:-5px;background:#e74c3c;color:#fff;font-size:9px;font-weight:800;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;border:1.5px solid #0a0f14">0</span>
     </button>
@@ -1311,6 +1312,22 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div class="fp-list" id="fp-list">
     <div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">
       Start GPS to see distances<br>to each fuel station.
+    </div>
+  </div>
+</div>
+
+<!-- POLICE PANEL -->
+<div id="police-panel" style="display:none;position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);flex-direction:column">
+  <div class="fp-hdr">
+    <div>
+      <div class="fp-title">🚓 Police Stations — M1</div>
+      <div class="fp-sub" id="pp-sub">Nearest station shown first</div>
+    </div>
+    <button class="fp-x" onclick="closePolice()">✕</button>
+  </div>
+  <div class="fp-list" id="pp-list">
+    <div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">
+      Start GPS to see distances<br>to each police station.
     </div>
   </div>
 </div>
@@ -2342,6 +2359,10 @@ function actuallyStartGPS(){
     al.innerHTML='🎮 <b>Simulator Mode</b> — driven from Admin Panel';
     al.style.background='linear-gradient(135deg,rgba(41,128,185,.9),rgba(52,152,219,.9))';
     al.style.display='block';
+    // Immediately pan map to simulated start position (not user's real location)
+    var _iLat=parseFloat(localStorage.getItem('sg_sim_lat')||'-13.97');
+    var _iLng=parseFloat(localStorage.getItem('sg_sim_lng')||'33.79');
+    if(_iLat&&_iLng) map.setView([_iLat,_iLng],13,{animate:false});
     watchId=setInterval(function(){
       if(localStorage.getItem('sg_sim_active')!=='1'){stopGPS();return;}
       var sLat=parseFloat(localStorage.getItem('sg_sim_lat')||'0');
@@ -2632,6 +2653,8 @@ function launchApp(){
   initPushBanner();
   updateClock();
   addFuelMarkers();
+  renderSchoolMarkers();
+  renderPoliceMarkers();
   fetchWeatherInitial();
   logSession();
   registerServiceWorker();
@@ -3060,6 +3083,47 @@ function fuelBrandColor(brand) {
   return '#888';
 }
 
+// ── SCHOOLS ALONG M1 ──
+var SCHOOLS_M1 = [
+  {id:'sc1',  name:'Karonga Community Day Secondary', lat:-9.935,  lng:33.981, km:50},
+  {id:'sc2',  name:'Rumphi Secondary School',         lat:-10.870, lng:33.853, km:150},
+  {id:'sc3',  name:'Mzuzu International School',      lat:-11.455, lng:34.015, km:268},
+  {id:'sc4',  name:'Luwinga Secondary School',        lat:-11.835, lng:34.052, km:285},
+  {id:'sc5',  name:'Nkhotakota Secondary School',     lat:-12.922, lng:34.302, km:410},
+  {id:'sc6',  name:'Salima Secondary School',         lat:-13.782, lng:34.458, km:512},
+  {id:'sc7',  name:'Kamuzu Academy — Mtunthama',      lat:-13.770, lng:33.875, km:540},
+  {id:'sc8',  name:'Lilongwe Girls Secondary',        lat:-13.965, lng:33.785, km:558},
+  {id:'sc9',  name:'Capital City International',      lat:-13.972, lng:33.792, km:562},
+  {id:'sc10', name:'St. Peters Secondary — Lilongwe', lat:-13.980, lng:33.800, km:565},
+  {id:'sc11', name:'Dedza Secondary School',          lat:-14.382, lng:34.338, km:636},
+  {id:'sc12', name:'Ntcheu Secondary School',         lat:-14.820, lng:34.778, km:700},
+  {id:'sc13', name:'Balaka Secondary School',         lat:-14.985, lng:34.958, km:722},
+  {id:'sc14', name:'Liwonde Secondary School',        lat:-15.062, lng:35.232, km:746},
+  {id:'sc15', name:'Zomba Catholic Secondary',        lat:-15.385, lng:35.320, km:790},
+  {id:'sc16', name:'Henry Henderson Institute',       lat:-15.792, lng:35.008, km:842},
+  {id:'sc17', name:'Thyolo Secondary School',         lat:-16.068, lng:35.150, km:871}
+];
+
+// ── POLICE STATIONS ALONG M1 ──
+var POLICE_STATIONS_M1 = [
+  {id:'ps1',  name:'Karonga Police Station',       lat:-9.930,  lng:33.978, km:49,  phone:'+265 1 362 333'},
+  {id:'ps2',  name:'Rumphi Police Station',         lat:-10.875, lng:33.855, km:151, phone:'+265 1 372 333'},
+  {id:'ps3',  name:'Mzuzu Police Headquarters',     lat:-11.452, lng:34.020, km:267, phone:'+265 1 332 333'},
+  {id:'ps4',  name:'Nkhotakota Police Station',     lat:-12.925, lng:34.295, km:409, phone:'+265 1 292 333'},
+  {id:'ps5',  name:'Salima Police Station',         lat:-13.785, lng:34.460, km:511, phone:'+265 1 262 333'},
+  {id:'ps6',  name:'Lilongwe Police HQ (Area 3)',   lat:-13.968, lng:33.787, km:560, phone:'+265 1 753 333'},
+  {id:'ps7',  name:'Area 30 Police Post',           lat:-13.955, lng:33.773, km:556, phone:'+265 1 756 333'},
+  {id:'ps8',  name:'Dedza Police Station',          lat:-14.385, lng:34.335, km:635, phone:'+265 1 223 333'},
+  {id:'ps9',  name:'Ntcheu Police Station',         lat:-14.820, lng:34.775, km:700, phone:'+265 1 243 333'},
+  {id:'ps10', name:'Balaka Police Station',         lat:-14.982, lng:34.960, km:721, phone:'+265 1 543 333'},
+  {id:'ps11', name:'Liwonde Police Station',        lat:-15.060, lng:35.235, km:747, phone:'+265 1 542 333'},
+  {id:'ps12', name:'Zomba Police Headquarters',     lat:-15.388, lng:35.318, km:791, phone:'+265 1 524 333'},
+  {id:'ps13', name:'Limbe Police Station',          lat:-15.820, lng:35.063, km:822, phone:'+265 1 844 333'},
+  {id:'ps14', name:'Blantyre Police Headquarters',  lat:-15.788, lng:35.002, km:840, phone:'+265 1 824 333'},
+  {id:'ps15', name:'Thyolo Police Station',         lat:-16.065, lng:35.148, km:872, phone:'+265 1 473 333'},
+  {id:'ps16', name:'Luchenza Police Station',       lat:-16.402, lng:35.218, km:912, phone:'+265 1 474 333'}
+];
+
 // Leaflet markers for fuel stations
 var fuelMarkers = {};
 function fuelIcon(station, dist) {
@@ -3191,6 +3255,100 @@ function renderFuelList() {
     }
     if(hiddenCount > 0 || fuelShowAll) el.appendChild(toggleBtn);
   }
+}
+
+// ══════════════════════════════════════
+// SCHOOLS MAP LAYER
+// ══════════════════════════════════════
+var schoolMarkers = {};
+function renderSchoolMarkers() {
+  var show = lsGet('sg_set_schools') === '1';
+  SCHOOLS_M1.forEach(function(s){
+    if(schoolMarkers[s.id]) return;
+    var m = L.marker([s.lat, s.lng], {
+      icon: L.divIcon({
+        html:'<div style="font-size:18px;filter:drop-shadow(0 1px 4px rgba(0,0,0,.8))">🏫</div>',
+        className:'', iconAnchor:[9,9]
+      }),
+      zIndexOffset:-200
+    }).addTo(map);
+    m.bindPopup('<b>🏫 '+s.name+'</b><br><span style="color:#f39c12">⚠️ School Zone — 40 km/h</span><br><small style="color:rgba(255,255,255,.4)">km '+s.km+' along M1</small>');
+    schoolMarkers[s.id] = m;
+    if(!show) map.removeLayer(m);
+  });
+}
+
+// ══════════════════════════════════════
+// POLICE STATIONS MAP LAYER
+// ══════════════════════════════════════
+var policeMarkers = {};
+function renderPoliceMarkers() {
+  var show = lsGet('sg_set_police') !== '0'; // default ON
+  POLICE_STATIONS_M1.forEach(function(p){
+    if(policeMarkers[p.id]) return;
+    var m = L.marker([p.lat, p.lng], {
+      icon: L.divIcon({
+        html:'<div style="font-size:18px;filter:drop-shadow(0 1px 4px rgba(0,0,0,.8))">🚓</div>',
+        className:'', iconAnchor:[9,9]
+      }),
+      zIndexOffset:-150
+    }).addTo(map);
+    m.bindPopup('<b>🚓 '+p.name+'</b><br><span style="color:#7fb3d3">📞 '+p.phone+'</span><br><small style="color:rgba(255,255,255,.4)">km '+p.km+' along M1</small>');
+    policeMarkers[p.id] = m;
+    if(!show) map.removeLayer(m);
+  });
+}
+
+function nearestPolice(lat, lng) {
+  if(!lat) return null;
+  return POLICE_STATIONS_M1.map(function(p){
+    return Object.assign({},p,{d:hav(lat,lng,p.lat,p.lng)});
+  }).sort(function(a,b){return a.d-b.d;})[0];
+}
+
+// ── POLICE PANEL ──
+function openPolice() {
+  var el = document.getElementById('police-panel');
+  el.style.display = 'flex';
+  renderPoliceList();
+}
+function closePolice() {
+  document.getElementById('police-panel').style.display = 'none';
+}
+function renderPoliceList() {
+  var el  = document.getElementById('pp-list');
+  var sub = document.getElementById('pp-sub');
+  var sorted = POLICE_STATIONS_M1.map(function(p){
+    var d = curLat !== null ? hav(curLat,curLng,p.lat,p.lng) : null;
+    return Object.assign({},p,{dist:d});
+  }).sort(function(a,b){
+    if(a.dist!==null && b.dist!==null) return a.dist-b.dist;
+    return a.km-b.km;
+  });
+  if(sub) sub.textContent = curLat
+    ? sorted.length+' stations · sorted by distance'
+    : sorted.length+' stations · start GPS for distances';
+  el.innerHTML = '';
+  sorted.forEach(function(p){
+    var ds = p.dist!==null
+      ? (p.dist<1 ? Math.round(p.dist*1000)+' m' : p.dist.toFixed(1)+' km')
+      : 'km '+p.km;
+    var card = document.createElement('div');
+    card.className = 'fcard';
+    card.innerHTML =
+      '<div class="fcard-top">'
+        +'<div class="fcard-name">🚓 '+p.name+'</div>'
+        +'<div class="fcard-dist">'+ds+'</div>'
+      +'</div>'
+      +'<div class="fcard-brand" style="color:#7fb3d3">📞 '+p.phone+'</div>'
+      +'<div class="fcard-km">km '+p.km+' along M1</div>';
+    card.onclick = function(){
+      map.setView([p.lat,p.lng],15);
+      if(policeMarkers[p.id]) policeMarkers[p.id].openPopup();
+      closePolice();
+    };
+    el.appendChild(card);
+  });
 }
 
 // ── NEAREST FUEL CHIP in bottom scroll ──
@@ -3423,6 +3581,8 @@ function fetchWeatherInitial() {
 // ═══════════════════════════════════════════════════════
 var sgSettings = {
   fuel:     lsGet('sg_set_fuel')     === '1', // default OFF — opt in
+  schools:  lsGet('sg_set_schools')  === '1', // default OFF — opt in
+  police:   lsGet('sg_set_police')   !== '0', // default ON — safety feature
   traps:    lsGet('sg_set_traps')    !== '0',
   live:     lsGet('sg_set_live')     === '1', // DEFAULT: private (opt-in to live)
   audio:    lsGet('sg_audio')        !== '0',
@@ -3436,6 +3596,8 @@ function isLive(){ return sgSettings.live; }
 function openSettings() {
   // Sync toggles to current state
   document.getElementById('tog-fuel').checked     = sgSettings.fuel;
+  document.getElementById('tog-schools').checked  = sgSettings.schools;
+  document.getElementById('tog-police').checked   = sgSettings.police;
   document.getElementById('tog-traps').checked    = sgSettings.traps;
   document.getElementById('tog-live').checked     = sgSettings.live;
   document.getElementById('tog-audio').checked    = sgSettings.audio;
@@ -3476,6 +3638,22 @@ function settingChanged(key, val) {
       val ? map.addLayer(m) : map.removeLayer(m);
     });
     showToast(val ? '⛽ Fuel stations shown' : '⛽ Fuel stations hidden');
+  }
+
+  if (key === 'schools') {
+    lsSet('sg_set_schools', val ? '1' : '0');
+    Object.values(schoolMarkers).forEach(function(m){
+      val ? map.addLayer(m) : map.removeLayer(m);
+    });
+    showToast(val ? '🏫 Schools shown' : '🏫 Schools hidden');
+  }
+
+  if (key === 'police') {
+    lsSet('sg_set_police', val ? '1' : '0');
+    Object.values(policeMarkers).forEach(function(m){
+      val ? map.addLayer(m) : map.removeLayer(m);
+    });
+    showToast(val ? '🚓 Police stations shown' : '🚓 Police stations hidden');
   }
 
   if (key === 'traps') {
@@ -5756,6 +5934,14 @@ function updateNavHUD(lat, lng, spd) {
     var d = hav(lat,lng,s.lat,s.lng);
     if(d < 50 && d > 0.1 && isAhead(s.lat,s.lng)) items.push({type:'fuel', name:s.name, dist:d, brand:s.brand, icon:'⛽'});
   });
+  if(sgSettings.schools) SCHOOLS_M1.forEach(function(s){
+    var d = hav(lat,lng,s.lat,s.lng);
+    if(d < 10 && d > 0.05 && isAhead(s.lat,s.lng)) items.push({type:'school', name:s.name, dist:d, km:s.km, icon:'🏫'});
+  });
+  if(sgSettings.police) POLICE_STATIONS_M1.forEach(function(p){
+    var d = hav(lat,lng,p.lat,p.lng);
+    if(d < 30 && d > 0.1 && isAhead(p.lat,p.lng)) items.push({type:'police', name:p.name, dist:d, phone:p.phone, icon:'🚓'});
+  });
   M1_PLACES.filter(function(p){ return p.km >= 0; }).forEach(function(p){
     var d = hav(lat,lng,p.lat,p.lng);
     if(d < 80 && d > 0.3 && isAhead(p.lat,p.lng)) items.push({type:'town', name:p.name, dist:d, km:p.km, icon:p.icon||'📍'});
@@ -5772,8 +5958,10 @@ function updateNavHUD(lat, lng, spd) {
     var ds  = nxt.dist < 1 ? Math.round(nxt.dist*1000)+'m' : nxt.dist.toFixed(1)+'km';
     if(nextDist) nextDist.textContent = ds;
     if(nextName) nextName.textContent = nxt.icon + ' ' + nxt.name;
-    if(nextType) nextType.textContent = nxt.type==='trap' ? 'Speed limit: '+nxt.limit+' km/h'
-                                      : nxt.type==='fuel' ? nxt.brand + ' fuel station'
+    if(nextType) nextType.textContent = nxt.type==='trap'   ? 'Speed limit: '+nxt.limit+' km/h'
+                                      : nxt.type==='fuel'   ? nxt.brand + ' fuel station'
+                                      : nxt.type==='school' ? '⚠️ School Zone — 40 km/h'
+                                      : nxt.type==='police' ? '📞 '+nxt.phone
                                       : 'km ' + (nxt.km||'');
   }
 
@@ -5890,6 +6078,28 @@ function showNavBtn(show) {
       </div>
       <label class="sg-toggle">
         <input type="checkbox" id="tog-fuel" checked onchange="settingChanged('fuel',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">🏫 Schools (School Zones)</div>
+        <div class="sp-row-desc">Show schools along M1 — speed alerts near school zones</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-schools" onchange="settingChanged('schools',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">🚓 Police Stations</div>
+        <div class="sp-row-desc">Show police stations — find nearest help after an accident</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-police" checked onchange="settingChanged('police',this.checked)">
         <span class="sg-slider"></span>
       </label>
     </div>
