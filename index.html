@@ -1091,13 +1091,13 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   </g>
 </svg>
     <h1 class="t-title">Drive Safe on<br><span>Malawi M1</span></h1>
-    <p class="t-sub">Lilongwe → Blantyre · Speed alerts · Live tracking · SOS</p>
+    <p class="t-sub">Full M1 Route · Speed alerts · Live tracking · SOS</p>
   </div>
   <div class="t-body">
     <div class="ts-h">📋 Terms &amp; Conditions</div>
     <div class="ts-box"><div class="ts-p">
       <p style="margin-bottom:8px"><b>SpeedGuard Malawi — Terms of Use v2.0</b></p>
-      <p style="margin-bottom:7px"><b>1. Purpose.</b> SpeedGuard Malawi is a road safety awareness tool for the M1 road between Lilongwe and Blantyre, Malawi.</p>
+      <p style="margin-bottom:7px"><b>1. Purpose.</b> SpeedGuard Malawi is a road safety awareness tool for the full M1 road from Kasumulu (Tanzania border) to Marka (Mozambique border), Malawi.</p>
       <p style="margin-bottom:7px"><b>2. Not an evasion tool.</b> This app does NOT encourage speeding or evading law enforcement. You remain fully responsible for obeying all Malawi traffic laws.</p>
       <p style="margin-bottom:7px"><b>3. Location &amp; live tracking.</b> Your nickname, approximate GPS location, and speed are shared in real time with other active users while the app is open with GPS on. This data is never stored permanently.</p>
       <p style="margin-bottom:7px"><b>4. SOS feature.</b> The emergency SOS button sends your GPS coordinates to a contact you choose. The accuracy of GPS coordinates depends on your device signal. This feature is a supplement to, not a replacement for, calling emergency services directly.</p>
@@ -2540,7 +2540,7 @@ function launchApp(){
   document.getElementById('map').style.display='block';
   // Alert banner stays hidden until GPS delivers first real position
   document.getElementById('btm').style.display='block';
-  setTimeout(function(){map.invalidateSize();map.fitBounds(road.getBounds(),{padding:[40,20]}); // wider bounds for 1140km route},100);
+  setTimeout(function(){map.invalidateSize();map.fitBounds(road.getBounds(),{padding:[40,20]});},100); // wider bounds for 1140km route
   syncAudioBtn();
   startNightAutoCheck();
   initPrivacyMode();
@@ -2634,12 +2634,113 @@ function startNightAutoCheck() {
 // Total and local sources. Sorted by distance when GPS on.
 // ═══════════════════════════════════════════════════════
 var FUEL_STATIONS = [
-  // ── LILONGWE (city) ──
+  // ══════════════════════════════════════════
+  // NORTHERN SECTION — Tanzania Border → Mzuzu
+  // ══════════════════════════════════════════
   {
-    id:'f1', name:'Total Lilongwe — Area 18',
+    id:'fn1', name:'Total — Karonga Town',
+    brand:'Total', lat:-9.933, lng:33.983, km:50,
+    types:['petrol','diesel','atm'],
+    note:'Main station in Karonga — first/last stop from Tanzania border'
+  },
+  {
+    id:'fn2', name:'Puma — Karonga',
+    brand:'Puma', lat:-9.940, lng:33.987, km:51,
+    types:['petrol','diesel'],
+    note:'Karonga town centre on M1'
+  },
+  {
+    id:'fn3', name:'Petroda — Chilumba',
+    brand:'Petroda', lat:-10.350, lng:34.120, km:105,
+    types:['petrol','diesel'],
+    note:'Isolated stop — fill up if low, long stretch ahead'
+  },
+  {
+    id:'fn4', name:'Engen — Nkhata Bay Junction',
+    brand:'Engen', lat:-11.100, lng:34.290, km:190,
+    types:['petrol','diesel'],
+    note:'At M1/M12 junction before Mzuzu descent'
+  },
+  {
+    id:'fn5', name:'Total — Mzuzu City',
+    brand:'Total', lat:-11.460, lng:34.018, km:270,
+    types:['petrol','diesel','atm'],
+    note:'Main Mzuzu station — major stop, ATM inside'
+  },
+  {
+    id:'fn6', name:'Puma — Mzuzu',
+    brand:'Puma', lat:-11.468, lng:34.022, km:272,
+    types:['petrol','diesel','atm'],
+    note:'Mzuzu town, near bus depot'
+  },
+  {
+    id:'fn7', name:'Engen — Mzuzu South',
+    brand:'Engen', lat:-11.475, lng:34.025, km:274,
+    types:['petrol','diesel'],
+    note:'South exit of Mzuzu on M1'
+  },
+  // ══════════════════════════════════════════
+  // NORTHERN SECTION — Mzuzu → Kasungu
+  // ══════════════════════════════════════════
+  {
+    id:'fn8', name:'Puma — Rumphi Town',
+    brand:'Puma', lat:-11.015, lng:33.860, km:330,
+    types:['petrol','diesel'],
+    note:'Rumphi town centre — fill up before Mzimba stretch'
+  },
+  {
+    id:'fn9', name:'Total — Mzimba Town',
+    brand:'Total', lat:-11.900, lng:33.600, km:340,
+    types:['petrol','diesel','atm'],
+    note:'Main station in Mzimba with ATM'
+  },
+  {
+    id:'fn10', name:'Petroda — Mzimba',
+    brand:'Petroda', lat:-11.908, lng:33.605, km:341,
+    types:['petrol','diesel'],
+    note:'South end of Mzimba on M1'
+  },
+  {
+    id:'fn11', name:'Total — Kasungu Town',
+    brand:'Total', lat:-13.022, lng:33.473, km:450,
+    types:['petrol','diesel','atm'],
+    note:'Main Kasungu station — important stop mid-route'
+  },
+  {
+    id:'fn12', name:'Puma — Kasungu',
+    brand:'Puma', lat:-13.028, lng:33.477, km:451,
+    types:['petrol','diesel','atm'],
+    note:'Kasungu town — ATM and full services'
+  },
+  {
+    id:'fn13', name:'Engen — Kasungu',
+    brand:'Engen', lat:-13.035, lng:33.480, km:452,
+    types:['petrol','diesel'],
+    note:'South end of Kasungu on M1'
+  },
+  // ══════════════════════════════════════════
+  // CENTRAL — Kasungu → Lilongwe
+  // ══════════════════════════════════════════
+  {
+    id:'fn14', name:'Engen — Mponela',
+    brand:'Engen', lat:-13.520, lng:33.710, km:500,
+    types:['petrol','diesel'],
+    note:'Mponela trading centre — good halfway stop'
+  },
+  {
+    id:'fn15', name:'Puma — Dowa Town',
+    brand:'Puma', lat:-13.656, lng:33.933, km:530,
+    types:['petrol','diesel'],
+    note:'Dowa town — fills the gap before Lilongwe'
+  },
+  // ══════════════════════════════════════════
+  // LILONGWE (city)
+  // ══════════════════════════════════════════
+  {
+    id:'f1', name:'Total — Lilongwe Area 18',
     brand:'Total', lat:-14.012, lng:33.826, km:28,
     types:['petrol','diesel','atm'],
-    note:'On M1 exit, just before Kalinyeke'
+    note:'On M1 exit, just before Kalinyeke toll'
   },
   {
     id:'f2', name:'Puma — Lilongwe City Centre',
@@ -2659,14 +2760,18 @@ var FUEL_STATIONS = [
     types:['petrol','diesel'],
     note:'At Bunda junction before M1 south'
   },
-  // ── KAMUZU AREA ──
+  // ══════════════════════════════════════════
+  // KAMUZU / KALINYEKE
+  // ══════════════════════════════════════════
   {
     id:'f5', name:'Total — Kamuzu Airport Rd',
     brand:'Total', lat:-14.058, lng:33.862, km:46,
     types:['petrol','diesel'],
     note:'Near airport junction on M1'
   },
-  // ── DEDZA ──
+  // ══════════════════════════════════════════
+  // DEDZA
+  // ══════════════════════════════════════════
   {
     id:'f6', name:'Puma — Dedza Town',
     brand:'Puma', lat:-14.375, lng:34.105, km:83,
@@ -2679,7 +2784,9 @@ var FUEL_STATIONS = [
     types:['petrol','diesel'],
     note:'South end of Dedza town'
   },
-  // ── NTCHEU ──
+  // ══════════════════════════════════════════
+  // NTCHEU
+  // ══════════════════════════════════════════
   {
     id:'f8', name:'Total — Ntcheu Town',
     brand:'Total', lat:-14.672, lng:34.375, km:138,
@@ -2692,14 +2799,18 @@ var FUEL_STATIONS = [
     types:['petrol','diesel'],
     note:'South end of Ntcheu on M1'
   },
-  // ── ZALEWA / NENO JUNCTION ──
+  // ══════════════════════════════════════════
+  // ZALEWA / NENO JUNCTION
+  // ══════════════════════════════════════════
   {
     id:'f10', name:'Engen — Zalewa',
     brand:'Engen', lat:-14.820, lng:34.510, km:167,
     types:['petrol','diesel'],
-    note:'Zalewa trading centre — isolated, check fuel level before passing'
+    note:'Zalewa trading centre — isolated, check fuel before passing'
   },
-  // ── BALAKA ──
+  // ══════════════════════════════════════════
+  // BALAKA
+  // ══════════════════════════════════════════
   {
     id:'f11', name:'Puma — Balaka Town',
     brand:'Puma', lat:-15.048, lng:34.958, km:187,
@@ -2712,21 +2823,27 @@ var FUEL_STATIONS = [
     types:['petrol','diesel'],
     note:'On M1 in Balaka town'
   },
-  // ── LIWONDE ──
+  // ══════════════════════════════════════════
+  // LIWONDE
+  // ══════════════════════════════════════════
   {
     id:'f13', name:'Engen — Liwonde Junction',
     brand:'Engen', lat:-15.108, lng:35.018, km:211,
     types:['petrol','diesel'],
     note:'At the Liwonde National Park junction'
   },
-  // ── ZOMBA JUNCTION ──
+  // ══════════════════════════════════════════
+  // ZOMBA JUNCTION
+  // ══════════════════════════════════════════
   {
     id:'f14', name:'Total — Zomba Road Junction',
     brand:'Total', lat:-15.348, lng:34.918, km:236,
     types:['petrol','diesel','atm'],
     note:'Junction to Zomba — also serves Zomba traffic'
   },
-  // ── LIMBE / BLANTYRE METRO ──
+  // ══════════════════════════════════════════
+  // LIMBE / BLANTYRE METRO
+  // ══════════════════════════════════════════
   {
     id:'f15', name:'Puma — Limbe',
     brand:'Puma', lat:-15.548, lng:34.975, km:266,
@@ -2749,7 +2866,46 @@ var FUEL_STATIONS = [
     id:'f18', name:'Puma — Blantyre City',
     brand:'Puma', lat:-15.668, lng:35.002, km:289,
     types:['petrol','diesel','atm'],
-    note:'Blantyre city centre — end of M1 journey'
+    note:'Blantyre city centre'
+  },
+  // ══════════════════════════════════════════
+  // SOUTHERN SECTION — Blantyre → Mozambique Border
+  // ══════════════════════════════════════════
+  {
+    id:'fs1', name:'Engen — Chilomoni',
+    brand:'Engen', lat:-15.700, lng:35.010, km:293,
+    types:['petrol','diesel'],
+    note:'South Blantyre — last full-service stop before Lower Shire'
+  },
+  {
+    id:'fs2', name:'Total — Chikwawa Junction',
+    brand:'Total', lat:-16.033, lng:34.802, km:320,
+    types:['petrol','diesel','atm'],
+    note:'Chikwawa Junction — critical stop, sparse stations ahead'
+  },
+  {
+    id:'fs3', name:'Puma — Chikwawa Town',
+    brand:'Puma', lat:-16.050, lng:34.780, km:325,
+    types:['petrol','diesel'],
+    note:'Chikwawa town centre on Lower Shire plain'
+  },
+  {
+    id:'fs4', name:'Petroda — Ngabu Town',
+    brand:'Petroda', lat:-16.467, lng:34.917, km:380,
+    types:['petrol','diesel'],
+    note:'Ngabu — only reliable stop between Chikwawa and Nsanje'
+  },
+  {
+    id:'fs5', name:'Total — Nsanje Town',
+    brand:'Total', lat:-16.917, lng:35.267, km:430,
+    types:['petrol','diesel','atm'],
+    note:'Nsanje — last fuel stop before Mozambique border (Marka)'
+  },
+  {
+    id:'fs6', name:'Engen — Nsanje',
+    brand:'Engen', lat:-16.920, lng:35.270, km:431,
+    types:['petrol','diesel'],
+    note:'South Nsanje on M1 — fill up before crossing'
   },
 ];
 
@@ -2783,7 +2939,7 @@ function fuelIcon(station, dist) {
 }
 
 function addFuelMarkers() {
-  var show = lsGet('sg_set_fuel') !== '0';
+  var show = lsGet('sg_set_fuel') === '1';
   FUEL_STATIONS.forEach(function(s) {
     if (fuelMarkers[s.id]) return; // already added
     var m = L.marker([s.lat, s.lng], {
@@ -4444,17 +4600,27 @@ var M1_PLACES = [
   {name:'Songwe Bridge',               lat:-9.780, lng:33.950, km:18,  icon:'🌉'},
   {name:'Kaporo / Karonga approach',   lat:-9.930, lng:33.970, km:32,  icon:'📍'},
   {name:'Karonga Town',                lat:-9.933, lng:33.983, km:50,  icon:'🏘️'},
+  {name:'Livingstonia Turn-off',       lat:-10.100,lng:34.090, km:80,  icon:'🔀'},
   {name:'Chilumba',                    lat:-10.350,lng:34.120, km:105, icon:'📍'},
+  {name:'Nkhata Bay Junction (M12)',   lat:-11.100,lng:34.290, km:190, icon:'🔀'},
   {name:'Chiweta — Highland Ascent',   lat:-11.000,lng:34.260, km:185, icon:'⛰️'},
   {name:'Viphya Plateau',              lat:-11.280,lng:34.080, km:230, icon:'🌲'},
+  {name:'Luwinga',                     lat:-11.380,lng:34.030, km:255, icon:'📍'},
   {name:'Mzuzu City',                  lat:-11.462,lng:34.018, km:270, icon:'🏙️'},
+  {name:'Mzuzu Bus Depot',             lat:-11.470,lng:34.022, km:272, icon:'🚌'},
   {name:'Ekwendeni',                   lat:-11.700,lng:33.900, km:300, icon:'📍'},
   {name:'Jenda Junction',              lat:-11.820,lng:33.900, km:315, icon:'🔀'},
+  {name:'Rumphi Town',                 lat:-11.015,lng:33.860, km:330, icon:'🏘️'},
   {name:'Mzimba Town',                 lat:-11.900,lng:33.600, km:340, icon:'🏘️'},
-  {name:'Kasungu Town',                lat:-13.022,lng:33.473, km:450, icon:'🏘️'},
+  {name:'Chikangawa Junction',         lat:-12.200,lng:33.550, km:370, icon:'🔀'},
   {name:'Kasungu National Park Gate',  lat:-12.800,lng:33.280, km:410, icon:'🦁'},
-  {name:'Dowa Town',                   lat:-13.656,lng:33.933, km:530, icon:'🏘️'},
+  {name:'Kasungu Town',                lat:-13.022,lng:33.473, km:450, icon:'🏘️'},
+  {name:'Dwangwa',                     lat:-12.520,lng:34.130, km:480, icon:'📍'},
+  {name:'Nkhotakota Town',             lat:-12.926,lng:34.296, km:490, icon:'🏘️'},
+  {name:'Salima Junction (M14)',       lat:-13.780,lng:33.780, km:510, icon:'🔀'},
   {name:'Mponela',                     lat:-13.520,lng:33.710, km:500, icon:'📍'},
+  {name:'Dowa Town',                   lat:-13.656,lng:33.933, km:530, icon:'🏘️'},
+  {name:'Mchinji Junction (M12)',      lat:-13.800,lng:33.200, km:545, icon:'🔀'},
 ];
 
 // ── STATE ──
@@ -4571,7 +4737,7 @@ function renderResults(builtIn, online, query) {
       sec.textContent = 'M1 Road Places';
       el.appendChild(sec);
     }
-    builtIn.slice(0,8).forEach(function(p) {
+    builtIn.slice(0,15).forEach(function(p) {
       el.appendChild(makeResultRow(p));
     });
   }
@@ -5233,8 +5399,7 @@ function cleanOldChatMessages() {
   fetch(url, {
     method:'DELETE',
     headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json'}
-  }).catch(function(){});
-    .catch(function(){}); // if cleanup fails, the next cleanup will get it
+  }).catch(function(){}); // if cleanup fails, the next cleanup will get it
 }
 setInterval(cleanOldChatMessages, 30 * 60 * 1000); // clean every 30 minutes
 
@@ -5847,7 +6012,7 @@ function showNavBtn(show) {
     <div class="dest-loading" id="dest-loading"></div>
     <div class="dest-results" id="dest-results"></div>
     <button class="dest-skip" onclick="skipDestination()">
-      Skip — use full M1 progress (Lilongwe → Blantyre)
+      Skip — use full M1 route progress
     </button>
   </div>
 </div>
