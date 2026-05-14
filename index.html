@@ -1764,7 +1764,7 @@ function initRealtime(){
       // Without this, they'd have to wait for the next GPS ping — up to 3 seconds.
       // 3 seconds doesn't sound like much until you're doing 80km/h. It's 67 metres.
       if(isTracking && curLat !== null && isLive()) {
-        setTimeout(function(){ broadcastPos(curLat, curLng, curSpd); }, 500);
+        setTimeout(function(){ broadcastPos(curLat, curLng, curSpd, true); }, 500);
       }
     };
     ws.onmessage=function(e){
@@ -1808,8 +1808,16 @@ function initRealtime(){
     channel=ws;
   }catch(e){console.warn('Realtime failed:',e.message);}
 }
-function broadcastPos(lat,lng,spd){
+var _lastBroadcastTs = 0;
+function broadcastPos(lat,lng,spd,force){
   if(!isLive()||!isOnline||!channel||!realtimeConnected)return;
+  var now=Date.now();
+  // Moving (>5 km/h): broadcast every call (GPS fires ~1-3s on real device).
+  // Parked/slow: throttle to every 15s — no need to spam presence for a stationary car.
+  // force=true bypasses throttle (used on reconnect and nickname change).
+  var minInterval = (spd < 5) ? 15000 : 0;
+  if(!force && (now - _lastBroadcastTs) < minInterval) return;
+  _lastBroadcastTs = now;
   try{channel.send(JSON.stringify({topic:'realtime:m1_drivers',event:'broadcast',payload:{type:'pos',id:myId,nickname:myNickname,lat:parseFloat(lat.toFixed(5)),lng:parseFloat(lng.toFixed(5)),speed:Math.round(spd),progress:Math.round(tripProgress(lat,lng))},ref:null}));}catch(e){}
 }
 setInterval(function(){
@@ -4097,7 +4105,7 @@ function saveNickEdit() {
   showToast('✅ Name updated to: ' + myNickname);
 
   // Broadcast new name to live map immediately if GPS on
-  if (curLat && isTracking) broadcastPos(curLat, curLng, curSpd);
+  if (curLat && isTracking) broadcastPos(curLat, curLng, curSpd, true);
 }
 
 
@@ -6045,7 +6053,7 @@ setInterval(cleanOldChatMessages, 30 * 60 * 1000); // clean every 30 minutes
 // ── LIVE DRIVER HEARTBEAT ──
 // Sends position every 5s when GPS is active + live mode on.
 // Prevents vanishing during brief signal gaps in dead zones.
-// Also sends a lightweight 'ping' to confirm WebSocket is alive.
+// Throttle inside broadcastPos handles parked vs moving rate.
 setInterval(function(){
   if(isTracking && curLat !== null && isLive() && isOnline) {
     broadcastPos(curLat, curLng, curSpd);
@@ -6065,14 +6073,7 @@ setInterval(function(){
   }
 }, 30000);
 
-// Very alarming for a driver who was just visible. Now gone. Poof.
-// The heartbeat says "I'm still here, GPS just can't find me right now."
-setInterval(function() {
-  // Only heartbeat if: live, online, tracking, and have a real position
-  if(isLive() && isOnline && isTracking && curLat !== null && realtimeConnected) {
-    broadcastPos(curLat, curLng, curSpd);
-  }
-}, 5000); // every 5 seconds — enough to stay visible, not so often we spam
+// (duplicate heartbeat removed — single 5s heartbeat above handles presence keepalive)
 
 
 // ═══════════════════════════════════════════════════════
