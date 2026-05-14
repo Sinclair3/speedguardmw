@@ -337,7 +337,7 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 
 /* Toggle button — sits on the map, top-right corner */
 #btn-nav-mode{
-  position:fixed;top:calc(env(safe-area-inset-top,12px) + 72px);
+  position:fixed;top:calc(env(safe-area-inset-top,12px) + 140px);
   right:10px;z-index:1001;
   width:40px;height:40px;border-radius:50%;
   background:rgba(10,15,20,.92);border:1.5px solid rgba(255,255,255,.2);
@@ -5596,23 +5596,27 @@ function updateNavHUD(lat, lng, spd) {
   }
 
   // ── Next item (trap or town) ──
-  // Merge traps and M1 landmarks into one sorted list
+  // When a destination is set, only show items ahead on the route:
+  // an item is "ahead" if it is closer to the destination than the driver is.
+  var destDist = tripDest ? hav(lat, lng, tripDest.lat, tripDest.lng) : null;
+  function isAhead(iLat, iLng) {
+    if(!destDist) return true;
+    return hav(iLat, iLng, tripDest.lat, tripDest.lng) < destDist;
+  }
+
   var items = [];
-  // Add verified traps ahead
   traps.filter(function(t){ return t.verified && !isExpired(t); }).forEach(function(t){
     var d = hav(lat,lng,t.lat,t.lng);
-    if(d < 50) items.push({type:'trap', name:t.name, dist:d, limit:t.limit,
+    if(d < 50 && isAhead(t.lat,t.lng)) items.push({type:'trap', name:t.name, dist:d, limit:t.limit,
       icon: t.type==='camera'?'📷':t.type==='checkpoint'?'🛡️':'🚔'});
   });
-  // Add fuel stations ahead
   FUEL_STATIONS.forEach(function(s){
     var d = hav(lat,lng,s.lat,s.lng);
-    if(d < 50 && d > 0.1) items.push({type:'fuel', name:s.name, dist:d, brand:s.brand, icon:'⛽'});
+    if(d < 50 && d > 0.1 && isAhead(s.lat,s.lng)) items.push({type:'fuel', name:s.name, dist:d, brand:s.brand, icon:'⛽'});
   });
-  // Add M1 major towns ahead
   M1_PLACES.filter(function(p){ return p.km >= 0; }).forEach(function(p){
     var d = hav(lat,lng,p.lat,p.lng);
-    if(d < 80 && d > 0.3) items.push({type:'town', name:p.name, dist:d, km:p.km, icon:p.icon||'📍'});
+    if(d < 80 && d > 0.3 && isAhead(p.lat,p.lng)) items.push({type:'town', name:p.name, dist:d, km:p.km, icon:p.icon||'📍'});
   });
 
   items.sort(function(a,b){ return a.dist-b.dist; });
