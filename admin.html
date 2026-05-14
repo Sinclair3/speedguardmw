@@ -534,6 +534,8 @@ create policy "Anyone can update" on sg_admin_config for update using (true);</p
       <div class="sim-stat"><div class="sim-stat-val" id="sim-km" style="color:#27ae60">--</div><div class="sim-stat-lbl">km on M1</div></div>
       <div class="sim-stat"><div class="sim-stat-val" id="sim-loc" style="font-size:13px;color:#7fb3d3">--</div><div class="sim-stat-lbl">Location</div></div>
       <div class="sim-stat"><div class="sim-stat-val" id="sim-nearest-trap" style="font-size:11px;color:#f39c12">None</div><div class="sim-stat-lbl">Nearest Trap</div></div>
+      <div class="sim-stat"><div class="sim-stat-val" id="sim-nearest-police" style="font-size:11px;color:#7fb3d3">--</div><div class="sim-stat-lbl">Nearest Police</div></div>
+      <div class="sim-stat"><div class="sim-stat-val" id="sim-nearest-hospital" style="font-size:11px;color:#e74c3c">--</div><div class="sim-stat-lbl">Nearest Hospital</div></div>
     </div>
 
     <!-- Mini Leaflet map -->
@@ -1211,6 +1213,50 @@ var SIM_ROUTE = [
   [-16.85, 35.26, 'Mozambique Border',  960]
 ];
 
+// Police stations along M1 (mirrored from index.html for proximity alerts)
+var SIM_POLICE = [
+  {name:'Karonga Police Station',       lat:-9.930,  lng:33.978, km:49},
+  {name:'Rumphi Police Station',        lat:-10.875, lng:33.855, km:151},
+  {name:'Ekwendeni Police Post',        lat:-11.638, lng:34.007, km:228},
+  {name:'Mzuzu Police Headquarters',   lat:-11.452, lng:34.020, km:267},
+  {name:'Dwangwa Police Post',          lat:-12.490, lng:34.175, km:375},
+  {name:'Nkhotakota Police Station',   lat:-12.925, lng:34.295, km:409},
+  {name:'Kasungu Police Station',       lat:-13.013, lng:33.488, km:467},
+  {name:'Salima Police Station',        lat:-13.785, lng:34.460, km:511},
+  {name:'Kanengo Police Post',          lat:-13.940, lng:33.793, km:548},
+  {name:'Area 30 Police Post',          lat:-13.955, lng:33.773, km:556},
+  {name:'Lilongwe Police HQ (Area 3)', lat:-13.968, lng:33.787, km:560},
+  {name:'Dedza Police Station',         lat:-14.385, lng:34.335, km:635},
+  {name:'Ntcheu Police Station',        lat:-14.820, lng:34.775, km:700},
+  {name:'Balaka Police Station',        lat:-14.982, lng:34.960, km:721},
+  {name:'Liwonde Police Station',       lat:-15.060, lng:35.235, km:747},
+  {name:'Zomba Police Headquarters',    lat:-15.388, lng:35.318, km:791},
+  {name:'Limbe Police Station',         lat:-15.820, lng:35.063, km:822},
+  {name:'Blantyre Police Headquarters', lat:-15.788, lng:35.002, km:840},
+  {name:'Thyolo Police Station',        lat:-16.065, lng:35.148, km:872},
+  {name:'Luchenza Police Station',      lat:-16.402, lng:35.218, km:912}
+];
+
+// Hospitals along M1 (mirrored from index.html for proximity alerts)
+var SIM_HOSPITALS = [
+  {name:'Karonga District Hospital',        lat:-9.934,  lng:33.974, km:50},
+  {name:'Rumphi District Hospital',         lat:-10.871, lng:33.856, km:152},
+  {name:'Ekwendeni Mission Hospital',       lat:-11.638, lng:33.985, km:228},
+  {name:'Mzuzu Central Hospital',           lat:-11.465, lng:34.017, km:268},
+  {name:'Nkhata Bay District Hospital',     lat:-11.601, lng:34.290, km:285},
+  {name:'Nkhotakota District Hospital',     lat:-12.923, lng:34.298, km:410},
+  {name:'Kasungu District Hospital',        lat:-13.014, lng:33.487, km:467},
+  {name:'Salima District Hospital',         lat:-13.783, lng:34.459, km:511},
+  {name:'Nkhoma Mission Hospital',          lat:-14.106, lng:33.870, km:538},
+  {name:'Kamuzu Central Hospital',          lat:-13.977, lng:33.780, km:558},
+  {name:'Bwaila Hospital (Maternity)',      lat:-13.966, lng:33.787, km:560},
+  {name:'Dedza District Hospital',          lat:-14.379, lng:34.337, km:634},
+  {name:'Ntcheu District Hospital',         lat:-14.817, lng:34.774, km:699},
+  {name:'Zomba Central Hospital',           lat:-15.383, lng:35.319, km:791},
+  {name:'Queen Elizabeth Central Hospital', lat:-15.786, lng:35.005, km:840},
+  {name:'Thyolo District Hospital',         lat:-16.066, lng:35.149, km:872}
+];
+
 var simMap       = null;
 var simMarker    = null;
 var simPolyline  = null;
@@ -1388,7 +1434,7 @@ function simUpdateStatus(spd, pos) {
   document.getElementById('sim-km').textContent  = pos.km;
   document.getElementById('sim-loc').textContent = pos.name;
 
-  // Nearest custom trap distance
+  // Nearest custom trap
   var near = null, bestD = 999;
   simTraps.forEach(function(t){
     var d = simHav(pos.lat,pos.lng, t.lat,t.lng);
@@ -1396,9 +1442,28 @@ function simUpdateStatus(spd, pos) {
   });
   document.getElementById('sim-nearest-trap').textContent =
     near ? (bestD<1 ? '⚠️ ' : '') + near.name+' '+bestD.toFixed(1)+'km' : 'None';
+
+  // Nearest police station
+  var nearP = null, bestPD = 999;
+  SIM_POLICE.forEach(function(p){
+    var d = simHav(pos.lat,pos.lng, p.lat,p.lng);
+    if(d<bestPD){ bestPD=d; nearP=p; }
+  });
+  document.getElementById('sim-nearest-police').textContent =
+    nearP ? (bestPD<1 ? '🚓 ' : '') + nearP.name.replace(' Police Station','').replace(' Police Headquarters','').replace(' Police Post','') + ' ' + bestPD.toFixed(1)+'km' : '--';
+
+  // Nearest hospital
+  var nearH = null, bestHD = 999;
+  SIM_HOSPITALS.forEach(function(h){
+    var d = simHav(pos.lat,pos.lng, h.lat,h.lng);
+    if(d<bestHD){ bestHD=d; nearH=h; }
+  });
+  document.getElementById('sim-nearest-hospital').textContent =
+    nearH ? (bestHD<2 ? '🏥 ' : '') + nearH.name.replace(' District Hospital','').replace(' Central Hospital','').replace(' Mission Hospital','') + ' ' + bestHD.toFixed(1)+'km' : '--';
 }
 
 function simCheckTrapProximity(lat, lng) {
+  // Custom traps
   simTraps.forEach(function(t){
     var d = simHav(lat,lng, t.lat,t.lng);
     if(d < 0.5 && !t._alerted){
@@ -1406,6 +1471,24 @@ function simCheckTrapProximity(lat, lng) {
       showToast('⚠️ Trap ahead: '+t.name+' — '+t.limitKmh+' km/h ('+t.type+')');
     }
     if(d > 2) t._alerted = false;
+  });
+  // Police stations — alert within 1km
+  SIM_POLICE.forEach(function(p){
+    var d = simHav(lat,lng, p.lat,p.lng);
+    if(d < 1 && !p._alerted){
+      p._alerted = true;
+      showToast('🚓 Passing: '+p.name);
+    }
+    if(d > 3) p._alerted = false;
+  });
+  // Hospitals — alert within 1km
+  SIM_HOSPITALS.forEach(function(h){
+    var d = simHav(lat,lng, h.lat,h.lng);
+    if(d < 1 && !h._alerted){
+      h._alerted = true;
+      showToast('🏥 Passing: '+h.name);
+    }
+    if(d > 3) h._alerted = false;
   });
 }
 
