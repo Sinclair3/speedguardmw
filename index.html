@@ -761,6 +761,8 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 #push-banner.show{display:flex}
 .pb-icon{font-size:28px;flex-shrink:0;margin-top:2px}
+.zone-opt{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,.04);border-radius:10px;font-size:13px;color:rgba(255,255,255,.65);cursor:pointer;-webkit-tap-highlight-color:transparent}
+.zone-opt input[type=checkbox]{accent-color:#27ae60;width:18px;height:18px;flex-shrink:0}
 .pb-body{flex:1}
 .pb-title{font-size:14px;font-weight:800;color:#fff;margin-bottom:3px}
 .pb-desc{font-size:12px;color:rgba(255,255,255,.55);line-height:1.5}
@@ -4215,6 +4217,17 @@ function openSettings() {
   updatePrivacySettingsRow();
   syncToneSettings();
 
+  // Zone picker — only show if push is enabled
+  var zoneSection = document.getElementById('sp-zone-section');
+  if(zoneSection) zoneSection.style.display = (pushEnabled ? '' : 'none');
+  var savedZones = JSON.parse(lsGet('sg_push_zones')||'["north","central","south"]');
+  var zn = document.getElementById('zone-north');
+  var zc = document.getElementById('zone-central');
+  var zs = document.getElementById('zone-south');
+  if(zn) zn.checked = savedZones.indexOf('north')   > -1;
+  if(zc) zc.checked = savedZones.indexOf('central') > -1;
+  if(zs) zs.checked = savedZones.indexOf('south')   > -1;
+
   // Show SOS contact info
   var sosN = document.getElementById('sp-sos-name');
   var sosP = document.getElementById('sp-sos-num');
@@ -5363,15 +5376,43 @@ async function subscribeToPush() {
   }
 }
 
+function supaUpsert(table, data) {
+  return fetch(SUPA_URL+'/rest/v1/'+table, {
+    method: 'POST',
+    headers: {'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,
+      'Content-Type':'application/json',
+      'Prefer':'resolution=merge-duplicates,return=representation'},
+    body: JSON.stringify(data)
+  }).then(function(r){ return r.status===204?null:r.json(); }).catch(function(){ return null; });
+}
+
 function savePushSubscription(sub) {
-  if (!myId) return;
-  supaFetch('sg_push_subs', 'POST', {
+  if(!myId) return;
+  var zones = JSON.parse(lsGet('sg_push_zones')||'["north","central","south"]');
+  supaUpsert('sg_push_subs', {
     device_id: myId,
-    nickname:  myNickname || 'Anonymous',
+    nickname:  myNickname||'Anonymous',
     endpoint:  sub.endpoint,
     auth:      btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('auth')))),
-    p256dh:    btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh'))))
-  }).catch(function(){});
+    p256dh:    btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh')))),
+    zones:     zones
+  });
+}
+
+function saveZonePref() {
+  var zones = [];
+  var zn = document.getElementById('zone-north');
+  var zc = document.getElementById('zone-central');
+  var zs = document.getElementById('zone-south');
+  if(zn && zn.checked)   zones.push('north');
+  if(zc && zc.checked)   zones.push('central');
+  if(zs && zs.checked)   zones.push('south');
+  if(zones.length === 0) { zones = ['north','central','south']; if(zn)zn.checked=true; if(zc)zc.checked=true; if(zs)zs.checked=true; }
+  lsSet('sg_push_zones', JSON.stringify(zones));
+  if(pushSubscription && myId) {
+    supaFetch('sg_push_subs?device_id=eq.'+myId, 'PATCH', {zones:zones}).catch(function(){});
+  }
+  showToast('📍 Zone preference saved');
 }
 
 // ── SEND NOTIFICATION ──
@@ -6913,6 +6954,21 @@ function showNavBtn(show) {
         <input type="checkbox" id="tog-night" onchange="settingChanged('night',this.checked)">
         <span class="sg-slider"></span>
       </label>
+    </div>
+  </div>
+
+  <!-- PUSH NOTIFICATION ZONES -->
+  <div class="sp-section" id="sp-zone-section" style="display:none">
+    <div class="sp-section-label">Push Notification Zones</div>
+    <div class="sp-row" style="padding-bottom:6px">
+      <div class="sp-row-info">
+        <div class="sp-row-desc">Choose which stretches of M1 you drive. You'll only receive trap alerts for those zones.</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:4px">
+      <label class="zone-opt"><input type="checkbox" id="zone-north"   onchange="saveZonePref()"> 🟢 Northern &nbsp;·&nbsp; Songwe → Nkhotakota (km 0–400)</label>
+      <label class="zone-opt"><input type="checkbox" id="zone-central" onchange="saveZonePref()"> 🟡 Central &nbsp;·&nbsp; Nkhotakota → Ntcheu (km 400–700)</label>
+      <label class="zone-opt"><input type="checkbox" id="zone-south"   onchange="saveZonePref()"> 🔴 Southern &nbsp;·&nbsp; Ntcheu → Mozambique (km 700–960)</label>
     </div>
   </div>
 
