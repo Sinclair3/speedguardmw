@@ -4872,9 +4872,12 @@ function applyDevGps() {
   localStorage.setItem('sg_sim_lng',    p.lng);
   localStorage.setItem('sg_sim_speed',  spd);
   localStorage.setItem('sg_sim_zone',   _devGpsPreset);
+  // Force driving-lock off — can't test with controls greyed out
+  document.body.classList.remove('driving-lock');
+  drivingLockActive = false;
   closeDevGps();
   var chip = document.getElementById('sim-chip');
-  if (chip) chip.style.display = 'inline';
+  if (chip) { chip.style.display = 'inline'; chip.title = 'Tap to exit simulation'; chip.onclick = clearDevGps; }
   if (!isTracking) startGPS();
   showToast('🧪 Simulating ' + p.label + ' at ' + spd + ' km/h');
 }
@@ -4891,7 +4894,7 @@ function clearDevGps() {
     if (el) el.classList.remove('active-preset');
   });
   var chip = document.getElementById('sim-chip');
-  if (chip) chip.style.display = 'none';
+  if (chip) { chip.style.display = 'none'; chip.title = ''; chip.onclick = openDevGps; }
   closeDevGps();
   if (isTracking) stopGPS();
   showToast('🧪 Simulation cleared — real GPS restored');
@@ -5605,13 +5608,13 @@ var DRIVING_LOCK_SPEED = 50; // km/h threshold
 var DRIVING_UNLOCK_SPEED = 30; // km/h to unlock (hysteresis)
 
 function updateDrivingLock(spd) {
+  if (localStorage.getItem('sg_sim_active') === '1') return; // never lock in sim mode
   var shouldLock = spd >= DRIVING_LOCK_SPEED;
   var shouldUnlock = spd < DRIVING_UNLOCK_SPEED;
 
   if (shouldLock && !drivingLockActive) {
     drivingLockActive = true;
     document.body.classList.add('driving-lock');
-    // Close any open panels when lock engages
     closeLive();
     closeSettings();
   } else if (shouldUnlock && drivingLockActive) {
