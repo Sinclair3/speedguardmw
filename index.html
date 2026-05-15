@@ -1314,6 +1314,8 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
     <button class="btn-fuel" onclick="openFuel()" title="Fuel stations">⛽</button>
     <button class="btn-fuel" onclick="openPolice()" title="Police stations" style="border-color:rgba(41,128,185,.4);color:#7fb3d3">🚓</button>
     <button class="btn-fuel" onclick="openHospital()" title="Hospitals" style="border-color:rgba(192,57,43,.4);color:#e74c3c">🏥</button>
+    <button class="btn-fuel" onclick="openBreakdown()" title="Breakdown &amp; towing" style="border-color:rgba(241,196,15,.4);color:#f1c40f">🔧</button>
+    <button class="btn-fuel" onclick="shareLocationWhatsApp()" title="Share location via WhatsApp" style="border-color:rgba(37,211,102,.4);color:#25d366">📤</button>
     <button class="btn-sm" id="btn-chat-bottom" onclick="openChat()" title="Road chat" style="border-color:rgba(39,174,96,.28);color:#5ddb8a;position:relative">
       💬<span id="chat-badge-bottom" style="display:none;position:absolute;top:-5px;right:-5px;background:#e74c3c;color:#fff;font-size:9px;font-weight:800;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;border:1.5px solid #0a0f14">0</span>
     </button>
@@ -1356,6 +1358,22 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div class="fp-list" id="pp-list">
     <div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">
       Start GPS to see distances<br>to each police station.
+    </div>
+  </div>
+</div>
+
+<!-- BREAKDOWN PANEL -->
+<div id="breakdown-panel" style="display:none;position:fixed;inset:0;z-index:3500;background:rgba(0,0,0,.85);backdrop-filter:blur(8px);flex-direction:column">
+  <div class="fp-hdr">
+    <div>
+      <div class="fp-title">🔧 Breakdown & Towing — M1</div>
+      <div class="fp-sub" id="bk-sub">Nearest service shown first</div>
+    </div>
+    <button class="fp-x" onclick="closeBreakdown()">✕</button>
+  </div>
+  <div class="fp-list" id="bk-list">
+    <div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">
+      Start GPS to see distances<br>to each service.
     </div>
   </div>
 </div>
@@ -2319,7 +2337,7 @@ function updateUI(lat,lng,spd){
   // ── Score tracking ──
   if(spdr > 5) {
     _scorePings++;
-    var _lim = getSpeedLimitAtKm(Math.round(latProg(lat)/100*1140)).limit;
+    var _lim = getEffectiveSpeedLimit(lat, lng).limit;
     if(spdr > _lim) _scoreOver++;
     if(_scorePings % 20 === 0) {
       lsSet('sg_score_pings', _scorePings);
@@ -2642,6 +2660,15 @@ function closeLive(){
 // speed limit, type, timestamp. It expires in 2 hours
 // because mobile police units don't wait around.
 // ═══════════════════════════════════════════════════════
+function shareLocationWhatsApp() {
+  if(!curLat) { showToast('📍 Start GPS first to share your location'); return; }
+  var place = nearestPlace(curLat, curLng);
+  var km    = Math.round(latProg(curLat) / 100 * 1140);
+  var link  = 'https://maps.google.com/?q=' + curLat.toFixed(5) + ',' + curLng.toFixed(5);
+  var msg   = '📍 I\'m at km ' + km + ' on M1 near ' + place + '.\n' + link;
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
+
 function openReport(){
   // You literally cannot report where a trap is if you don't know where YOU are.
   // This is basic logic. And also now enforced in code.
@@ -2739,6 +2766,7 @@ function launchApp(){
   renderSchoolMarkers();
   renderPoliceMarkers();
   renderHospitalMarkers();
+  renderBreakdownMarkers();
   fetchWeatherInitial();
   logSession();
   registerServiceWorker();
@@ -3341,6 +3369,25 @@ var HOSPITALS_M1 = [
   {id:'h17', name:'Thyolo District Hospital',          lat:-16.066, lng:35.149, km:872, phone:'+265 1 473 288', type:'district'}
 ];
 
+// ── BREAKDOWN & TOWING SERVICES ALONG M1 ──
+var BREAKDOWN_M1 = [
+  {id:'bk1',  name:'Karonga Auto Garage',           lat:-9.933,  lng:33.975, km:50,  phone:'+265 1 362 555', type:'garage'},
+  {id:'bk2',  name:'Mzuzu Towing & Recovery',       lat:-11.455, lng:34.022, km:269, phone:'+265 888 332 000', type:'towing'},
+  {id:'bk3',  name:'Mzuzu Auto Repairs',            lat:-11.460, lng:34.018, km:268, phone:'+265 1 332 555', type:'garage'},
+  {id:'bk4',  name:'Nkhotakota Roadside Assist',    lat:-12.928, lng:34.292, km:410, phone:'+265 999 292 111', type:'towing'},
+  {id:'bk5',  name:'Kasungu Auto Workshop',         lat:-13.015, lng:33.490, km:468, phone:'+265 1 253 555', type:'garage'},
+  {id:'bk6',  name:'Salima Vehicle Repairs',        lat:-13.787, lng:34.455, km:512, phone:'+265 1 262 555', type:'garage'},
+  {id:'bk7',  name:'Toyota Malawi — Lilongwe',      lat:-13.966, lng:33.791, km:558, phone:'+265 1 751 888', type:'dealer'},
+  {id:'bk8',  name:'RAM Towing — Lilongwe',         lat:-13.970, lng:33.785, km:560, phone:'+265 1 757 999', type:'towing'},
+  {id:'bk9',  name:'CMC Motors — Lilongwe',         lat:-13.972, lng:33.782, km:561, phone:'+265 1 751 100', type:'dealer'},
+  {id:'bk10', name:'Dedza Roadside Garage',         lat:-14.382, lng:34.340, km:636, phone:'+265 1 223 555', type:'garage'},
+  {id:'bk11', name:'Ntcheu Vehicle Repairs',        lat:-14.818, lng:34.777, km:701, phone:'+265 1 243 555', type:'garage'},
+  {id:'bk12', name:'Liwonde Auto Services',         lat:-15.062, lng:35.230, km:746, phone:'+265 1 542 555', type:'garage'},
+  {id:'bk13', name:'MOTOKA Recovery — Blantyre',    lat:-15.790, lng:35.008, km:841, phone:'+265 1 820 999', type:'towing'},
+  {id:'bk14', name:'Toyota Malawi — Blantyre',      lat:-15.784, lng:35.001, km:840, phone:'+265 1 822 888', type:'dealer'},
+  {id:'bk15', name:'Murray & Roberts — Blantyre',   lat:-15.795, lng:35.012, km:842, phone:'+265 1 824 555', type:'garage'}
+];
+
 // Leaflet markers for fuel stations
 var fuelMarkers = {};
 function fuelIcon(station, dist) {
@@ -3594,6 +3641,86 @@ function renderHospitalList() {
   });
 }
 
+// ══════════════════════════════════════
+// BREAKDOWN & TOWING MAP LAYER
+// ══════════════════════════════════════
+var breakdownMarkers = {};
+function renderBreakdownMarkers() {
+  var show = lsGet('sg_set_breakdown') !== '0'; // default ON
+  var typeCol = {towing:'#f39c12', garage:'#27ae60', dealer:'#3498db'};
+  var typeIcon = {towing:'🚛', garage:'🔧', dealer:'🏭'};
+  BREAKDOWN_M1.forEach(function(b){
+    if(breakdownMarkers[b.id]) return;
+    var col  = typeCol[b.type]  || '#f39c12';
+    var icon = typeIcon[b.type] || '🔧';
+    var m = L.marker([b.lat, b.lng], {
+      icon: L.divIcon({
+        html:'<div style="background:'+col+';border-radius:6px;padding:2px 5px;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.6);border:1.5px solid rgba(255,255,255,.4)">'+icon+'</div>',
+        className:'', iconAnchor:[12,12]
+      }),
+      zIndexOffset:-110
+    }).addTo(map);
+    var typeLabel = b.type==='towing'?'Towing & Recovery':b.type==='dealer'?'Vehicle Dealer':'Auto Garage';
+    var navBtn='<br><button onclick="navToFromPopup('+b.lat+','+b.lng+',\''+b.name.replace(/'/g,"\\'")+"',"+b.km+')" style="margin-top:6px;padding:5px 12px;border-radius:8px;background:'+col+';color:#fff;border:none;font-size:11px;font-weight:700;cursor:pointer;width:100%">🗺️ Navigate Here</button>';
+    m.bindPopup('<b>'+icon+' '+b.name+'</b><br><span style="color:'+col+'">'+typeLabel+'</span><br><span style="color:#7fb3d3">📞 '+b.phone+'</span><br><small style="color:rgba(255,255,255,.4)">km '+b.km+' along M1</small>'+navBtn);
+    breakdownMarkers[b.id] = m;
+    if(!show) map.removeLayer(m);
+  });
+}
+
+function openBreakdown() {
+  document.getElementById('breakdown-panel').style.display = 'flex';
+  renderBreakdownList();
+}
+function closeBreakdown() {
+  document.getElementById('breakdown-panel').style.display = 'none';
+}
+function renderBreakdownList() {
+  var el  = document.getElementById('bk-list');
+  var sub = document.getElementById('bk-sub');
+  var sorted = BREAKDOWN_M1.map(function(b){
+    var d = curLat !== null ? hav(curLat,curLng,b.lat,b.lng) : null;
+    return Object.assign({},b,{dist:d});
+  }).sort(function(a,b){
+    if(a.dist!==null && b.dist!==null) return a.dist-b.dist;
+    return a.km-b.km;
+  });
+  if(sub) sub.textContent = curLat
+    ? sorted.length+' services · sorted by distance'
+    : sorted.length+' services · start GPS for distances';
+  el.innerHTML = '';
+  var typeCol  = {towing:'#f39c12', garage:'#27ae60', dealer:'#3498db'};
+  var typeIcon = {towing:'🚛', garage:'🔧', dealer:'🏭'};
+  var typeLabel= {towing:'Towing & Recovery', garage:'Auto Garage', dealer:'Vehicle Dealer'};
+  sorted.forEach(function(b){
+    var ds = b.dist!==null
+      ? (b.dist<1 ? Math.round(b.dist*1000)+' m' : b.dist.toFixed(1)+' km')
+      : 'km '+b.km;
+    var col  = typeCol[b.type]  || '#f39c12';
+    var ico  = typeIcon[b.type] || '🔧';
+    var lbl  = typeLabel[b.type]|| 'Auto Garage';
+    var card = document.createElement('div');
+    card.className = 'fcard';
+    card.innerHTML =
+      '<div class="fcard-top">'
+        +'<div class="fcard-name">'+ico+' '+b.name+'</div>'
+        +'<div class="fcard-dist">'+ds+'</div>'
+      +'</div>'
+      +'<div class="fcard-brand" style="color:'+col+'">'+lbl+'</div>'
+      +'<div class="fcard-brand" style="color:#7fb3d3;margin-top:2px">📞 '+b.phone+'</div>'
+      +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px">'
+        +'<div class="fcard-km">km '+b.km+' along M1</div>'
+        +'<button class="svc-nav-btn" onclick="event.stopPropagation();navigateTo({name:\''+b.name.replace(/'/g,"\\'")+"',lat:"+b.lat+',lng:'+b.lng+',km:'+b.km+'})" style="background:rgba(241,196,15,.15);border-color:rgba(241,196,15,.4);color:#f1c40f">🗺️ Navigate</button>'
+      +'</div>';
+    card.onclick = function(){
+      map.setView([b.lat,b.lng],15);
+      if(breakdownMarkers[b.id]) breakdownMarkers[b.id].openPopup();
+      closeBreakdown();
+    };
+    el.appendChild(card);
+  });
+}
+
 function nearestPolice(lat, lng) {
   if(!lat) return null;
   return POLICE_STATIONS_M1.map(function(p){
@@ -3607,7 +3734,7 @@ function navigateTo(place) {
   tripStartLat = curLat; tripStartLng = curLng;
   arrivedShown = false;
   if(curLat) tripStartDist = hav(curLat, curLng, place.lat, place.lng);
-  closePolice(); closeHospital();
+  closePolice(); closeHospital(); closeBreakdown();
   showJourneyBar();
   if(!isTracking) actuallyStartGPS();
   showToast('🏁 Navigating to ' + place.name);
@@ -3899,7 +4026,8 @@ var sgSettings = {
   fuel:      lsGet('sg_set_fuel')      === '1', // default OFF — opt in
   schools:   lsGet('sg_set_schools')   === '1', // default OFF — opt in
   police:    lsGet('sg_set_police')    !== '0', // default ON — safety feature
-  hospitals: lsGet('sg_set_hospitals') !== '0', // default ON — emergency services
+  hospitals:  lsGet('sg_set_hospitals')  !== '0', // default ON — emergency services
+  breakdown:  lsGet('sg_set_breakdown')  !== '0', // default ON — roadside help
   traps:    lsGet('sg_set_traps')    !== '0',
   live:     lsGet('sg_set_live')     === '1', // DEFAULT: private (opt-in to live)
   audio:    lsGet('sg_audio')        !== '0',
@@ -3915,7 +4043,8 @@ function openSettings() {
   document.getElementById('tog-fuel').checked     = sgSettings.fuel;
   document.getElementById('tog-schools').checked    = sgSettings.schools;
   document.getElementById('tog-police').checked     = sgSettings.police;
-  document.getElementById('tog-hospitals').checked  = sgSettings.hospitals;
+  document.getElementById('tog-hospitals').checked   = sgSettings.hospitals;
+  document.getElementById('tog-breakdown').checked   = sgSettings.breakdown;
   document.getElementById('tog-traps').checked    = sgSettings.traps;
   document.getElementById('tog-live').checked     = sgSettings.live;
   document.getElementById('tog-audio').checked    = sgSettings.audio;
@@ -3980,6 +4109,14 @@ function settingChanged(key, val) {
       val ? map.addLayer(m) : map.removeLayer(m);
     });
     showToast(val ? '🏥 Hospitals shown' : '🏥 Hospitals hidden');
+  }
+
+  if (key === 'breakdown') {
+    lsSet('sg_set_breakdown', val ? '1' : '0');
+    Object.values(breakdownMarkers).forEach(function(m){
+      val ? map.addLayer(m) : map.removeLayer(m);
+    });
+    showToast(val ? '🔧 Breakdown services shown' : '🔧 Breakdown services hidden');
   }
 
   if (key === 'traps') {
@@ -5368,6 +5505,22 @@ function renderResults(builtIn, online, query) {
   if(!el) return;
   el.innerHTML = '';
 
+  // Section: Recent destinations (shown when search box is empty)
+  if(!query) {
+    var hist = getDestHistory();
+    if(hist.length > 0) {
+      var recHdr = document.createElement('div');
+      recHdr.className = 'dest-section-hdr';
+      recHdr.textContent = '🕐 Recent';
+      el.appendChild(recHdr);
+      hist.forEach(function(p){ el.appendChild(makeResultRow(p)); });
+      var divider = document.createElement('div');
+      divider.className = 'dest-section-hdr';
+      divider.textContent = 'M1 Road Places';
+      el.appendChild(divider);
+    }
+  }
+
   // Sort built-in by distance from driver if GPS available
   if(curLat) {
     builtIn.sort(function(a,b) {
@@ -5428,8 +5581,21 @@ function makeResultRow(p) {
   return div;
 }
 
+// ── DESTINATION HISTORY ──
+function saveDestHistory(place) {
+  var hist = JSON.parse(lsGet('sg_dest_history') || '[]');
+  hist = hist.filter(function(h){ return h.name !== place.name; }); // dedup
+  hist.unshift({name:place.name, lat:place.lat, lng:place.lng, km:place.km||0, icon:place.icon||'📍'});
+  if(hist.length > 5) hist.pop();
+  lsSet('sg_dest_history', JSON.stringify(hist));
+}
+function getDestHistory() {
+  return JSON.parse(lsGet('sg_dest_history') || '[]');
+}
+
 // ── SELECT A DESTINATION ──
 function selectDestination(place) {
+  saveDestHistory(place);
   tripDest      = place;
   tripStartLat  = curLat;
   tripStartLng  = curLng;
@@ -6175,6 +6341,27 @@ function getSpeedLimitAtKm(km) {
   return {limit:80, zone:'Open Highway'}; // default between zones
 }
 
+// School-zone override: returns 40 km/h when within 0.5 km of a school.
+// Falls back to the standard M1 speed zone table otherwise.
+var _inSchoolZone = false;
+function getEffectiveSpeedLimit(lat, lng) {
+  if(sgSettings.schools && lat && lng) {
+    for(var i=0; i<SCHOOLS_M1.length; i++){
+      var s = SCHOOLS_M1[i];
+      if(hav(lat, lng, s.lat, s.lng) < 0.5){
+        if(!_inSchoolZone){
+          _inSchoolZone = true;
+          showToast('🏫 School Zone — 40 km/h');
+          speak('School zone. Reduce speed to 40 kilometres per hour.', 1.0);
+        }
+        return {limit:40, zone:'🏫 School Zone'};
+      }
+    }
+  }
+  _inSchoolZone = false;
+  return getSpeedLimitAtKm(Math.round(latProg(lat)/100*1140));
+}
+
 /**
  * toggleNavMode()
  * Switches between standard view and navigation HUD.
@@ -6214,7 +6401,7 @@ function updateNavHUD(lat, lng, spd) {
 
   // ── Big speed number ──
   var spdEl = document.getElementById('nav-spd');
-  var zone  = getSpeedLimitAtKm(kmPos);
+  var zone  = getEffectiveSpeedLimit(lat, lng);
   if(spdEl) {
     spdEl.textContent = spdr;
     spdEl.className   = 'nav-speed-num' + (spdr > zone.limit ? ' over' : '');
@@ -6264,6 +6451,11 @@ function updateNavHUD(lat, lng, spd) {
   if(sgSettings.hospitals) HOSPITALS_M1.forEach(function(h){
     var d = hav(lat,lng,h.lat,h.lng);
     if(d < 20 && d > 0.1 && isAhead(h.lat,h.lng)) items.push({type:'hospital', name:h.name, dist:d, phone:h.phone, icon:'🏥'});
+  });
+  if(sgSettings.breakdown) BREAKDOWN_M1.forEach(function(b){
+    var d = hav(lat,lng,b.lat,b.lng);
+    var ico = b.type==='towing'?'🚛':b.type==='dealer'?'🏭':'🔧';
+    if(d < 10 && d > 0.1 && isAhead(b.lat,b.lng)) items.push({type:'breakdown', name:b.name, dist:d, phone:b.phone, icon:ico});
   });
   M1_PLACES.filter(function(p){ return p.km >= 0; }).forEach(function(p){
     var d = hav(lat,lng,p.lat,p.lng);
@@ -6434,6 +6626,17 @@ function showNavBtn(show) {
       </div>
       <label class="sg-toggle">
         <input type="checkbox" id="tog-hospitals" checked onchange="settingChanged('hospitals',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">🔧 Breakdown &amp; Towing</div>
+        <div class="sp-row-desc">Show garages, towing and dealers — navigate to nearest help</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-breakdown" checked onchange="settingChanged('breakdown',this.checked)">
         <span class="sg-slider"></span>
       </label>
     </div>

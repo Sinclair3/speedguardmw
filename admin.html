@@ -536,6 +536,8 @@ create policy "Anyone can update" on sg_admin_config for update using (true);</p
       <div class="sim-stat"><div class="sim-stat-val" id="sim-nearest-trap" style="font-size:11px;color:#f39c12">None</div><div class="sim-stat-lbl">Nearest Trap</div></div>
       <div class="sim-stat"><div class="sim-stat-val" id="sim-nearest-police" style="font-size:11px;color:#7fb3d3">--</div><div class="sim-stat-lbl">Nearest Police</div></div>
       <div class="sim-stat"><div class="sim-stat-val" id="sim-nearest-hospital" style="font-size:11px;color:#e74c3c">--</div><div class="sim-stat-lbl">Nearest Hospital</div></div>
+      <div class="sim-stat"><div class="sim-stat-val" id="sim-school-zone" style="font-size:11px;color:#27ae60">Clear</div><div class="sim-stat-lbl">School Zone</div></div>
+      <div class="sim-stat"><div class="sim-stat-val" id="sim-nearest-breakdown" style="font-size:11px;color:#f1c40f">--</div><div class="sim-stat-lbl">Nearest Garage</div></div>
     </div>
 
     <!-- Mini Leaflet map -->
@@ -1257,6 +1259,43 @@ var SIM_HOSPITALS = [
   {name:'Thyolo District Hospital',         lat:-16.066, lng:35.149, km:872}
 ];
 
+// Schools along M1 (for school zone speed override testing)
+var SIM_SCHOOLS = [
+  {name:'Karonga Community Day Secondary', lat:-9.935,  lng:33.981, km:50},
+  {name:'Rumphi Secondary School',         lat:-10.870, lng:33.853, km:150},
+  {name:'Mzuzu International School',      lat:-11.455, lng:34.015, km:268},
+  {name:'Luwinga Secondary School',        lat:-11.835, lng:34.052, km:285},
+  {name:'Nkhotakota Secondary School',     lat:-12.922, lng:34.302, km:410},
+  {name:'Salima Secondary School',         lat:-13.782, lng:34.458, km:512},
+  {name:'Kamuzu Academy — Mtunthama',      lat:-13.770, lng:33.875, km:540},
+  {name:'Lilongwe Girls Secondary',        lat:-13.965, lng:33.785, km:558},
+  {name:'Capital City International',      lat:-13.972, lng:33.792, km:562},
+  {name:'St. Peters Secondary — Lilongwe', lat:-13.980, lng:33.800, km:565},
+  {name:'Dedza Secondary School',          lat:-14.382, lng:34.338, km:636},
+  {name:'Ntcheu Secondary School',         lat:-14.820, lng:34.778, km:700},
+  {name:'Balaka Secondary School',         lat:-14.985, lng:34.958, km:722},
+  {name:'Liwonde Secondary School',        lat:-15.062, lng:35.232, km:746},
+  {name:'Zomba Catholic Secondary',        lat:-15.385, lng:35.320, km:790},
+  {name:'Henry Henderson Institute',       lat:-15.792, lng:35.008, km:842},
+  {name:'Thyolo Secondary School',         lat:-16.068, lng:35.150, km:871}
+];
+
+// Breakdown & towing services (mirrored from index.html)
+var SIM_BREAKDOWN = [
+  {name:'Karonga Auto Garage',          lat:-9.933,  lng:33.975, km:50,  type:'garage'},
+  {name:'Mzuzu Towing & Recovery',      lat:-11.455, lng:34.022, km:269, type:'towing'},
+  {name:'Mzuzu Auto Repairs',           lat:-11.460, lng:34.018, km:268, type:'garage'},
+  {name:'Nkhotakota Roadside Assist',   lat:-12.928, lng:34.292, km:410, type:'towing'},
+  {name:'Kasungu Auto Workshop',        lat:-13.015, lng:33.490, km:468, type:'garage'},
+  {name:'Salima Vehicle Repairs',       lat:-13.787, lng:34.455, km:512, type:'garage'},
+  {name:'Toyota Malawi — Lilongwe',     lat:-13.966, lng:33.791, km:558, type:'dealer'},
+  {name:'RAM Towing — Lilongwe',        lat:-13.970, lng:33.785, km:560, type:'towing'},
+  {name:'Dedza Roadside Garage',        lat:-14.382, lng:34.340, km:636, type:'garage'},
+  {name:'Ntcheu Vehicle Repairs',       lat:-14.818, lng:34.777, km:701, type:'garage'},
+  {name:'MOTOKA Recovery — Blantyre',   lat:-15.790, lng:35.008, km:841, type:'towing'},
+  {name:'Toyota Malawi — Blantyre',     lat:-15.784, lng:35.001, km:840, type:'dealer'}
+];
+
 var simMap       = null;
 var simMarker    = null;
 var simPolyline  = null;
@@ -1460,6 +1499,31 @@ function simUpdateStatus(spd, pos) {
   });
   document.getElementById('sim-nearest-hospital').textContent =
     nearH ? (bestHD<2 ? '🏥 ' : '') + nearH.name.replace(' District Hospital','').replace(' Central Hospital','').replace(' Mission Hospital','') + ' ' + bestHD.toFixed(1)+'km' : '--';
+
+  // School zone detection
+  var inSchool = null;
+  SIM_SCHOOLS.forEach(function(s){
+    var d = simHav(pos.lat,pos.lng, s.lat,s.lng);
+    if(d < 0.5) inSchool = s;
+  });
+  var szEl = document.getElementById('sim-school-zone');
+  if(inSchool){
+    szEl.textContent = '🏫 40km/h';
+    szEl.style.color = '#e74c3c';
+  } else {
+    szEl.textContent = 'Clear';
+    szEl.style.color = '#27ae60';
+  }
+
+  // Nearest breakdown service
+  var nearB = null, bestBD = 999;
+  SIM_BREAKDOWN.forEach(function(b){
+    var d = simHav(pos.lat,pos.lng, b.lat,b.lng);
+    if(d<bestBD){ bestBD=d; nearB=b; }
+  });
+  var bIco = nearB ? (nearB.type==='towing'?'🚛':nearB.type==='dealer'?'🏭':'🔧') : '';
+  document.getElementById('sim-nearest-breakdown').textContent =
+    nearB ? (bestBD<1 ? bIco+' ' : '') + nearB.name.split(' — ')[0] + ' ' + bestBD.toFixed(1)+'km' : '--';
 }
 
 function simCheckTrapProximity(lat, lng) {
@@ -1475,20 +1539,31 @@ function simCheckTrapProximity(lat, lng) {
   // Police stations — alert within 1km
   SIM_POLICE.forEach(function(p){
     var d = simHav(lat,lng, p.lat,p.lng);
-    if(d < 1 && !p._alerted){
-      p._alerted = true;
-      showToast('🚓 Passing: '+p.name);
-    }
+    if(d < 1 && !p._alerted){ p._alerted=true; showToast('🚓 Passing: '+p.name); }
     if(d > 3) p._alerted = false;
   });
   // Hospitals — alert within 1km
   SIM_HOSPITALS.forEach(function(h){
     var d = simHav(lat,lng, h.lat,h.lng);
-    if(d < 1 && !h._alerted){
-      h._alerted = true;
-      showToast('🏥 Passing: '+h.name);
-    }
+    if(d < 1 && !h._alerted){ h._alerted=true; showToast('🏥 Passing: '+h.name); }
     if(d > 3) h._alerted = false;
+  });
+  // School zones — warn on entry (0.5km radius), enforce 40 km/h
+  SIM_SCHOOLS.forEach(function(s){
+    var d = simHav(lat,lng, s.lat,s.lng);
+    if(d < 0.5 && !s._alerted){
+      s._alerted = true;
+      var spd = parseInt(document.getElementById('sim-speed').value)||60;
+      showToast('🏫 School Zone: '+s.name+' — limit 40 km/h'+(spd>40?' ⚠️ Over limit!':''));
+    }
+    if(d > 1.5) s._alerted = false;
+  });
+  // Breakdown services — info toast within 0.5km
+  SIM_BREAKDOWN.forEach(function(b){
+    var d = simHav(lat,lng, b.lat,b.lng);
+    var ico = b.type==='towing'?'🚛':b.type==='dealer'?'🏭':'🔧';
+    if(d < 0.5 && !b._alerted){ b._alerted=true; showToast(ico+' Passing: '+b.name); }
+    if(d > 2) b._alerted = false;
   });
 }
 
