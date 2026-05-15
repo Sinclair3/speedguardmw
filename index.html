@@ -2399,8 +2399,8 @@ function triggerAudio(newStatus,trap,ds,spdr){
   if(!audioEnabled||!speechSupported)return;
   lastAlertStatus=newStatus;var now=Date.now();
   if(newStatus==='critical'){if(changed||now-lastSpokenAt>6000)speak('Slow down! '+spdr+' kilometres per hour in a '+trap.limit+' zone. '+trap.name+', '+ds+' ahead.',1.1);}
-  else if(newStatus==='danger'){if(changed||now-lastSpokenAt>10000)speak('Road alert ahead. '+trap.name+'. '+ds+' away. Limit '+trap.limit+' kilometres per hour.',1.0);}
-  else if(newStatus==='warning'){if(changed)speak('Caution. Road alert in '+ds+'. Reduce to '+trap.limit+' kilometres per hour.',1.0);}
+  else if(newStatus==='danger'){if(changed||now-lastSpokenAt>10000)speak('Speed trap ahead. '+trap.name+'. '+ds+' away. Limit '+trap.limit+' kilometres per hour.',1.0);}
+  else if(newStatus==='warning'){if(changed)speak('Caution. Speed trap in '+ds+'. Reduce to '+trap.limit+' kilometres per hour.',1.0);}
 }
 function primeAudio(){if(!speechSupported||!audioEnabled)return;var u=new SpeechSynthesisUtterance(' ');u.volume=0;window.speechSynthesis.speak(u);}
 
@@ -5693,7 +5693,13 @@ function saveZonePref() {
   if(pushSubscription && myId) {
     supaFetch('sg_push_subs?device_id=eq.'+myId, 'PATCH', {zones:zones}).catch(function(){});
   }
-  showToast('📍 Zone preference saved');
+  // Auto-switch chat region to match zone selection
+  if(zones.length === 1) {
+    selectChatRegion(zones[0]);
+    showToast('📍 Zone saved — chat switched to ' + (REGION_LABEL[zones[0]] || zones[0]));
+  } else {
+    showToast('📍 Zone preference saved');
+  }
 }
 
 // ── SEND NOTIFICATION ──
