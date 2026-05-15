@@ -1136,6 +1136,31 @@ body.offline #hdr{padding-top:calc(env(safe-area-inset-top,12px) + 26px)}
 .sp-link{font-size:12px;color:#27ae60;cursor:pointer;text-decoration:underline;
   text-underline-offset:2px}
 
+/* ── DEV GPS SIMULATOR ── */
+#dev-gps-sheet{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.75);display:none;align-items:flex-end;justify-content:center}
+#dev-gps-sheet.open{display:flex}
+.dgps-card{width:min(420px,100%);background:#0f1923;border-radius:18px 18px 0 0;border:1px solid rgba(255,165,0,.25);border-bottom:none;padding:20px 20px calc(20px + env(safe-area-inset-bottom,0px));max-height:80vh;overflow-y:auto}
+.dgps-handle{width:36px;height:4px;background:rgba(255,165,0,.3);border-radius:2px;margin:0 auto 16px}
+.dgps-title{font-size:15px;font-weight:800;color:#ffa500;margin-bottom:4px}
+.dgps-sub{font-size:12px;color:rgba(255,255,255,.4);margin-bottom:18px;line-height:1.5}
+.dgps-presets{display:flex;flex-direction:column;gap:10px;margin-bottom:18px}
+.dgps-preset{display:flex;align-items:center;gap:14px;padding:14px 16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;cursor:pointer;transition:.15s;-webkit-tap-highlight-color:transparent}
+.dgps-preset:active{background:rgba(255,165,0,.1);border-color:rgba(255,165,0,.35)}
+.dgps-preset.active-preset{background:rgba(255,165,0,.08);border-color:rgba(255,165,0,.4)}
+.dgps-preset-icon{font-size:22px;flex-shrink:0}
+.dgps-preset-info{flex:1}
+.dgps-preset-name{font-size:13px;font-weight:700;color:#fff}
+.dgps-preset-loc{font-size:11px;color:rgba(255,255,255,.38);margin-top:2px}
+.dgps-preset-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px}
+.dgps-speed-row{margin-bottom:18px}
+.dgps-speed-label{font-size:11px;color:rgba(255,255,255,.4);margin-bottom:8px;display:flex;justify-content:space-between}
+.dgps-speed-label span{color:#ffa500;font-weight:700}
+.dgps-slider{width:100%;accent-color:#ffa500;height:4px}
+.dgps-btns{display:flex;gap:10px}
+.dgps-btn-apply{flex:1;padding:13px;background:linear-gradient(135deg,#c47a00,#ffa500);border:none;border-radius:12px;color:#000;font-size:14px;font-weight:800;cursor:pointer}
+.dgps-btn-clear{padding:13px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:rgba(255,255,255,.5);font-size:13px;font-weight:700;cursor:pointer}
+#sim-chip{display:none;background:rgba(255,165,0,.15);border:1px solid rgba(255,165,0,.4);color:#ffa500;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:800;cursor:pointer;letter-spacing:.03em}
+
 /* ── ABOUT PANEL ── */
 #about-panel{position:fixed;inset:0;z-index:3500;background:rgba(8,12,18,.98);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:none;flex-direction:column;overflow-y:auto}
 #about-panel.open{display:flex}
@@ -1331,6 +1356,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
       <span id="wx-hdr" style="display:none">🌤️ <span id="wx-temp">--</span>°C</span>
       &nbsp;·&nbsp;
       <span id="hdr-clock" style="font-size:10px;font-weight:600;color:rgba(255,255,255,.55);letter-spacing:.03em">--:-- AM</span>
+      &nbsp;<span id="sim-chip" onclick="openDevGps()">🧪 SIM</span>
     </div>
   </div>
   <div class="hdr-btns">
@@ -1474,6 +1500,50 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
         <div class="svc-tile-icon">ℹ️</div>
         <div class="svc-tile-label">About Pansewu</div>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- DEV GPS SIMULATOR SHEET -->
+<div id="dev-gps-sheet" onclick="if(event.target===this)closeDevGps()">
+  <div class="dgps-card">
+    <div class="dgps-handle"></div>
+    <div class="dgps-title">🧪 Dev GPS Simulator</div>
+    <div class="dgps-sub">Pick a location on the M1 to simulate. The app will behave as if you're physically there — chat region, proximity alerts, driver filter, everything.</div>
+    <div class="dgps-presets">
+      <div class="dgps-preset" id="dgps-north" onclick="selectDevPreset('north')">
+        <div class="dgps-preset-icon">🔵</div>
+        <div class="dgps-preset-info">
+          <div class="dgps-preset-name">Northern M1</div>
+          <div class="dgps-preset-loc">Near Mzuzu · km ~300 · lat -11.45, lng 34.01</div>
+        </div>
+        <div class="dgps-preset-badge" style="background:rgba(52,152,219,.2);color:#7fb3d3">North</div>
+      </div>
+      <div class="dgps-preset" id="dgps-central" onclick="selectDevPreset('central')">
+        <div class="dgps-preset-icon">🟡</div>
+        <div class="dgps-preset-info">
+          <div class="dgps-preset-name">Central M1</div>
+          <div class="dgps-preset-loc">Near Lilongwe · km ~530 · lat -13.97, lng 33.78</div>
+        </div>
+        <div class="dgps-preset-badge" style="background:rgba(243,156,18,.2);color:#f8c060">Central</div>
+      </div>
+      <div class="dgps-preset" id="dgps-south" onclick="selectDevPreset('south')">
+        <div class="dgps-preset-icon">🔴</div>
+        <div class="dgps-preset-info">
+          <div class="dgps-preset-name">Southern M1</div>
+          <div class="dgps-preset-loc">Near Blantyre · km ~850 · lat -15.79, lng 35.00</div>
+        </div>
+        <div class="dgps-preset-badge" style="background:rgba(231,76,60,.2);color:#ff8a7a">South</div>
+      </div>
+    </div>
+    <div class="dgps-speed-row">
+      <div class="dgps-speed-label">Simulated speed &nbsp;<span id="dgps-spd-val">80</span> km/h</div>
+      <input class="dgps-slider" type="range" id="dgps-speed" min="0" max="140" value="80"
+        oninput="document.getElementById('dgps-spd-val').textContent=this.value">
+    </div>
+    <div class="dgps-btns">
+      <button class="dgps-btn-apply" onclick="applyDevGps()">▶ Start Simulation</button>
+      <button class="dgps-btn-clear" onclick="clearDevGps()">✕ Clear</button>
     </div>
   </div>
 </div>
@@ -4750,6 +4820,88 @@ function closeReview() {
   document.getElementById('review-mo').classList.remove('open');
 }
 
+// ── DEV GPS SIMULATOR ──
+var _devGpsTimer   = null;
+var _devGpsPreset  = null;
+var _DEV_PRESETS   = {
+  north:   { lat: -11.45, lng: 34.01, label: 'Northern M1 (Mzuzu)' },
+  central: { lat: -13.97, lng: 33.78, label: 'Central M1 (Lilongwe)' },
+  south:   { lat: -15.79, lng: 35.00, label: 'Southern M1 (Blantyre)' }
+};
+
+function devGpsHold() {
+  _devGpsTimer = setTimeout(function() {
+    openDevGps();
+  }, 800);
+}
+function devGpsRelease() {
+  if (_devGpsTimer) { clearTimeout(_devGpsTimer); _devGpsTimer = null; }
+}
+
+function openDevGps() {
+  // Restore active preset highlight if sim already running
+  var active = localStorage.getItem('sg_sim_active') === '1' ? localStorage.getItem('sg_sim_zone') : null;
+  ['north','central','south'].forEach(function(z) {
+    var el = document.getElementById('dgps-' + z);
+    if (el) el.classList.toggle('active-preset', z === active);
+  });
+  if (active) _devGpsPreset = active;
+  document.getElementById('dev-gps-sheet').classList.add('open');
+}
+function closeDevGps() {
+  document.getElementById('dev-gps-sheet').classList.remove('open');
+}
+
+function selectDevPreset(zone) {
+  _devGpsPreset = zone;
+  ['north','central','south'].forEach(function(z) {
+    var el = document.getElementById('dgps-' + z);
+    if (el) el.classList.toggle('active-preset', z === zone);
+  });
+}
+
+function applyDevGps() {
+  if (!_devGpsPreset) { showToast('Pick a region first'); return; }
+  var p   = _DEV_PRESETS[_devGpsPreset];
+  var spd = parseFloat(document.getElementById('dgps-speed').value) || 80;
+  localStorage.setItem('sg_sim_active', '1');
+  localStorage.setItem('sg_sim_lat',    p.lat);
+  localStorage.setItem('sg_sim_lng',    p.lng);
+  localStorage.setItem('sg_sim_speed',  spd);
+  localStorage.setItem('sg_sim_zone',   _devGpsPreset);
+  closeDevGps();
+  var chip = document.getElementById('sim-chip');
+  if (chip) chip.style.display = 'inline';
+  if (!isTracking) startGPS();
+  showToast('🧪 Simulating ' + p.label + ' at ' + spd + ' km/h');
+}
+
+function clearDevGps() {
+  localStorage.removeItem('sg_sim_active');
+  localStorage.removeItem('sg_sim_lat');
+  localStorage.removeItem('sg_sim_lng');
+  localStorage.removeItem('sg_sim_speed');
+  localStorage.removeItem('sg_sim_zone');
+  _devGpsPreset = null;
+  ['north','central','south'].forEach(function(z) {
+    var el = document.getElementById('dgps-' + z);
+    if (el) el.classList.remove('active-preset');
+  });
+  var chip = document.getElementById('sim-chip');
+  if (chip) chip.style.display = 'none';
+  closeDevGps();
+  if (isTracking) stopGPS();
+  showToast('🧪 Simulation cleared — real GPS restored');
+}
+
+// Restore sim chip on page load if sim was previously active
+(function() {
+  if (localStorage.getItem('sg_sim_active') === '1') {
+    var chip = document.getElementById('sim-chip');
+    if (chip) chip.style.display = 'inline';
+  }
+})();
+
 function openAbout() {
   document.getElementById('about-panel').classList.add('open');
 }
@@ -7320,8 +7472,11 @@ function showNavBtn(show) {
       <span class="sp-link" onclick="closeSettings();openAbout()">View</span>
     </div>
   </div>
-  <!-- VERSION -->
-  <div style="padding:16px 18px;font-size:11px;color:rgba(255,255,255,.2);text-align:center;margin-top:auto">
+  <!-- VERSION — long-press to open dev GPS -->
+  <div id="sp-version"
+    style="padding:16px 18px;font-size:11px;color:rgba(255,255,255,.2);text-align:center;margin-top:auto;user-select:none;-webkit-user-select:none"
+    ontouchstart="devGpsHold()" ontouchend="devGpsRelease()" ontouchcancel="devGpsRelease()"
+    onmousedown="devGpsHold()" onmouseup="devGpsRelease()" onmouseleave="devGpsRelease()">
     Pansewu v2.3 · M1 Road<br>
     Built for Malawi 🇲🇼
   </div>
