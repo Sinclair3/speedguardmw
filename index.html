@@ -760,9 +760,22 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 }
 .wakelock-dot.active{display:inline-block;animation:bk 2s infinite}
 
+/* ── SERVICES SHEET ── */
+#services-sheet{position:fixed;inset:0;z-index:3400;background:rgba(0,0,0,.7);display:none;align-items:flex-end;justify-content:center}
+#services-sheet.open{display:flex}
+.svc-sheet-card{background:#0e1820;border-radius:20px 20px 0 0;width:100%;max-width:480px;padding:14px 16px 28px;border:1px solid rgba(255,255,255,.1);border-bottom:none}
+.svc-sheet-handle{width:36px;height:4px;border-radius:2px;background:rgba(255,255,255,.15);margin:0 auto 14px}
+.svc-sheet-title{font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.35);margin-bottom:12px;text-align:center}
+.svc-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.svc-tile{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:14px 10px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.09);cursor:pointer;transition:background .15s}
+.svc-tile:active{background:rgba(255,255,255,.12)}
+.svc-tile-icon{font-size:26px;line-height:1}
+.svc-tile-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.7);text-align:center}
+.btn-services{padding:11px 13px;border-radius:11px;background:rgba(255,255,255,.07);color:#fff;border:1px solid rgba(255,255,255,.15);font-size:15px;font-weight:700;cursor:pointer}
 /* ── DISTRACTED DRIVING LOCK ── */
 body.driving-lock #btm .btn-row .btn-sm,
 body.driving-lock #btm .btn-row .btn-fuel,
+body.driving-lock #btm .btn-row .btn-services,
 body.driving-lock #btm .btn-row .btn-sos,
 body.driving-lock #btm .chips,
 body.driving-lock #btm #pgbar-w{ opacity:.25; pointer-events:none }
@@ -1311,11 +1324,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div class="btn-row">
     <button class="btn-gps" id="btn-gps" onclick="toggleGPS()">📍 Start GPS</button>
     <button class="btn-sm" onclick="openReport()">+ Trap</button>
-    <button class="btn-fuel" onclick="openFuel()" title="Fuel stations">⛽</button>
-    <button class="btn-fuel" onclick="openPolice()" title="Police stations" style="border-color:rgba(41,128,185,.4);color:#7fb3d3">🚓</button>
-    <button class="btn-fuel" onclick="openHospital()" title="Hospitals" style="border-color:rgba(192,57,43,.4);color:#e74c3c">🏥</button>
-    <button class="btn-fuel" onclick="openBreakdown()" title="Breakdown &amp; towing" style="border-color:rgba(241,196,15,.4);color:#f1c40f">🔧</button>
-    <button class="btn-fuel" onclick="shareLocationWhatsApp()" title="Share location via WhatsApp" style="border-color:rgba(37,211,102,.4);color:#25d366">📤</button>
+    <button class="btn-services" onclick="openServices()" title="Services">🗺️</button>
     <button class="btn-sm" id="btn-chat-bottom" onclick="openChat()" title="Road chat" style="border-color:rgba(39,174,96,.28);color:#5ddb8a;position:relative">
       💬<span id="chat-badge-bottom" style="display:none;position:absolute;top:-5px;right:-5px;background:#e74c3c;color:#fff;font-size:9px;font-weight:800;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;border:1.5px solid #0a0f14">0</span>
     </button>
@@ -1358,6 +1367,36 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div class="fp-list" id="pp-list">
     <div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">
       Start GPS to see distances<br>to each police station.
+    </div>
+  </div>
+</div>
+
+<!-- SERVICES SHEET -->
+<div id="services-sheet" onclick="if(event.target===this)closeServices()">
+  <div class="svc-sheet-card">
+    <div class="svc-sheet-handle"></div>
+    <div class="svc-sheet-title">Road Services</div>
+    <div class="svc-grid">
+      <div class="svc-tile" onclick="closeServices();openFuel()">
+        <div class="svc-tile-icon">⛽</div>
+        <div class="svc-tile-label">Fuel Stations</div>
+      </div>
+      <div class="svc-tile" onclick="closeServices();openPolice()">
+        <div class="svc-tile-icon">🚓</div>
+        <div class="svc-tile-label">Police Stations</div>
+      </div>
+      <div class="svc-tile" onclick="closeServices();openHospital()">
+        <div class="svc-tile-icon">🏥</div>
+        <div class="svc-tile-label">Hospitals</div>
+      </div>
+      <div class="svc-tile" onclick="closeServices();openBreakdown()">
+        <div class="svc-tile-icon">🔧</div>
+        <div class="svc-tile-label">Breakdown &amp; Towing</div>
+      </div>
+      <div class="svc-tile" style="grid-column:1/-1" onclick="closeServices();shareLocationWhatsApp()">
+        <div class="svc-tile-icon">📤</div>
+        <div class="svc-tile-label">Share Location via WhatsApp</div>
+      </div>
     </div>
   </div>
 </div>
@@ -3666,6 +3705,13 @@ function renderBreakdownMarkers() {
     breakdownMarkers[b.id] = m;
     if(!show) map.removeLayer(m);
   });
+}
+
+function openServices() {
+  document.getElementById('services-sheet').classList.add('open');
+}
+function closeServices() {
+  document.getElementById('services-sheet').classList.remove('open');
 }
 
 function openBreakdown() {
