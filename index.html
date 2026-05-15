@@ -4974,7 +4974,7 @@ function applyDevGps() {
   closeDevGps();
   var chip = document.getElementById('sim-chip');
   if (chip) { chip.style.display = 'inline'; chip.title = 'Tap to exit simulation'; chip.onclick = clearDevGps; }
-  if (!isTracking) startGPS();
+  if (!isTracking) actuallyStartGPS(); // bypass dest picker in dev sim mode
   // Start moving immediately on fallback so the car never waits
   _devStartMoving(_DEV_M1_FALLBACK, p, spd);
   // Try OSRM in background — upgrade to real road if it loads within 8s
