@@ -5428,6 +5428,8 @@ function sendChat() {
   var text  = input ? input.value.trim() : '';
   if (!text) return;
   if (text.length > 120) { showToast('❌ Message too long (max 120 chars)'); return; }
+  var outZone = chatRegionTab !== 'all' ? chatRegionTab : (chatZone || getDriverZone());
+  if (!outZone) { showToast('📍 Start GPS to join a region chat'); return; }
 
   var payload = {
     type:     'chat',
@@ -5437,7 +5439,7 @@ function sendChat() {
     lat:      curLat,
     lng:      curLng,
     progress: curLat ? Math.round(latProg(curLat)) : null,
-    zone:     chatZone || getDriverZone(),
+    zone:     chatRegionTab !== 'all' ? chatRegionTab : (chatZone || getDriverZone() || null),
     ts:       Date.now(),
     // Reply data (null if not replying)
     replyId:   replyingTo ? replyingTo.id   : null,
