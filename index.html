@@ -4088,7 +4088,7 @@ function renderHospitalList() {
 // ══════════════════════════════════════
 var breakdownMarkers = {};
 function renderBreakdownMarkers() {
-  var show = lsGet('sg_set_breakdown') !== '0'; // default ON
+  var show = lsGet('sg_set_breakdown') === '1'; // default OFF — opt in
   var typeCol = {towing:'#f39c12', garage:'#27ae60', dealer:'#3498db'};
   var typeIcon = {towing:'🚛', garage:'🔧', dealer:'🏭'};
   BREAKDOWN_M1.forEach(function(b){
@@ -4476,7 +4476,7 @@ var sgSettings = {
   schools:   lsGet('sg_set_schools')   === '1', // default OFF — opt in
   police:    lsGet('sg_set_police')    !== '0', // default ON — safety feature
   hospitals:  lsGet('sg_set_hospitals')  !== '0', // default ON — emergency services
-  breakdown:  lsGet('sg_set_breakdown')  !== '0', // default ON — roadside help
+  breakdown:  lsGet('sg_set_breakdown')  === '1', // default OFF — opt in
   traps:    lsGet('sg_set_traps')    !== '0',
   live:     lsGet('sg_set_live')     === '1', // DEFAULT: private (opt-in to live)
   audio:    lsGet('sg_audio')        !== '0',
