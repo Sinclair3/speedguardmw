@@ -353,19 +353,21 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
   font-size:9px;color:rgba(255,255,255,.3);margin-left:5px;
 }
 
-/* Zone filter bar */
-#chat-zone-bar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.07);
-  background:rgba(0,0,0,.25);flex-shrink:0;
+/* Region tab bar */
+#chat-region-tabs{
+  display:flex;border-bottom:1px solid rgba(255,255,255,.07);
+  background:rgba(0,0,0,.2);flex-shrink:0;
 }
-#chat-zone-label{font-size:12px;font-weight:700;color:#fff;transition:color .3s}
-#chat-zone-toggle{
-  font-size:11px;padding:3px 11px;border-radius:20px;
-  background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);
-  border:1px solid rgba(255,255,255,.14);cursor:pointer;transition:.2s;
+.crt-tab{
+  flex:1;padding:10px 4px;font-size:12px;font-weight:600;
+  color:rgba(255,255,255,.35);background:none;border:none;
+  border-bottom:2px solid transparent;cursor:pointer;transition:.2s;
+  letter-spacing:.02em;
 }
-#chat-zone-toggle.all-active{background:rgba(39,174,96,.18);color:#5ddb8a;border-color:rgba(39,174,96,.3)}
+.crt-tab.north.active{color:#7fb3d3;border-bottom-color:#3498db}
+.crt-tab.central.active{color:#f8c060;border-bottom-color:#f39c12}
+.crt-tab.south.active{color:#ff8a7a;border-bottom-color:#e74c3c}
+.crt-tab.all.active{color:#5ddb8a;border-bottom-color:#27ae60}
 
 /* System messages */
 .chat-system{
@@ -1515,13 +1517,15 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 
   <!-- Chat panel -->
   <div id="chat-panel">
-    <div id="chat-zone-bar">
-      <span id="chat-zone-label">📡 M1 Road Chat</span>
-      <button id="chat-zone-toggle" onclick="toggleChatZone()">🌍 All M1</button>
+    <div id="chat-region-tabs">
+      <button class="crt-tab north" onclick="selectChatRegion('north')">North</button>
+      <button class="crt-tab central" onclick="selectChatRegion('central')">Central</button>
+      <button class="crt-tab south" onclick="selectChatRegion('south')">South</button>
+      <button class="crt-tab all" onclick="selectChatRegion('all')">All M1</button>
     </div>
     <div id="chat-messages">
-      <div class="chat-system">💬 Zone chat active — messages expire after 2 hours</div>
-      <div class="chat-system">Start GPS to join your zone</div>
+      <div class="chat-system">💬 M1 Region Chat — messages expire after 2 hours</div>
+      <div class="chat-system">Start GPS to auto-join your region</div>
     </div>
     <!-- Reply bar (shown when replying) -->
     <div id="chat-reply-bar">
@@ -2899,7 +2903,7 @@ function launchApp(){
   initRealtime();
   loadCommunityTraps();
   loadAdminLocations();
-  updateChatZoneHeader(); // apply saved zone preference before history loads
+  updateRegionTabs(); // apply saved region tab before history loads
   setTimeout(loadChatHistory, 1500); // load after DOM + WS settle
 }
 
@@ -4705,11 +4709,13 @@ var chatOpen      = false;    // is chat tab visible
 var MAX_CHAT_MSGS = 100;      // keep last 100 messages in memory
 var CHAT_EXPIRY   = 2 * 60 * 60 * 1000; // 2 hours
 
-// Zone-based chat
-var chatZone    = null;    // 'north' | 'central' | 'south' | null (unknown until GPS)
-var chatZoneAll = lsGet('sg_chat_zone_all') === '1'; // persist preference
-var ZONE_LABEL  = {north:'🔵 Northern M1', central:'🟡 Central M1', south:'🔴 Southern M1'};
-var ZONE_COLOR  = {north:'#3498db', central:'#f39c12', south:'#e74c3c'};
+// Region-based chat
+var chatZone        = null;   // GPS-detected region: 'north'|'central'|'south'|null
+var chatRegionTab   = lsGet('sg_chat_region') || 'all'; // active tab (persisted)
+var chatRegionManual= false;  // true when user manually picked a tab
+var ZONE_LABEL      = {north:'🔵 Northern M1', central:'🟡 Central M1', south:'🔴 Southern M1'};
+var ZONE_COLOR      = {north:'#3498db', central:'#f39c12', south:'#e74c3c'};
+var REGION_LABEL    = {north:'Northern M1', central:'Central M1', south:'Southern M1'};
 
 // ── LIVE PANEL TAB SWITCH ──
 function switchLiveTab(tab) {
@@ -4741,7 +4747,7 @@ function switchLiveTab(tab) {
   }
 }
 
-// ── ZONE CHAT HELPERS ──
+// ── REGION CHAT HELPERS ──
 function getDriverZone() {
   if(!curLat) return null;
   var km = Math.round(latProg(curLat) / 100 * 1140);
@@ -4753,48 +4759,45 @@ function updateChatZone() {
   if(!zone || zone === chatZone) return;
   var prev = chatZone;
   chatZone = zone;
-  updateChatZoneHeader();
-  if(prev !== null) {
-    // Crossed a zone boundary — reload chat for the new zone
-    showToast('📍 Entered ' + ZONE_LABEL[zone] + ' — chat updated');
-    if(!chatZoneAll) {
+  if(!chatRegionManual) {
+    // Auto-follow GPS region when user hasn't manually picked a tab
+    chatRegionTab = zone;
+    lsSet('sg_chat_region', zone);
+    updateRegionTabs();
+    if(prev !== null) {
+      showToast('📍 Entered ' + REGION_LABEL[zone] + ' — chat updated');
       var el = document.getElementById('chat-messages');
       if(el) el.innerHTML = '';
-      addChatSystem('📍 You entered ' + ZONE_LABEL[zone]);
+      addChatSystem('📍 You entered ' + REGION_LABEL[zone]);
       loadChatHistory();
+    } else {
+      addChatSystem('📍 Region: ' + REGION_LABEL[zone]);
     }
-  } else {
-    // First zone detection on GPS start
-    updateChatZoneHeader();
-    addChatSystem('📍 Zone detected: ' + ZONE_LABEL[zone]);
   }
 }
 
-function updateChatZoneHeader() {
-  var lbl = document.getElementById('chat-zone-label');
-  var btn = document.getElementById('chat-zone-toggle');
+function updateRegionTabs() {
+  ['north','central','south','all'].forEach(function(r) {
+    var btn = document.querySelector('.crt-tab.' + r);
+    if(btn) btn.classList.toggle('active', r === chatRegionTab);
+  });
   var inp = document.getElementById('chat-input');
-  if(chatZoneAll) {
-    if(lbl) { lbl.textContent = '🌍 All M1 Chat'; lbl.style.color = '#5ddb8a'; }
-    if(btn) { btn.textContent = '✕ Zone only'; btn.classList.add('all-active'); }
-    if(inp) inp.placeholder = 'Message all M1 drivers...';
-  } else {
-    var z = chatZone;
-    if(lbl) { lbl.textContent = z ? ZONE_LABEL[z] : '📡 M1 Road Chat'; lbl.style.color = z ? ZONE_COLOR[z] : '#fff'; }
-    if(btn) { btn.textContent = '🌍 All M1'; btn.classList.remove('all-active'); }
-    var zoneName = z === 'north' ? 'Northern M1' : z === 'central' ? 'Central M1' : z === 'south' ? 'Southern M1' : 'your zone';
-    if(inp) inp.placeholder = 'Message drivers in ' + zoneName + '...';
-  }
+  if(inp) inp.placeholder = chatRegionTab === 'all'
+    ? 'Message all M1 drivers...'
+    : 'Message ' + (REGION_LABEL[chatRegionTab] || chatRegionTab) + ' drivers...';
 }
 
-function toggleChatZone() {
-  chatZoneAll = !chatZoneAll;
-  lsSet('sg_chat_zone_all', chatZoneAll ? '1' : '0');
-  updateChatZoneHeader();
+function selectChatRegion(region) {
+  chatRegionTab   = region;
+  chatRegionManual = (region !== chatZone && region !== 'all');
+  lsSet('sg_chat_region', region);
+  updateRegionTabs();
   var el = document.getElementById('chat-messages');
   if(el) el.innerHTML = '';
   loadChatHistory();
-  addChatSystem(chatZoneAll ? '🌍 Showing all M1 messages' : '📍 Showing ' + (chatZone ? ZONE_LABEL[chatZone] : 'local zone') + ' only');
+  addChatSystem(region === 'all'
+    ? '🌍 Showing all M1 regions'
+    : '📍 ' + REGION_LABEL[region] + ' chat');
 }
 
 // ── SEND MESSAGE ──
@@ -4844,9 +4847,9 @@ function sendChat() {
 // ── RECEIVE MESSAGE ──
 function receiveChatMsg(pl) {
   if (pl.id === myId) return;
-  // Zone filter: drop messages from other zones unless "All M1" is on
-  // If either side has no zone (old client or no GPS), let it through
-  if (!chatZoneAll && chatZone && pl.zone && pl.zone !== chatZone) return;
+  // Region filter: drop messages not matching the active tab
+  // If sender has no zone (old client / no GPS) always show
+  if (chatRegionTab !== 'all' && pl.zone && pl.zone !== chatRegionTab) return;
   var mentioned = isMentioned(pl.text);
   appendChatMsg(pl, false, mentioned);
   if (!chatOpen) {
@@ -6472,10 +6475,10 @@ function loadChatHistory() {
   // The operator 'gte' (>=) works for datetime comparisons.
   // We must NOT encode the operator dot — only the value needs encoding.
   // Using fetch directly for full control over the request URL.
-  var zoneFilter = (!chatZoneAll && chatZone) ? '&zone=eq.' + chatZone : '';
+  var regionFilter = (chatRegionTab && chatRegionTab !== 'all') ? '&zone=eq.' + chatRegionTab : '';
   var url = SUPA_URL + '/rest/v1/sg_chat?select=*'
     + '&created_at=gte.' + encodeURIComponent(twoHoursAgo)
-    + zoneFilter
+    + regionFilter
     + '&order=created_at.asc&limit=50';
   fetch(url, {
     headers: {
