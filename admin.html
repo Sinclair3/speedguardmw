@@ -228,6 +228,7 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
     <div class="tab active" onclick="switchTab('usage',this)">📈 Usage</div>
     <div class="tab" onclick="switchTab('traps',this)">🚔 Trap Reports</div>
     <div class="tab" onclick="switchTab('reviews',this)">⭐ Reviews</div>
+    <div class="tab" onclick="switchTab('locations',this)">📍 Locations</div>
     <div class="tab" onclick="switchTab('broadcast',this)">📢 Broadcast</div>
     <div class="tab" onclick="switchTab('simulator',this)">🎮 Simulator</div>
     <div class="tab" onclick="switchTab('settings',this)">⚙️ Settings</div>
@@ -410,6 +411,73 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
       <div style="text-align:center;padding:30px;color:rgba(255,255,255,.3)">
         <span class="spinner"></span> Loading reviews...
       </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: LOCATIONS ══ -->
+  <div id="tab-locations" class="content" style="display:none">
+    <div class="section-hdr">
+      <div><div class="section-title">M1 Locations</div>
+        <div class="section-sub">Add hospitals, fuel, schools, garages and police — visible to all app users instantly</div>
+      </div>
+      <button class="btn-refresh" onclick="loadLocations()">↻ Refresh</button>
+    </div>
+
+    <!-- Add form -->
+    <div class="sim-ctrl" style="margin-bottom:16px">
+      <div class="sim-ctrl-title">Add New Location</div>
+
+      <div class="sim-row" style="margin-bottom:10px">
+        <select class="sim-select" id="loc-type" onchange="locTypeChange()" style="flex:1">
+          <option value="hospital">🏥 Hospital</option>
+          <option value="fuel">⛽ Fuel Station</option>
+          <option value="school">🏫 School</option>
+          <option value="garage">🔧 Breakdown / Garage</option>
+          <option value="police">🚓 Police Post</option>
+        </select>
+      </div>
+
+      <div class="sim-row" style="margin-bottom:8px">
+        <input class="sim-input" id="loc-name" placeholder="Name (e.g. Mzimba District Hospital)" style="flex:1">
+      </div>
+
+      <div class="sim-row" style="margin-bottom:8px;gap:8px">
+        <input class="sim-input" id="loc-lat" type="number" step="0.0001" placeholder="Latitude (e.g. -11.89)" style="flex:1">
+        <input class="sim-input" id="loc-lng" type="number" step="0.0001" placeholder="Longitude (e.g. 33.93)" style="flex:1">
+      </div>
+
+      <div class="sim-row" style="margin-bottom:8px;gap:8px">
+        <input class="sim-input" id="loc-km"    type="number" placeholder="km on M1" style="flex:1">
+        <input class="sim-input" id="loc-phone" placeholder="Phone (optional)"       style="flex:1">
+      </div>
+
+      <!-- Hospital / Garage subtype -->
+      <div id="loc-sub-row" class="sim-row" style="margin-bottom:10px">
+        <select class="sim-select" id="loc-subtype" style="flex:1">
+          <option value="district">District Hospital</option>
+          <option value="central">Central Hospital</option>
+          <option value="mission">Mission Hospital</option>
+        </select>
+      </div>
+
+      <!-- Fuel brand -->
+      <div id="loc-brand-row" class="sim-row" style="margin-bottom:10px;display:none">
+        <select class="sim-select" id="loc-brand" style="flex:1">
+          <option value="Total">Total</option>
+          <option value="Puma">Puma</option>
+          <option value="Engen">Engen</option>
+          <option value="Petroda">Petroda</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <button class="btn-refresh" style="width:100%;padding:12px;font-size:14px" onclick="addLocation()">+ Add Location</button>
+      <div id="loc-msg" style="margin-top:8px;font-size:12px;text-align:center;color:#5ddb8a;display:none"></div>
+    </div>
+
+    <!-- Existing admin locations -->
+    <div id="locations-list">
+      <div style="text-align:center;padding:30px;color:rgba(255,255,255,.3)">Open this tab to load locations.</div>
     </div>
   </div>
 
@@ -760,11 +828,12 @@ function initApp(){
 function switchTab(tab, el){
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
-  ['usage','traps','reviews','broadcast','simulator','settings'].forEach(function(t){
+  ['usage','traps','reviews','locations','broadcast','simulator','settings'].forEach(function(t){
     document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
   });
   if(tab==='traps')     loadTraps();
   if(tab==='reviews')   loadReviews();
+  if(tab==='locations') loadLocations();
   if(tab==='simulator') simInit();
 }
 
@@ -1393,6 +1462,113 @@ function simPauseToggle() {
     document.getElementById('btn-sim-pause').textContent = '⏸ Pause';
     simInterval = setInterval(simTick, SIM_TICK_MS);
   }
+}
+
+// ══════════════════════════════════════════════════════
+// LOCATIONS TAB
+// ══════════════════════════════════════════════════════
+function locTypeChange() {
+  var type = document.getElementById('loc-type').value;
+  var subRow   = document.getElementById('loc-sub-row');
+  var brandRow = document.getElementById('loc-brand-row');
+  var subSel   = document.getElementById('loc-subtype');
+  subRow.style.display   = 'none';
+  brandRow.style.display = 'none';
+  if(type === 'hospital') {
+    subRow.style.display = '';
+    subSel.innerHTML = '<option value="district">District Hospital</option>'
+      + '<option value="central">Central Hospital</option>'
+      + '<option value="mission">Mission Hospital</option>';
+  } else if(type === 'garage') {
+    subRow.style.display = '';
+    subSel.innerHTML = '<option value="garage">🔧 Garage / Repairs</option>'
+      + '<option value="towing">🚛 Towing Service</option>'
+      + '<option value="dealer">🏭 Vehicle Dealer</option>';
+  } else if(type === 'fuel') {
+    brandRow.style.display = '';
+  }
+}
+
+function addLocation() {
+  var type  = document.getElementById('loc-type').value;
+  var name  = document.getElementById('loc-name').value.trim();
+  var lat   = parseFloat(document.getElementById('loc-lat').value);
+  var lng   = parseFloat(document.getElementById('loc-lng').value);
+  var km    = parseInt(document.getElementById('loc-km').value)   || 0;
+  var phone = document.getElementById('loc-phone').value.trim();
+  var msg   = document.getElementById('loc-msg');
+
+  if(!name || isNaN(lat) || isNaN(lng)) {
+    msg.style.color = '#e74c3c'; msg.style.display = '';
+    msg.textContent = '⚠️ Name, latitude and longitude are required.';
+    return;
+  }
+
+  var subtype = '', brand = '';
+  if(type === 'hospital' || type === 'garage') subtype = document.getElementById('loc-subtype').value;
+  if(type === 'fuel') brand = document.getElementById('loc-brand').value;
+
+  var payload = {type:type, name:name, lat:lat, lng:lng, km:km,
+    phone:phone||null, subtype:subtype||null, brand:brand||null};
+
+  msg.style.color = 'rgba(255,255,255,.5)'; msg.style.display = '';
+  msg.textContent = 'Saving…';
+
+  supa('sg_locations', 'POST', payload).then(function(res) {
+    if(!res) {
+      msg.style.color='#e74c3c'; msg.textContent='❌ Save failed — check console.'; return;
+    }
+    msg.style.color = '#5ddb8a'; msg.textContent = '✅ ' + name + ' added!';
+    ['loc-name','loc-lat','loc-lng','loc-km','loc-phone'].forEach(function(id){
+      document.getElementById(id).value = '';
+    });
+    loadLocations();
+  });
+}
+
+function loadLocations() {
+  var el = document.getElementById('locations-list');
+  if(!el) return;
+  el.innerHTML = '<div style="text-align:center;padding:20px;color:rgba(255,255,255,.3)"><span class="spinner"></span> Loading…</div>';
+
+  supa('sg_locations?select=*&order=type.asc,km.asc').then(function(rows) {
+    if(!rows || !rows.length) {
+      el.innerHTML = '<div style="text-align:center;padding:30px;color:rgba(255,255,255,.3)">No locations added yet.</div>';
+      return;
+    }
+    var icons = {hospital:'🏥', fuel:'⛽', school:'🏫', garage:'🔧', police:'🚓'};
+    var html = '', lastType = '';
+    rows.forEach(function(r) {
+      if(r.type !== lastType) {
+        if(lastType) html += '</div>';
+        html += '<div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.4);'
+          + 'text-transform:uppercase;letter-spacing:.05em;padding:12px 0 6px">'
+          + (icons[r.type]||'📍') + ' ' + r.type + 's</div><div>';
+        lastType = r.type;
+      }
+      var meta = ['km '+(r.km||'?'), r.phone, r.subtype, r.brand].filter(Boolean).join(' · ');
+      html += '<div style="display:flex;align-items:center;padding:10px 12px;'
+        + 'background:rgba(255,255,255,.04);border-radius:10px;margin-bottom:6px;gap:10px">'
+        + '<div style="flex:1">'
+        + '<div style="font-size:13px;font-weight:600;color:#fff">'+esc(r.name)+'</div>'
+        + '<div style="font-size:11px;color:rgba(255,255,255,.4)">'+esc(meta)+'</div>'
+        + '</div>'
+        + '<button onclick="deleteLocation(\''+r.id+'\')" style="background:rgba(231,76,60,.15);'
+        + 'border:1px solid rgba(231,76,60,.3);color:#e74c3c;padding:5px 10px;'
+        + 'border-radius:6px;font-size:12px;cursor:pointer">Delete</button>'
+        + '</div>';
+    });
+    if(lastType) html += '</div>';
+    el.innerHTML = html;
+  });
+}
+
+function deleteLocation(id) {
+  if(!confirm('Delete this location? It will disappear from the app for all users.')) return;
+  supa('sg_locations?id=eq.'+id, 'DELETE').then(function() {
+    showToast('Location deleted');
+    loadLocations();
+  });
 }
 
 function simStop() {

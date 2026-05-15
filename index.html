@@ -1641,6 +1641,43 @@ function supaFetch(path, method, body){
     return r.json();
   }).catch(function(){return null;});
 }
+function loadAdminLocations(){
+  if(!navigator.onLine) return;
+  supaFetch('sg_locations?select=*').then(function(rows){
+    if(!rows||!Array.isArray(rows)||!rows.length) return;
+    var rerender={hospital:false,fuel:false,school:false,garage:false,police:false};
+    rows.forEach(function(r){
+      var id='admin_'+r.id;
+      if(r.type==='hospital'){
+        if(HOSPITALS_M1.find(function(h){return h.id===id;})) return;
+        HOSPITALS_M1.push({id:id,name:r.name,lat:r.lat,lng:r.lng,km:r.km||0,phone:r.phone||'',type:r.subtype||'district',admin:true});
+        rerender.hospital=true;
+      } else if(r.type==='fuel'){
+        if(FUEL_STATIONS.find(function(s){return s.id===id;})) return;
+        FUEL_STATIONS.push({id:id,name:r.name,lat:r.lat,lng:r.lng,km:r.km||0,phone:r.phone||'',brand:r.brand||'Other',admin:true});
+        rerender.fuel=true;
+      } else if(r.type==='school'){
+        if(SCHOOLS_M1.find(function(s){return s.id===id;})) return;
+        SCHOOLS_M1.push({id:id,name:r.name,lat:r.lat,lng:r.lng,km:r.km||0,admin:true});
+        rerender.school=true;
+      } else if(r.type==='garage'){
+        if(BREAKDOWN_M1.find(function(b){return b.id===id;})) return;
+        BREAKDOWN_M1.push({id:id,name:r.name,lat:r.lat,lng:r.lng,km:r.km||0,phone:r.phone||'',type:r.subtype||'garage',admin:true});
+        rerender.garage=true;
+      } else if(r.type==='police'){
+        if(POLICE_STATIONS_M1.find(function(p){return p.id===id;})) return;
+        POLICE_STATIONS_M1.push({id:id,name:r.name,lat:r.lat,lng:r.lng,km:r.km||0,phone:r.phone||'',admin:true});
+        rerender.police=true;
+      }
+    });
+    if(rerender.hospital) renderHospitalMarkers();
+    if(rerender.fuel)     addFuelMarkers();
+    if(rerender.school)   renderSchoolMarkers();
+    if(rerender.garage)   renderBreakdownMarkers();
+    if(rerender.police)   renderPoliceMarkers();
+  });
+}
+
 function loadCommunityTraps(){
   if (!navigator.onLine) { console.log('[App] Offline — skipping community trap load'); return; }
   supaFetch('sg_traps?select=*&order=created_at.desc').then(function(rows){
@@ -2815,6 +2852,7 @@ function launchApp(){
   if (!navigator.onLine) updateOfflineBar(false);
   initRealtime();
   loadCommunityTraps();
+  loadAdminLocations();
   setTimeout(loadChatHistory, 1500); // load after DOM + WS settle
 }
 
