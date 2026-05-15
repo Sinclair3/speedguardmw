@@ -548,7 +548,7 @@ create policy "Anyone can update" on sg_admin_config for update using (true);</p
       <div class="sim-ctrl-title">Simulation Controls</div>
       <div style="margin-bottom:12px">
         <div style="font-size:11px;color:rgba(255,255,255,.4);margin-bottom:6px">Speed: <b id="sim-spd-lbl" style="color:#fff">60 km/h</b></div>
-        <input type="range" class="sim-range" id="sim-speed" min="20" max="160" step="5" value="60"
+        <input type="range" class="sim-range" id="sim-speed" min="20" max="560" step="10" value="60"
           oninput="document.getElementById('sim-spd-lbl').textContent=this.value+' km/h'">
       </div>
       <div class="sim-row" style="margin-bottom:12px">
@@ -1353,7 +1353,7 @@ function simInit() {
   SIM_ROUTE.forEach(function(w, i){
     var opt = document.createElement('option');
     opt.value = i; opt.textContent = w[2]+' (km '+w[3]+')';
-    if(i===14) opt.selected = true;
+    if(i===19) opt.selected = true;
     sel.appendChild(opt);
   });
 
@@ -1364,7 +1364,7 @@ function simStart() {
   if(!simMap) simInit();
 
   // Reset to chosen start
-  simIdx  = parseInt(document.getElementById('sim-start').value) || 14;
+  simIdx  = parseInt(document.getElementById('sim-start').value) || 19;
   simFrac = 0;
   simDir  = document.getElementById('sim-dir').value === 'sn' ? -1 : 1;
   simRunning = true;
