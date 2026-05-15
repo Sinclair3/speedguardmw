@@ -1,6 +1,6 @@
 // ═══════════════════════════════════════════════════════
-// SpeedGuard Malawi — Service Worker
-// Version: 2.3 — M1 corridor tile pre-cache on first install
+// Pansewu — Service Worker
+// Version: 2.4 — M1 corridor tile pre-cache on first install
 //
 // HOW IT WORKS (in plain English):
 // Think of this like a smart receptionist.
@@ -20,7 +20,7 @@
 // WHAT WORKS OFFLINE:
 //   ✅ Full app UI (HTML, CSS, JS)
 //   ✅ Leaflet map library
-//   ✅ All 12 official speed trap markers
+//   ✅ All 12 official road alert markers
 //   ✅ Speed alerts and voice warnings
 //   ✅ GPS tracking and speed display
 //   ✅ Night mode, fuel station list
@@ -30,12 +30,12 @@
 // WHAT NEEDS SIGNAL:
 //   📡 Map tiles outside the pre-cached corridor
 //   📡 Live driver tracking
-//   📡 Community trap reports from Supabase
+//   📡 Community road alert reports from Supabase
 //   📡 Weather data
 // ═══════════════════════════════════════════════════════
 
-var CACHE_NAME = 'speedguard-mw-v2.3';
-var TILE_CACHE = 'speedguard-tiles-v1';
+var CACHE_NAME = 'pansewu-mw-v2.4';
+var TILE_CACHE = 'pansewu-tiles-v1';
 
 // Core app files — always cache these on install
 var CORE_FILES = [
@@ -191,7 +191,7 @@ function preCacheM1Tiles() {
 
 // ── INSTALL: cache core files immediately ──
 self.addEventListener('install', function(event) {
-  console.log('[SW] Installing SpeedGuard v2.3');
+  console.log('[SW] Installing Pansewu v2.4');
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll(CORE_FILES).catch(function(err) {
@@ -208,7 +208,7 @@ self.addEventListener('install', function(event) {
 
 // ── ACTIVATE: clean up old caches ──
 self.addEventListener('activate', function(event) {
-  console.log('[SW] Activating SpeedGuard v2.3');
+  console.log('[SW] Activating Pansewu v2.4');
   event.waitUntil(
     caches.keys().then(function(keys) {
       return Promise.all(
@@ -339,7 +339,7 @@ function trimTileCache(cache, maxTiles) {
 function offlinePage() {
   return '<!DOCTYPE html><html><head><meta charset="UTF-8">'
     + '<meta name="viewport" content="width=device-width,initial-scale=1">'
-    + '<title>SpeedGuard — Offline</title>'
+    + '<title>Pansewu — Offline</title>'
     + '<style>body{background:#0a0f14;color:#fff;font-family:-apple-system,sans-serif;'
     + 'display:flex;flex-direction:column;align-items:center;justify-content:center;'
     + 'min-height:100vh;text-align:center;padding:24px}'
@@ -351,11 +351,11 @@ function offlinePage() {
     + 'border:none;font-size:15px;font-weight:700;cursor:pointer;margin-top:20px}'
     + '</style></head><body>'
     + '<div class="icon">📡</div>'
-    + '<h1>SpeedGuard <span>Offline</span></h1>'
+    + '<h1>Pansewu <span>Offline</span></h1>'
     + '<p>No internet connection detected.<br>'
-    + 'GPS tracking, speed alerts, and all official speed traps still work.<br>'
+    + 'GPS tracking, speed alerts, and all official road alerts still work.<br>'
     + 'The M1 map corridor is pre-cached — you\'ll see the road even offline.<br><br>'
-    + 'Live driver tracking and community traps need a signal.</p>'
+    + 'Live driver tracking and community alerts need a signal.</p>'
     + '<button class="btn" onclick="location.reload()">↻ Try Again</button>'
     + '</body></html>';
 }
@@ -382,7 +382,7 @@ self.addEventListener('push', function(event) {
       body:     body,
       icon:     './icon-192.png',
       badge:    './icon-96.png',
-      tag:      'speedguard-trap',
+      tag:      'pansewu-alert',
       renotify: true,
       vibrate:  [200, 100, 200, 100, 200],
       data:     { url: url || './' },
@@ -399,19 +399,19 @@ self.addEventListener('push', function(event) {
       .then(function(rows) {
         var n = rows && rows[0];
         return showNote(
-          n ? n.title : '⚠️ SpeedGuard Malawi',
-          n ? n.body  : 'New verified trap on M1 — open the app',
+          n ? n.title : '⚠️ Pansewu',
+          n ? n.body  : 'New verified road alert on M1 — open the app',
           './'
         );
       })
       .catch(function() {
-        return showNote('⚠️ SpeedGuard Malawi', 'New verified trap on M1 — open the app', './');
+        return showNote('⚠️ Pansewu', 'New verified road alert on M1 — open the app', './');
       })
     );
     return;
   }
 
-  event.waitUntil(showNote(data.title, data.body || 'Speed trap alert', data.url));
+  event.waitUntil(showNote(data.title, data.body || 'Road alert on M1', data.url));
 });
 
 // ── Handle notification click ──

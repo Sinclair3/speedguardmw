@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="SpeedGuard MW">
+<meta name="apple-mobile-web-app-title" content="Pansewu">
 <meta name="theme-color" content="#0a0f14">
 <link rel="manifest" href="manifest.json">
-<title>SpeedGuard Malawi — M1 Road</title>
+<title>Pansewu — M1 Road</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -1203,7 +1203,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 <!-- TERMS -->
 <div id="terms-screen">
   <div class="t-hero">
-    <div class="t-logo">SpeedGuard Malawi</div>
+    <div class="t-logo">Pansewu</div>
     <svg width="54" height="36" viewBox="0 0 54 36" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;margin-bottom:12px;box-shadow:0 2px 10px rgba(0,0,0,.5);border-radius:3px">
   <rect width="54" height="12" fill="#000"/>
   <rect y="12" width="54" height="12" fill="#d21034"/>
@@ -1235,14 +1235,14 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div class="t-body">
     <div class="ts-h">📋 Terms &amp; Conditions</div>
     <div class="ts-box"><div class="ts-p">
-      <p style="margin-bottom:8px"><b>SpeedGuard Malawi — Terms of Use v2.0</b></p>
-      <p style="margin-bottom:7px"><b>1. Purpose.</b> SpeedGuard Malawi is a road safety awareness tool for the full M1 road from Kasumulu (Tanzania border) to Marka (Mozambique border), Malawi.</p>
+      <p style="margin-bottom:8px"><b>Pansewu — Terms of Use v2.0</b></p>
+      <p style="margin-bottom:7px"><b>1. Purpose.</b> Pansewu is a road safety awareness tool for the full M1 road from Kasumulu (Tanzania border) to Marka (Mozambique border), Malawi.</p>
       <p style="margin-bottom:7px"><b>2. Not an evasion tool.</b> This app does NOT encourage speeding or evading law enforcement. You remain fully responsible for obeying all Malawi traffic laws.</p>
       <p style="margin-bottom:7px"><b>3. Location &amp; live tracking.</b> Your nickname, approximate GPS location, and speed are shared in real time with other active users while the app is open with GPS on. This data is never stored permanently.</p>
       <p style="margin-bottom:7px"><b>4. SOS feature.</b> The emergency SOS button sends your GPS coordinates to a contact you choose. The accuracy of GPS coordinates depends on your device signal. This feature is a supplement to, not a replacement for, calling emergency services directly.</p>
-      <p style="margin-bottom:7px"><b>5. Community reports.</b> Trap locations submitted by users may not be accurate. Always drive within legal limits regardless of reported trap positions.</p>
+      <p style="margin-bottom:7px"><b>5. Community reports.</b> Road alert locations submitted by users may not be accurate. Always drive within legal limits regardless of reported alert positions.</p>
       <p style="margin-bottom:7px"><b>6. Privacy.</b> Only your nickname and approximate location are shared with other drivers. Your emergency contact number is stored only on your device and is never transmitted to any server.</p>
-      <p style="margin-bottom:7px"><b>7. Disclaimer.</b> SpeedGuard is provided "as is." The developers are not liable for any fines, accidents, or losses. Never use your phone while driving.</p>
+      <p style="margin-bottom:7px"><b>7. Disclaimer.</b> Pansewu is provided "as is." The developers are not liable for any fines, accidents, or losses. Never use your phone while driving.</p>
       <p style="margin-bottom:7px"><b>8. Age &amp; licence.</b> You must be 18+ and hold a valid driving licence.</p>
       <p><b>9. Updates.</b> Terms may be updated at any time. Continued use constitutes acceptance.</p>
     </div></div>
@@ -1263,7 +1263,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
       <input type="checkbox" id="agree-cb" onchange="onAgree(this)">
       <label for="agree-cb">I have read and agree to the <b>Terms &amp; Conditions</b>, Privacy Policy, and Safety Warning. I am 18+ and hold a valid driving licence.</label>
     </div>
-    <button class="btn-agree" id="btn-agree" onclick="acceptTerms()">✓ &nbsp;I Agree — Enter SpeedGuard</button>
+    <button class="btn-agree" id="btn-agree" onclick="acceptTerms()">✓ &nbsp;I Agree — Enter Pansewu</button>
   </div>
 </div>
 
@@ -1283,7 +1283,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div class="sos-card">
     <div class="sos-card-icon">🆘</div>
     <div class="sos-card-title">Set Up Emergency Contact</div>
-    <div class="sos-card-sub">In an emergency, SpeedGuard will send your GPS location to this person via WhatsApp or SMS. <b>Stored only on your phone — never uploaded.</b></div>
+    <div class="sos-card-sub">In an emergency, Pansewu will send your GPS location to this person via WhatsApp or SMS. <b>Stored only on your phone — never uploaded.</b></div>
     <div class="sos-label">Contact Name</div>
     <input class="sos-input" id="sos-name-in" type="text" placeholder="e.g. Mum, John, Wife..." maxlength="20">
     <div class="sos-label">Phone Number</div>
@@ -1320,7 +1320,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
       <line x1="-2.1" y1="-0.6" x2="-3.0" y2="-0.8"/>
     </g>
   </g>
-</svg>SpeedGuard Malawi
+</svg>Pansewu
     </div>
     <div class="hdr-sub">
       <span class="gps-label" id="gps-lbl">GPS</span>
@@ -1353,7 +1353,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 <div id="admin-banner">
   <span class="ab-icon" id="ab-icon">📢</span>
   <div class="ab-body">
-    <div class="ab-from">📡 SpeedGuard Admin</div>
+    <div class="ab-from">📡 Pansewu Admin</div>
     <div class="ab-msg" id="ab-msg">Message from admin</div>
   </div>
   <button class="ab-dismiss" onclick="dismissAdminBanner()" title="Dismiss">✕</button>
@@ -1472,7 +1472,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
       </div>
       <div class="svc-tile" style="grid-column:1/-1" onclick="closeServices();openAbout()">
         <div class="svc-tile-icon">ℹ️</div>
-        <div class="svc-tile-label">About SpeedGuard Malawi</div>
+        <div class="svc-tile-label">About Pansewu</div>
       </div>
     </div>
   </div>
@@ -1482,7 +1482,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 <div id="about-panel" onclick="if(event.target===this)closeAbout()">
   <div class="fp-hdr">
     <div>
-      <div class="fp-title">ℹ️ About SpeedGuard Malawi</div>
+      <div class="fp-title">ℹ️ About Pansewu</div>
       <div class="fp-sub">v2.3 · M1 Road Safety</div>
     </div>
     <button class="fp-x" onclick="closeAbout()">✕</button>
@@ -1491,22 +1491,22 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <!-- App hero -->
   <div class="ab-hero">
     <div class="ab-hero-icon">🛡️</div>
-    <div class="ab-hero-name">SpeedGuard Malawi</div>
-    <div class="ab-hero-tag">Because speed traps don't warn you. We do.</div>
+    <div class="ab-hero-name">Pansewu</div>
+    <div class="ab-hero-tag">Because the road won't warn you. We will.</div>
     <div class="ab-ver">v2.3</div>
   </div>
 
   <!-- What is this -->
   <div class="ab-block">
     <div class="ab-label">What is this?</div>
-    <div class="ab-body">SpeedGuard Malawi is a community-powered road safety app built for drivers on the M1 highway — Malawi's main artery from Karonga to Blantyre. Report speed traps, see live drivers, find fuel and hospitals, chat by region, and send emergency SOS alerts. Fully offline-capable. No account needed. No nonsense.</div>
+    <div class="ab-body">Pansewu is a community-powered road safety app built for drivers on the M1 highway — Malawi's main artery from Karonga to Blantyre. Report road alerts, see live drivers, find fuel and hospitals, chat by region, and send emergency SOS alerts. Fully offline-capable. No account needed. No nonsense.</div>
   </div>
 
   <!-- Features -->
   <div class="ab-block">
     <div class="ab-label">Features</div>
     <div class="ab-feats">
-      <div class="ab-feat">🚦 Community speed trap reporting &amp; voting</div>
+      <div class="ab-feat">🚦 Community road alert reporting &amp; voting</div>
       <div class="ab-feat">👥 Live driver map with region filter</div>
       <div class="ab-feat">💬 North / Central / South M1 region chat</div>
       <div class="ab-feat">⛽ Fuel stations, hospitals &amp; breakdown services</div>
@@ -1528,7 +1528,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
     <div class="ab-dev-name">Marvin Sinclair</div>
     <div class="ab-dev-roles">IT Officer · Cybersecurity Specialist · Systems Administrator · Lecturer</div>
     <div class="ab-dev-loc">📍 Lilongwe, Malawi &nbsp;|&nbsp; Wuhan, China</div>
-    <div class="ab-dev-bio">Marvin Sinclair. IT Officer by day, everything else by choice. Fixes networks for work. Breaks and rebuilds things for fun. Has strong opinions about Linux. Built SpeedGuard Malawi because the M1 needed it and no one else was going to do it. Lilongwe built him. Wuhan is currently borrowing him.</div>
+    <div class="ab-dev-bio">Marvin Sinclair. IT Officer by day, everything else by choice. Fixes networks for work. Breaks and rebuilds things for fun. Has strong opinions about Linux. Built Pansewu because the M1 needed it and no one else was going to do it. Lilongwe built him. Wuhan is currently borrowing him.</div>
     <div class="ab-stats">
       <div class="ab-stat">
         <div class="ab-stat-val">10+</div>
@@ -1565,7 +1565,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 
   <div class="ab-foot">
     © 2025 Marvin Sinclair · All rights reserved<br>
-    SpeedGuard Malawi · Built for Malawi 🇲🇼<br>
+    Pansewu · Built for Malawi 🇲🇼<br>
     <span style="color:rgba(255,255,255,.1)">No AI was harmed in the making of this app. Probably.</span>
   </div>
 </div>
@@ -1629,7 +1629,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
     <div class="priv-desc">
       Other drivers cannot see you.<br>
       You cannot see other drivers or use chat.<br><br>
-      Speed trap alerts and GPS still work normally.
+      Road alerts and GPS still work normally.
     </div>
     <button class="btn-go-live" onclick="goLiveFromPanel()">👥 Go Live</button>
   </div>
@@ -1679,13 +1679,13 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 <div class="mo" id="report-mo">
   <div class="mc">
     <div class="mc-hndl"></div>
-    <div class="mc-t">📷 Report a Speed Trap</div>
+    <div class="mc-t">📷 Report a Road Alert</div>
     <input id="r-name" type="text" placeholder="Location (e.g. Liwonde Police Post)">
     <select id="r-lim"><option value="30">30 km/h — School zone</option><option value="50" selected>50 km/h — Town / urban</option><option value="80">80 km/h — Open highway</option></select>
     <select id="r-type"><option value="mobile">🚔 Mobile police unit</option><option value="camera">📷 Fixed speed camera</option><option value="checkpoint">🛡️ Police checkpoint</option></select>
     <div class="mc-btns">
       <button class="mc-cancel" onclick="closeReport()">Cancel</button>
-      <button class="mc-ok" onclick="submitReport()">Report Trap →</button>
+      <button class="mc-ok" onclick="submitReport()">Report Alert →</button>
     </div>
   </div>
 </div>
@@ -1695,10 +1695,10 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div class="mc">
     <div class="mc-hndl"></div>
     <div style="text-align:center;font-size:28px;margin-bottom:8px" id="vote-emoji">📷</div>
-    <div class="mc-t" style="text-align:center;font-size:15px" id="vote-title">Speed trap reported here</div>
+    <div class="mc-t" style="text-align:center;font-size:15px" id="vote-title">Road alert reported here</div>
     <div id="vote-meta" style="text-align:center;font-size:12px;color:rgba(255,255,255,.45);margin-bottom:8px"></div>
     <div id="vote-status-bar" style="display:flex;gap:10px;justify-content:center;margin-bottom:16px;flex-wrap:wrap"></div>
-    <div style="font-size:12px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:14px" id="vote-prompt">Are you near this location? Is this trap real?</div>
+    <div style="font-size:12px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:14px" id="vote-prompt">Are you near this location? Is this alert real?</div>
     <div style="display:flex;gap:10px;margin-bottom:10px">
       <button onclick="castVote(true)" style="flex:1;padding:13px;border-radius:12px;background:rgba(39,174,96,.2);color:#5ddb8a;border:1.5px solid rgba(39,174,96,.5);font-size:15px;font-weight:800;cursor:pointer">👍 Yes, it's real</button>
       <button onclick="castVote(false)" style="flex:1;padding:13px;border-radius:12px;background:rgba(231,76,60,.15);color:#ff7a7a;border:1.5px solid rgba(231,76,60,.4);font-size:15px;font-weight:800;cursor:pointer">👎 Not there</button>
@@ -1999,7 +1999,7 @@ function promptVote(t){
   var yes=t.yes_votes||0;
   for(var i=0;i<VOTES_TO_VERIFY;i++){var pip=document.createElement('div');pip.style.cssText='width:28px;height:8px;border-radius:4px;background:'+(i<yes?'#27ae60':'rgba(255,255,255,.15)');bar.appendChild(pip);}
   var lbl=document.createElement('div');lbl.style.cssText='font-size:11px;color:rgba(255,255,255,.4);width:100%;text-align:center;margin-top:2px';lbl.textContent=yes+'/'+VOTES_TO_VERIFY+' confirmations · '+(t.no_votes||0)+' rejected';bar.appendChild(lbl);
-  document.getElementById('vote-prompt').textContent=yes===0?'Be the first to confirm — is this trap real?':'Others confirmed this. Did you see it too?';
+  document.getElementById('vote-prompt').textContent=yes===0?'Be the first to confirm — is this alert real?':'Others confirmed this. Did you see it too?';
   document.getElementById('vote-mo').classList.add('open');
 }
 function castVote(isYes){
@@ -2007,7 +2007,7 @@ function castVote(isYes){
   var t=votingTrap,key=t.supaId||t.id;
   votedTraps[key]=isYes?'yes':'no';lsSet('sg_voted',JSON.stringify(votedTraps));
   t.yes_votes=(t.yes_votes||0)+(isYes?1:0);t.no_votes=(t.no_votes||0)+(isYes?0:1);
-  if(t.no_votes>=VOTES_TO_REMOVE){traps=traps.filter(function(x){return x.id!==t.id;});if(trapMk[t.id]){map.removeLayer(trapMk[t.id]);delete trapMk[t.id];}showToast('🗑️ Trap removed — not enough confirmations.');}
+  if(t.no_votes>=VOTES_TO_REMOVE){traps=traps.filter(function(x){return x.id!==t.id;});if(trapMk[t.id]){map.removeLayer(trapMk[t.id]);delete trapMk[t.id];}showToast('🗑️ Alert removed — not enough confirmations.');}
   else if(t.yes_votes>=VOTES_TO_VERIFY){t.verified=true;renderTrapMarker(t);showToast('✅ Trap verified! Alerts now active.');}
   else{renderTrapMarker(t);showToast(isYes?'👍 Confirmed! '+(VOTES_TO_VERIFY-t.yes_votes)+' more vote(s) needed.':'👎 Noted. '+(VOTES_TO_REMOVE-t.no_votes)+' more to remove.');}
   // Submit vote to Supabase — include the voter's approximate location
@@ -2399,8 +2399,8 @@ function triggerAudio(newStatus,trap,ds,spdr){
   if(!audioEnabled||!speechSupported)return;
   lastAlertStatus=newStatus;var now=Date.now();
   if(newStatus==='critical'){if(changed||now-lastSpokenAt>6000)speak('Slow down! '+spdr+' kilometres per hour in a '+trap.limit+' zone. '+trap.name+', '+ds+' ahead.',1.1);}
-  else if(newStatus==='danger'){if(changed||now-lastSpokenAt>10000)speak('Speed trap ahead. '+trap.name+'. '+ds+' away. Limit '+trap.limit+' kilometres per hour.',1.0);}
-  else if(newStatus==='warning'){if(changed)speak('Caution. Speed trap in '+ds+'. Reduce to '+trap.limit+' kilometres per hour.',1.0);}
+  else if(newStatus==='danger'){if(changed||now-lastSpokenAt>10000)speak('Road alert ahead. '+trap.name+'. '+ds+' away. Limit '+trap.limit+' kilometres per hour.',1.0);}
+  else if(newStatus==='warning'){if(changed)speak('Caution. Road alert in '+ds+'. Reduce to '+trap.limit+' kilometres per hour.',1.0);}
 }
 function primeAudio(){if(!speechSupported||!audioEnabled)return;var u=new SpeechSynthesisUtterance(' ');u.volume=0;window.speechSynthesis.speak(u);}
 
@@ -2511,7 +2511,7 @@ function fireSOS(){
           + '🗺️ *Map link:* ' + mapsUrl + '\n'
           + '🕐 *Time:* ' + time + '\n'
           + '🚗 *Speed at alert:* ' + Math.round(curSpd||0) + ' km/h\n\n'
-          + 'Sent via SpeedGuard Malawi — M1 Road Safety App';
+          + 'Sent via Pansewu — M1 Road Safety App';
 
   // Encode for URL
   var encoded = encodeURIComponent(msg);
@@ -2603,7 +2603,7 @@ function updateUI(lat,lng,spd){
     var ab=document.getElementById('alert'),ai=document.getElementById('aico'),at=document.getElementById('atxt');
     var newStatus=s==='bad'&&spdr>near.limit?'critical':s==='bad'?'danger':s==='warn'?'warning':'clear';
     if(s==='bad'&&spdr>near.limit){ab.className='a-bad';ai.textContent='🚨';at.textContent='SLOW DOWN! '+spdr+' km/h in '+near.limit+' km/h zone! '+near.name+' is '+ds+' ahead!';}
-    else if(s==='bad'){ab.className='a-bad';ai.textContent='⚠️';at.textContent='SPEED TRAP! '+near.name+' — '+ds+' ahead. Limit: '+near.limit+' km/h!';}
+    else if(s==='bad'){ab.className='a-bad';ai.textContent='⚠️';at.textContent='ROAD ALERT! '+near.name+' — '+ds+' ahead. Limit: '+near.limit+' km/h!';}
     else if(s==='warn'){ab.className='a-warn';ai.textContent='⚠️';at.textContent='Trap in '+ds+' — '+near.name+'. Reduce to '+near.limit+' km/h.';}
     else{
       // Only show "All clear" info if the nearest trap is within 5km
@@ -2958,7 +2958,7 @@ function openReport(){
   // You literally cannot report where a trap is if you don't know where YOU are.
   // This is basic logic. And also now enforced in code.
   if(!isTracking || curLat === null){
-    showToast('📍 Start GPS first — trap location uses your current position');
+    showToast('📍 Start GPS first — alert location uses your current position');
     return;
   }
   document.getElementById('report-mo').classList.add('open');
@@ -2978,7 +2978,7 @@ function submitReport(){
   traps.push(trap);renderTrapMarker(trap);
   closeReport();document.getElementById('r-name').value='';
   map.setView([la,lo],13);saveTrapToSupabase(trap);
-  showToast('📍 Trap reported! Needs '+VOTES_TO_VERIFY+' confirmations to go live.');
+  showToast('📍 Alert reported! Needs '+VOTES_TO_VERIFY+' confirmations to go live.');
   setTimeout(function(){promptVote(trap);},600);
 }
 
@@ -3509,7 +3509,7 @@ function exportTripCSV(){
   var blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});
   var url=URL.createObjectURL(blob);
   var a=document.createElement('a');
-  a.href=url;a.download='SpeedGuard_Trips_'+new Date().toISOString().slice(0,10)+'.csv';
+  a.href=url;a.download='Pansewu_Trips_'+new Date().toISOString().slice(0,10)+'.csv';
   document.body.appendChild(a);a.click();
   setTimeout(function(){document.body.removeChild(a);URL.revokeObjectURL(url);},500);
   showToast('📥 '+trips.length+' trip'+(trips.length===1?'':'s')+' exported');
@@ -5749,19 +5749,19 @@ function triggerPushAlert(status, trapName, ds, limit) {
 
   if (status === 'critical') {
     sendPushAlert(
-      '🚨 SLOW DOWN — Speed Trap!',
+      '🚨 SLOW DOWN — Road Alert!',
       trapName + ' · ' + ds + ' ahead · Limit: ' + limit + ' km/h',
       'trap-critical', 'critical'
     );
   } else if (status === 'danger') {
     sendPushAlert(
-      '⚠️ Speed Trap Ahead',
+      '⚠️ Road Alert Ahead',
       trapName + ' · ' + ds + ' away · Reduce to ' + limit + ' km/h',
       'trap-danger', 'warn'
     );
   } else if (status === 'warning') {
     sendPushAlert(
-      '📍 Trap Approaching',
+      '📍 Road Alert Approaching',
       trapName + ' in ' + ds + ' · Limit: ' + limit + ' km/h',
       'trap-warning', 'info'
     );
@@ -7143,8 +7143,8 @@ function showNavBtn(show) {
 
     <div class="sp-row">
       <div class="sp-row-info">
-        <div class="sp-row-label">🚔 Speed Trap Markers</div>
-        <div class="sp-row-desc">Show speed trap icons on the map</div>
+        <div class="sp-row-label">🚔 Road Alert Markers</div>
+        <div class="sp-row-desc">Show road alert icons on the map</div>
       </div>
       <label class="sg-toggle">
         <input type="checkbox" id="tog-traps" checked onchange="settingChanged('traps',this.checked)">
@@ -7195,7 +7195,7 @@ function showNavBtn(show) {
     <div class="sp-row">
       <div class="sp-row-info">
         <div class="sp-row-label">📳 Vibration Alerts</div>
-        <div class="sp-row-desc">Vibrate on speed trap alerts (Android only — iPhone ignores this)</div>
+        <div class="sp-row-desc">Vibrate on road alerts (Android only — iPhone ignores this)</div>
       </div>
       <label class="sg-toggle">
         <input type="checkbox" id="tog-vibration" checked onchange="settingChanged('vibration',this.checked)">
@@ -7223,7 +7223,7 @@ function showNavBtn(show) {
     <div class="sp-row">
       <div class="sp-row-info">
         <div class="sp-row-label">🔊 Voice Alerts</div>
-        <div class="sp-row-desc">Speak trap warnings out loud</div>
+        <div class="sp-row-desc">Speak road alert warnings out loud</div>
       </div>
       <label class="sg-toggle">
         <input type="checkbox" id="tog-audio" checked onchange="settingChanged('audio',this.checked)">
@@ -7259,7 +7259,7 @@ function showNavBtn(show) {
     <div class="sp-section-label">Push Notification Zones</div>
     <div class="sp-row" style="padding-bottom:6px">
       <div class="sp-row-info">
-        <div class="sp-row-desc">Choose which stretches of M1 you drive. You'll only receive trap alerts for those zones.</div>
+        <div class="sp-row-desc">Choose which stretches of M1 you drive. You'll only receive road alerts for those zones.</div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:6px;padding-bottom:4px">
@@ -7299,7 +7299,7 @@ function showNavBtn(show) {
     <div class="sp-row" style="border:none">
       <div class="sp-row-info">
         <div class="sp-row-label">⭐ Leave a Review</div>
-        <div class="sp-row-desc">Help us improve SpeedGuard Malawi</div>
+        <div class="sp-row-desc">Help us improve Pansewu</div>
       </div>
       <span class="sp-link" onclick="closeSettings();openReview()">Write</span>
     </div>
@@ -7309,14 +7309,14 @@ function showNavBtn(show) {
     <div class="sp-row" style="border:none">
       <div class="sp-row-info">
         <div class="sp-row-label">ℹ️ About this App</div>
-        <div class="sp-row-desc">SpeedGuard Malawi v2.3 · Developer info</div>
+        <div class="sp-row-desc">Pansewu v2.3 · Developer info</div>
       </div>
       <span class="sp-link" onclick="closeSettings();openAbout()">View</span>
     </div>
   </div>
   <!-- VERSION -->
   <div style="padding:16px 18px;font-size:11px;color:rgba(255,255,255,.2);text-align:center;margin-top:auto">
-    SpeedGuard Malawi v2.3 · M1 Road<br>
+    Pansewu v2.3 · M1 Road<br>
     Built for Malawi 🇲🇼
   </div>
 </div>
@@ -7481,7 +7481,7 @@ function showNavBtn(show) {
       <div class="pf-section-title">Community Contributions</div>
       <div class="pf-contrib">
         <div class="pf-contrib-icon">🚔</div>
-        <div><div class="pf-contrib-num" id="pf-reported">…</div><div class="pf-contrib-lbl">Speed traps reported</div></div>
+        <div><div class="pf-contrib-num" id="pf-reported">…</div><div class="pf-contrib-lbl">Road alerts reported</div></div>
       </div>
       <div class="pf-contrib">
         <div class="pf-contrib-icon">✅</div>
@@ -7573,9 +7573,9 @@ function showNavBtn(show) {
 <div id="push-banner">
   <div class="pb-icon">🔔</div>
   <div class="pb-body">
-    <div class="pb-title">Enable Speed Trap Alerts on Lock Screen</div>
+    <div class="pb-title">Enable Road Alerts on Lock Screen</div>
     <div class="pb-desc">
-      Get notified when approaching a speed trap — even when your phone is locked.
+      Get notified when approaching a road alert — even when your phone is locked.
       Works like Google Maps navigation alerts.
     </div>
     <div class="pb-btns">
@@ -7589,7 +7589,7 @@ function showNavBtn(show) {
 <div class="mo review-mo" id="review-mo">
   <div class="mc">
     <div class="mc-hndl"></div>
-    <div class="mc-t">⭐ Rate SpeedGuard Malawi</div>
+    <div class="mc-t">⭐ Rate Pansewu</div>
     <div style="font-size:13px;color:rgba(255,255,255,.45);margin-bottom:4px">
       Your feedback helps improve the app for all M1 drivers.
     </div>
@@ -7607,7 +7607,7 @@ function showNavBtn(show) {
     <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.35);margin-bottom:7px">What's this about?</div>
     <div class="review-category" id="review-cats">
       <span class="rev-cat" onclick="toggleCat(this,'General')">General</span>
-      <span class="rev-cat" onclick="toggleCat(this,'Speed Traps')">Speed Traps</span>
+      <span class="rev-cat" onclick="toggleCat(this,'Road Alerts')">Road Alerts</span>
       <span class="rev-cat" onclick="toggleCat(this,'SOS Button')">SOS Button</span>
       <span class="rev-cat" onclick="toggleCat(this,'Fuel Stations')">Fuel Stations</span>
       <span class="rev-cat" onclick="toggleCat(this,'Weather')">Weather</span>
