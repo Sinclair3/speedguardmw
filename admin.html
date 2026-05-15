@@ -1288,6 +1288,7 @@ var SIM_ROUTE = [
   [-13.7909, 33.8175, 'Blessings Hospital', 513],
   [-13.83,  34.28, 'Nathenje',              527],
   [-13.93,  33.97, 'Kanengo',               548],
+  [-13.9413, 33.7806, 'Area 18 Interchange', 552],
   [-13.97,  33.79, 'Lilongwe',              562],
   [-14.02,  33.82, 'Area 49',               572],
   [-14.0341, 33.7854, 'Waka Waka Market',   574],
@@ -1404,7 +1405,7 @@ var simTrapId    = 0;
 var simRunning   = false;
 var simPaused    = false;
 var simInterval  = null;
-var simIdx       = 31; // start at Lilongwe
+var simIdx       = 32; // start at Lilongwe
 var simFrac      = 0;  // 0-1 fraction between simIdx and simIdx+1
 var simDir       = 1;  // 1 = N→S, -1 = S→N
 var SIM_TICK_MS  = 400;
@@ -1444,7 +1445,7 @@ function simInit() {
   SIM_ROUTE.forEach(function(w, i){
     var opt = document.createElement('option');
     opt.value = i; opt.textContent = w[2]+' (km '+w[3]+')';
-    if(i===31) opt.selected = true;
+    if(i===32) opt.selected = true;
     sel.appendChild(opt);
   });
 
