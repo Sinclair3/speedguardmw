@@ -1641,7 +1641,7 @@ function simCurPos() {
     lat:  a[0]+(b[0]-a[0])*simFrac,
     lng:  a[1]+(b[1]-a[1])*simFrac,
     km:   Math.round(a[3]+(b[3]-a[3])*simFrac),
-    name: a[2]
+    name: simFrac >= 0.5 ? b[2] : a[2]  // show nearest waypoint
   };
 }
 
