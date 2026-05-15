@@ -4975,17 +4975,21 @@ function applyDevGps() {
   var chip = document.getElementById('sim-chip');
   if (chip) { chip.style.display = 'inline'; chip.title = 'Tap to exit simulation'; chip.onclick = clearDevGps; }
   if (!isTracking) startGPS();
-  // Fetch real M1 road geometry from OSRM, fall back to hardcoded route
-  showToast('🧪 Fetching M1 road data…');
-  var _p = p, _spd = spd;
+  // Start moving immediately on fallback so the car never waits
+  _devStartMoving(_DEV_M1_FALLBACK, p, spd);
+  // Try OSRM in background — upgrade to real road if it loads within 8s
+  var _p = p, _spd = spd, _settled = false;
+  var _osrmTimeout = setTimeout(function() {
+    if (!_settled) { _settled = true; } // timed out — keep fallback
+  }, 8000);
   _devFetchOSRM(function(route) {
-    if (route && route.length > 10) {
-      showToast('✅ M1 route loaded — ' + route.length + ' pts');
-    } else {
-      route = _DEV_M1_FALLBACK;
-      showToast('📶 Offline — using fallback route');
+    clearTimeout(_osrmTimeout);
+    if (_settled) return; // timeout already fired
+    _settled = true;
+    if (route && route.length > 10 && _devSimInterval) {
+      _devStartMoving(route, _p, _spd); // seamless upgrade to OSRM route
+      showToast('✅ M1 road upgraded — ' + route.length + ' pts');
     }
-    _devStartMoving(route, _p, _spd);
   });
 }
 
