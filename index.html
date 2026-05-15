@@ -2572,9 +2572,11 @@ function stopGPS(){
     else{navigator.geolocation.clearWatch(watchId);}
     watchId=null;
   }
+  var _wasSim=_simMode;
   _simMode=false;
   localStorage.removeItem('sg_sim_active');
-  saveTripLog();
+  var tripSaved=saveTripLog(_wasSim);
+  if(tripSaved) setTimeout(function(){openScore();},400);
   lsSet('sg_score_pings', _scorePings); lsSet('sg_score_over', _scoreOver);
   lsSet('sg_score_trips', (parseInt(lsGet('sg_score_trips')||'0')+1));
   updateScoreChip();
@@ -3202,9 +3204,10 @@ function nearestPlace(lat,lng){
   return best?best.name:'M1 Route';
 }
 
-function saveTripLog(){
+function saveTripLog(isSim){
   var dur=Math.round((Date.now()-_tripStart)/1000);
-  if(dur<90||_tripDistKm<0.5) return; // skip parked / accidental presses
+  var minDur=isSim?10:90; var minDist=isSim?0.1:0.5;
+  if(dur<minDur||_tripDistKm<minDist) return false;
   var avgSpd=_tripSpdN>0?Math.round(_tripSpdSum/_tripSpdN):0;
   var sc=calcScore();
   var bdg=scoreBadge(sc);
@@ -3228,6 +3231,7 @@ function saveTripLog(){
   if(hist.length>25) hist.pop();
   lsSet('sg_trip_history',JSON.stringify(hist));
   showToast('🗺️ Trip saved · '+trip.distKm+' km · avg '+trip.avgSpd+' km/h');
+  return true;
 }
 
 function openHistory(){
@@ -6471,9 +6475,10 @@ function updateNavHUD(lat, lng, spd) {
   // When a destination is set, only show items ahead on the route:
   // an item is "ahead" if it is closer to the destination than the driver is.
   var destDist = tripDest ? hav(lat, lng, tripDest.lat, tripDest.lng) : null;
-  function isAhead(iLat, iLng) {
-    if(!destDist) return true;
-    return hav(iLat, iLng, tripDest.lat, tripDest.lng) < destDist;
+  function isAhead(iLat, iLng, iKm) {
+    if(destDist) return hav(iLat, iLng, tripDest.lat, tripDest.lng) < destDist;
+    if(iKm !== undefined) return iKm >= kmPos - 2; // only show items ahead (2 km grace zone)
+    return true;
   }
 
   var items = [];
@@ -6484,28 +6489,28 @@ function updateNavHUD(lat, lng, spd) {
   });
   FUEL_STATIONS.forEach(function(s){
     var d = hav(lat,lng,s.lat,s.lng);
-    if(d < 50 && d > 0.1 && isAhead(s.lat,s.lng)) items.push({type:'fuel', name:s.name, dist:d, brand:s.brand, icon:'⛽'});
+    if(d < 50 && d > 0.1 && isAhead(s.lat,s.lng,s.km)) items.push({type:'fuel', name:s.name, dist:d, brand:s.brand, icon:'⛽'});
   });
   if(sgSettings.schools) SCHOOLS_M1.forEach(function(s){
     var d = hav(lat,lng,s.lat,s.lng);
-    if(d < 10 && d > 0.05 && isAhead(s.lat,s.lng)) items.push({type:'school', name:s.name, dist:d, km:s.km, icon:'🏫'});
+    if(d < 10 && d > 0.05 && isAhead(s.lat,s.lng,s.km)) items.push({type:'school', name:s.name, dist:d, km:s.km, icon:'🏫'});
   });
   if(sgSettings.police) POLICE_STATIONS_M1.forEach(function(p){
     var d = hav(lat,lng,p.lat,p.lng);
-    if(d < 30 && d > 0.1 && isAhead(p.lat,p.lng)) items.push({type:'police', name:p.name, dist:d, phone:p.phone, icon:'🚓'});
+    if(d < 30 && d > 0.1 && isAhead(p.lat,p.lng,p.km)) items.push({type:'police', name:p.name, dist:d, phone:p.phone, icon:'🚓'});
   });
   if(sgSettings.hospitals) HOSPITALS_M1.forEach(function(h){
     var d = hav(lat,lng,h.lat,h.lng);
-    if(d < 20 && d > 0.1 && isAhead(h.lat,h.lng)) items.push({type:'hospital', name:h.name, dist:d, phone:h.phone, icon:'🏥'});
+    if(d < 20 && d > 0.1 && isAhead(h.lat,h.lng,h.km)) items.push({type:'hospital', name:h.name, dist:d, phone:h.phone, icon:'🏥'});
   });
   if(sgSettings.breakdown) BREAKDOWN_M1.forEach(function(b){
     var d = hav(lat,lng,b.lat,b.lng);
     var ico = b.type==='towing'?'🚛':b.type==='dealer'?'🏭':'🔧';
-    if(d < 10 && d > 0.1 && isAhead(b.lat,b.lng)) items.push({type:'breakdown', name:b.name, dist:d, phone:b.phone, icon:ico});
+    if(d < 10 && d > 0.1 && isAhead(b.lat,b.lng,b.km)) items.push({type:'breakdown', name:b.name, dist:d, phone:b.phone, icon:ico});
   });
   M1_PLACES.filter(function(p){ return p.km >= 0; }).forEach(function(p){
     var d = hav(lat,lng,p.lat,p.lng);
-    if(d < 80 && d > 0.3 && isAhead(p.lat,p.lng)) items.push({type:'town', name:p.name, dist:d, km:p.km, icon:p.icon||'📍'});
+    if(d < 80 && d > 0.3 && isAhead(p.lat,p.lng,p.km)) items.push({type:'town', name:p.name, dist:d, km:p.km, icon:p.icon||'📍'});
   });
 
   items.sort(function(a,b){ return a.dist-b.dist; });
