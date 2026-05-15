@@ -353,6 +353,20 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
   font-size:9px;color:rgba(255,255,255,.3);margin-left:5px;
 }
 
+/* Zone filter bar */
+#chat-zone-bar{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:7px 12px;border-bottom:1px solid rgba(255,255,255,.07);
+  background:rgba(0,0,0,.25);flex-shrink:0;
+}
+#chat-zone-label{font-size:12px;font-weight:700;color:#fff;transition:color .3s}
+#chat-zone-toggle{
+  font-size:11px;padding:3px 11px;border-radius:20px;
+  background:rgba(255,255,255,.08);color:rgba(255,255,255,.6);
+  border:1px solid rgba(255,255,255,.14);cursor:pointer;transition:.2s;
+}
+#chat-zone-toggle.all-active{background:rgba(39,174,96,.18);color:#5ddb8a;border-color:rgba(39,174,96,.3)}
+
 /* System messages */
 .chat-system{
   text-align:center;font-size:11px;color:rgba(255,255,255,.3);
@@ -1501,9 +1515,13 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 
   <!-- Chat panel -->
   <div id="chat-panel">
+    <div id="chat-zone-bar">
+      <span id="chat-zone-label">📡 M1 Road Chat</span>
+      <button id="chat-zone-toggle" onclick="toggleChatZone()">🌍 All M1</button>
+    </div>
     <div id="chat-messages">
-      <div class="chat-system">💬 M1 Road Chat — messages expire after 2 hours</div>
-      <div class="chat-system">Only active while app is open</div>
+      <div class="chat-system">💬 Zone chat active — messages expire after 2 hours</div>
+      <div class="chat-system">Start GPS to join your zone</div>
     </div>
     <!-- Reply bar (shown when replying) -->
     <div id="chat-reply-bar">
@@ -2497,6 +2515,7 @@ function updateUI(lat,lng,spd){
   checkProximityVotes(lat,lng);
   nightCheckOnGPS();
   weatherCheckOnGPS(lat,lng);
+  updateChatZone();          // zone-based chat channel tracking
   updateNavHUD(lat,lng,spd); // navigation HUD update
   broadcastPos(lat,lng,spd);
   // ── Trip stat accumulation ──
@@ -2880,6 +2899,7 @@ function launchApp(){
   initRealtime();
   loadCommunityTraps();
   loadAdminLocations();
+  updateChatZoneHeader(); // apply saved zone preference before history loads
   setTimeout(loadChatHistory, 1500); // load after DOM + WS settle
 }
 
@@ -4685,6 +4705,12 @@ var chatOpen      = false;    // is chat tab visible
 var MAX_CHAT_MSGS = 100;      // keep last 100 messages in memory
 var CHAT_EXPIRY   = 2 * 60 * 60 * 1000; // 2 hours
 
+// Zone-based chat
+var chatZone    = null;    // 'north' | 'central' | 'south' | null (unknown until GPS)
+var chatZoneAll = lsGet('sg_chat_zone_all') === '1'; // persist preference
+var ZONE_LABEL  = {north:'🔵 Northern M1', central:'🟡 Central M1', south:'🔴 Southern M1'};
+var ZONE_COLOR  = {north:'#3498db', central:'#f39c12', south:'#e74c3c'};
+
 // ── LIVE PANEL TAB SWITCH ──
 function switchLiveTab(tab) {
   var driverTab     = document.getElementById('lpt-drivers');
@@ -4715,6 +4741,62 @@ function switchLiveTab(tab) {
   }
 }
 
+// ── ZONE CHAT HELPERS ──
+function getDriverZone() {
+  if(!curLat) return null;
+  var km = Math.round(latProg(curLat) / 100 * 1140);
+  return km < 400 ? 'north' : km < 700 ? 'central' : 'south';
+}
+
+function updateChatZone() {
+  var zone = getDriverZone();
+  if(!zone || zone === chatZone) return;
+  var prev = chatZone;
+  chatZone = zone;
+  updateChatZoneHeader();
+  if(prev !== null) {
+    // Crossed a zone boundary — reload chat for the new zone
+    showToast('📍 Entered ' + ZONE_LABEL[zone] + ' — chat updated');
+    if(!chatZoneAll) {
+      var el = document.getElementById('chat-messages');
+      if(el) el.innerHTML = '';
+      addChatSystem('📍 You entered ' + ZONE_LABEL[zone]);
+      loadChatHistory();
+    }
+  } else {
+    // First zone detection on GPS start
+    updateChatZoneHeader();
+    addChatSystem('📍 Zone detected: ' + ZONE_LABEL[zone]);
+  }
+}
+
+function updateChatZoneHeader() {
+  var lbl = document.getElementById('chat-zone-label');
+  var btn = document.getElementById('chat-zone-toggle');
+  var inp = document.getElementById('chat-input');
+  if(chatZoneAll) {
+    if(lbl) { lbl.textContent = '🌍 All M1 Chat'; lbl.style.color = '#5ddb8a'; }
+    if(btn) { btn.textContent = '✕ Zone only'; btn.classList.add('all-active'); }
+    if(inp) inp.placeholder = 'Message all M1 drivers...';
+  } else {
+    var z = chatZone;
+    if(lbl) { lbl.textContent = z ? ZONE_LABEL[z] : '📡 M1 Road Chat'; lbl.style.color = z ? ZONE_COLOR[z] : '#fff'; }
+    if(btn) { btn.textContent = '🌍 All M1'; btn.classList.remove('all-active'); }
+    var zoneName = z === 'north' ? 'Northern M1' : z === 'central' ? 'Central M1' : z === 'south' ? 'Southern M1' : 'your zone';
+    if(inp) inp.placeholder = 'Message drivers in ' + zoneName + '...';
+  }
+}
+
+function toggleChatZone() {
+  chatZoneAll = !chatZoneAll;
+  lsSet('sg_chat_zone_all', chatZoneAll ? '1' : '0');
+  updateChatZoneHeader();
+  var el = document.getElementById('chat-messages');
+  if(el) el.innerHTML = '';
+  loadChatHistory();
+  addChatSystem(chatZoneAll ? '🌍 Showing all M1 messages' : '📍 Showing ' + (chatZone ? ZONE_LABEL[chatZone] : 'local zone') + ' only');
+}
+
 // ── SEND MESSAGE ──
 function sendChat() {
   if (!isLive()) { showPrivacySheet(); return; }
@@ -4733,6 +4815,7 @@ function sendChat() {
     lat:      curLat,
     lng:      curLng,
     progress: curLat ? Math.round(latProg(curLat)) : null,
+    zone:     chatZone || getDriverZone(),
     ts:       Date.now(),
     // Reply data (null if not replying)
     replyId:   replyingTo ? replyingTo.id   : null,
@@ -4761,6 +4844,9 @@ function sendChat() {
 // ── RECEIVE MESSAGE ──
 function receiveChatMsg(pl) {
   if (pl.id === myId) return;
+  // Zone filter: drop messages from other zones unless "All M1" is on
+  // If either side has no zone (old client or no GPS), let it through
+  if (!chatZoneAll && chatZone && pl.zone && pl.zone !== chatZone) return;
   var mentioned = isMentioned(pl.text);
   appendChatMsg(pl, false, mentioned);
   if (!chatOpen) {
@@ -6365,6 +6451,7 @@ function saveChatMessage(pl) {
       lat:        pl.lat  ? Math.round(pl.lat  * 100)/100 : null,
       lng:        pl.lng  ? Math.round(pl.lng  * 100)/100 : null,
       progress:   pl.progress || null,
+      zone:       pl.zone || null,
       reply_nick: pl.replyNick || null,
       reply_text: pl.replyText || null,
     })
@@ -6385,8 +6472,10 @@ function loadChatHistory() {
   // The operator 'gte' (>=) works for datetime comparisons.
   // We must NOT encode the operator dot — only the value needs encoding.
   // Using fetch directly for full control over the request URL.
+  var zoneFilter = (!chatZoneAll && chatZone) ? '&zone=eq.' + chatZone : '';
   var url = SUPA_URL + '/rest/v1/sg_chat?select=*'
     + '&created_at=gte.' + encodeURIComponent(twoHoursAgo)
+    + zoneFilter
     + '&order=created_at.asc&limit=50';
   fetch(url, {
     headers: {
