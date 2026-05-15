@@ -1161,6 +1161,26 @@ body.offline #hdr{padding-top:calc(env(safe-area-inset-top,12px) + 26px)}
 .dgps-btn-clear{padding:13px 18px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:12px;color:rgba(255,255,255,.5);font-size:13px;font-weight:700;cursor:pointer}
 #sim-chip{display:none;background:rgba(255,165,0,.15);border:1px solid rgba(255,165,0,.4);color:#ffa500;padding:1px 6px;border-radius:4px;font-size:9px;font-weight:800;cursor:pointer;letter-spacing:.03em}
 
+/* ── HELP PANEL ── */
+#help-panel{position:fixed;inset:0;z-index:3500;background:rgba(8,12,18,.98);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:none;flex-direction:column;overflow-y:auto}
+#help-panel.open{display:flex}
+.hp-header{position:sticky;top:0;z-index:2;background:rgba(8,12,18,.96);display:flex;align-items:center;justify-content:space-between;padding:16px 18px 14px;border-bottom:1px solid rgba(255,255,255,.07)}
+.hp-title{font-size:18px;font-weight:900;color:#fff}
+.hp-x{background:none;border:none;color:rgba(255,255,255,.4);font-size:22px;cursor:pointer;padding:0 4px;line-height:1}
+.hp-body{padding:20px 18px 40px;max-width:600px;width:100%;margin:0 auto}
+.hp-section{margin-bottom:28px}
+.hp-section-title{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:#5ddb8a;margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid rgba(93,219,138,.15)}
+.hp-item{margin-bottom:14px}
+.hp-item-head{font-size:14px;font-weight:700;color:#fff;margin-bottom:4px}
+.hp-item-body{font-size:13px;color:rgba(255,255,255,.6);line-height:1.75}
+.hp-item-body b{color:rgba(255,255,255,.85);font-weight:700}
+.hp-table{width:100%;border-collapse:collapse;margin-top:6px;font-size:12px}
+.hp-table th{text-align:left;color:rgba(255,255,255,.35);font-weight:700;text-transform:uppercase;letter-spacing:.06em;padding:4px 8px;border-bottom:1px solid rgba(255,255,255,.07)}
+.hp-table td{padding:6px 8px;color:rgba(255,255,255,.65);border-bottom:1px solid rgba(255,255,255,.05)}
+.hp-table td:first-child{color:#fff;font-weight:600}
+.hp-tip{background:rgba(39,174,96,.07);border:1px solid rgba(39,174,96,.2);border-radius:10px;padding:12px 14px;font-size:12px;color:rgba(255,255,255,.55);line-height:1.7;margin-top:10px}
+.hp-tip b{color:#5ddb8a}
+
 /* ── ABOUT PANEL ── */
 #about-panel{position:fixed;inset:0;z-index:3500;background:rgba(8,12,18,.98);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);display:none;flex-direction:column;overflow-y:auto}
 #about-panel.open{display:flex}
@@ -1496,11 +1516,153 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
         <div class="svc-tile-icon">📤</div>
         <div class="svc-tile-label">Share Location via WhatsApp</div>
       </div>
-      <div class="svc-tile" style="grid-column:1/-1" onclick="closeServices();openAbout()">
+      <div class="svc-tile" onclick="closeServices();openHelp()">
+        <div class="svc-tile-icon">❓</div>
+        <div class="svc-tile-label">How to Use</div>
+      </div>
+      <div class="svc-tile" onclick="closeServices();openAbout()">
         <div class="svc-tile-icon">ℹ️</div>
         <div class="svc-tile-label">About Pansewu</div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- HELP PANEL -->
+<div id="help-panel" onclick="if(event.target===this)closeHelp()">
+  <div class="hp-header">
+    <div class="hp-title">❓ How to Use Pansewu</div>
+    <button class="hp-x" onclick="closeHelp()">✕</button>
+  </div>
+  <div class="hp-body">
+
+    <div class="hp-section">
+      <div class="hp-section-title">Getting Started</div>
+      <div class="hp-item">
+        <div class="hp-item-head">Set your nickname</div>
+        <div class="hp-item-body">When you first open the app you'll be asked for a nickname. This is how other drivers see you in Road Chat. Change it anytime in <b>⚙️ Settings</b>.</div>
+      </div>
+      <div class="hp-item">
+        <div class="hp-item-head">Save an emergency contact</div>
+        <div class="hp-item-body">Add a name and phone number for your SOS button. If you tap <b>🆘 SOS</b> the app calls this person immediately. Set it in <b>Settings → Emergency Contact</b>.</div>
+      </div>
+      <div class="hp-item">
+        <div class="hp-item-head">Add to your home screen</div>
+        <div class="hp-item-body">On iPhone tap Share → <b>Add to Home Screen</b>. On Android tap the three-dot menu → <b>Add to Home Screen</b>. This gives you a full-screen app with no browser bar.</div>
+      </div>
+    </div>
+
+    <div class="hp-section">
+      <div class="hp-section-title">Starting GPS</div>
+      <div class="hp-item">
+        <div class="hp-item-head">Tap 📍 Start GPS</div>
+        <div class="hp-item-body">The app asks for a destination — pick a city along the M1. Once running, your speed shows in large text at the top and the map follows you automatically.</div>
+      </div>
+      <div class="hp-item">
+        <div class="hp-item-head">Speed colour coding</div>
+        <div class="hp-item-body">
+          <table class="hp-table">
+            <tr><th>Colour</th><th>Meaning</th></tr>
+            <tr><td>🟢 Green</td><td>Under the limit — safe</td></tr>
+            <tr><td>🟡 Yellow</td><td>Approaching the limit</td></tr>
+            <tr><td>🔴 Red</td><td>Over the limit</td></tr>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="hp-section">
+      <div class="hp-section-title">Speed Alerts</div>
+      <div class="hp-item">
+        <div class="hp-item-head">Voice alerts</div>
+        <div class="hp-item-body">The app speaks a warning as you approach a trap — e.g. <b>"Speed trap in 800 metres."</b> Tap <b>🔊</b> in the top-right corner to toggle voice on or off.</div>
+      </div>
+      <div class="hp-item">
+        <div class="hp-item-head">Sound tones</div>
+        <div class="hp-item-body">Warning, danger, and critical tones play as you get closer to a trap. Test them in <b>Settings → Alert Tones</b>.</div>
+      </div>
+    </div>
+
+    <div class="hp-section">
+      <div class="hp-section-title">Reporting a Trap</div>
+      <div class="hp-item">
+        <div class="hp-item-head">Tap + Trap</div>
+        <div class="hp-item-body">See a speed trap or roadblock not on the map? Tap <b>+ Trap</b>, choose the type (Mobile, Checkpoint, Roadblock, Camera), add a note, and submit. Once <b>3 drivers confirm</b> it, the trap is verified.</div>
+      </div>
+      <div class="hp-item">
+        <div class="hp-item-head">Voting on traps</div>
+        <div class="hp-item-body">Tap any trap marker on the map. Tap <b>👍 Still there</b> or <b>👎 Gone</b> to keep the map accurate for everyone.</div>
+      </div>
+    </div>
+
+    <div class="hp-section">
+      <div class="hp-section-title">Navigation &amp; Map</div>
+      <div class="hp-item">
+        <div class="hp-item-head">Navigation mode 🧭</div>
+        <div class="hp-item-body">Tap <b>🧭</b> on the map to lock the view to your heading — the road always points up like a satnav. Tap <b>📍</b> to re-centre if the map drifts.</div>
+      </div>
+      <div class="hp-item">
+        <div class="hp-item-head">Map layers</div>
+        <div class="hp-item-body">By default the map shows <b>police checkpoints, toll gates, and hospitals</b>. Turn breakdown services on or off in <b>⚙️ Settings</b>.</div>
+      </div>
+    </div>
+
+    <div class="hp-section">
+      <div class="hp-section-title">Road Chat 💬</div>
+      <div class="hp-item">
+        <div class="hp-item-head">Talk to drivers on the M1</div>
+        <div class="hp-item-body">Tap <b>💬 Chat</b> to see and send live messages. Tap <b>👥 Go Live</b> to announce your presence. Long-press a message to reply or delete.</div>
+      </div>
+    </div>
+
+    <div class="hp-section">
+      <div class="hp-section-title">SOS 🆘</div>
+      <div class="hp-item">
+        <div class="hp-item-head">Emergency call</div>
+        <div class="hp-item-body">Tap <b>🆘 SOS</b> → confirm → the app calls your emergency contact immediately and shares your GPS location. Set your contact in <b>Settings → Emergency Contact</b>.</div>
+      </div>
+    </div>
+
+    <div class="hp-section">
+      <div class="hp-section-title">Road Services 🗺️</div>
+      <div class="hp-item">
+        <div class="hp-item-body">
+          <table class="hp-table">
+            <tr><th>Service</th><th>What it shows</th></tr>
+            <tr><td>⛽ Fuel</td><td>Nearest stations along the M1</td></tr>
+            <tr><td>🏥 Hospitals</td><td>Hospitals with distance from you</td></tr>
+            <tr><td>🔧 Breakdown</td><td>Roadside assistance contacts</td></tr>
+            <tr><td>🚓 Police</td><td>Police stations along the route</td></tr>
+          </table>
+          <div style="margin-top:8px;font-size:13px;color:rgba(255,255,255,.6)">Each listing has a <b>🗺️ Navigate</b> button that sets it as your destination.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hp-section">
+      <div class="hp-section-title">Safe Driver Score 🏅</div>
+      <div class="hp-item">
+        <div class="hp-item-body">The badge in the top-left is your score. Earn points by driving within limits, reporting traps, and voting on accuracy. Tap it to see your breakdown and trip history.</div>
+      </div>
+    </div>
+
+    <div class="hp-section">
+      <div class="hp-section-title">Push Notifications</div>
+      <div class="hp-item">
+        <div class="hp-item-body">Get alerted when a nearby trap is verified — even when the app is closed. Tap <b>Enable Alerts</b> when prompted, or go to <b>Settings → Push Notifications</b>.</div>
+      </div>
+    </div>
+
+    <div class="hp-section">
+      <div class="hp-section-title">Tips</div>
+      <div class="hp-tip">
+        <b>Start GPS before you leave</b> — the app needs a moment to lock on.<br>
+        <b>Keep the screen on</b> — adjust your phone's auto-lock so the map doesn't go dark while driving.<br>
+        <b>The map works offline</b> — live traps and chat need data, but the base map loads without it.<br>
+        <b>Fuel distances update as you drive</b> — the nearest station is always shown first.
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -5028,6 +5190,12 @@ function clearDevGps() {
   }
 })();
 
+function openHelp() {
+  document.getElementById('help-panel').classList.add('open');
+}
+function closeHelp() {
+  document.getElementById('help-panel').classList.remove('open');
+}
 function openAbout() {
   document.getElementById('about-panel').classList.add('open');
 }
