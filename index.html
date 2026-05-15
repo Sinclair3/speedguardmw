@@ -310,29 +310,37 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 #chat-messages::-webkit-scrollbar{width:3px}
 #chat-messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
 
-/* Individual message bubbles */
-.chat-msg{
-  max-width:92%;padding:8px 11px;border-radius:14px;
-  font-size:13px;line-height:1.45;word-break:break-word;
-  animation:msgIn .2s ease;
-}
+/* WhatsApp-style row wrapper */
+.wa-row{display:flex;gap:7px;align-items:flex-end;animation:msgIn .2s ease}
+.wa-row.mine{flex-direction:row-reverse}
+
+/* Avatar circle — hidden for own messages */
+.wa-av{width:26px;height:26px;border-radius:50%;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:800;color:#fff;margin-bottom:2px;letter-spacing:-.02em}
+.wa-row.mine .wa-av{visibility:hidden;pointer-events:none}
+
 @keyframes msgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-/* Other drivers — left aligned */
+/* Bubble */
+.chat-msg{
+  max-width:78%;padding:7px 10px;
+  font-size:13px;line-height:1.5;word-break:break-word;
+  position:relative;
+}
+/* Other drivers — left aligned with tail */
 .chat-msg.other{
-  align-self:flex-start;
-  background:rgba(255,255,255,.08);
-  border:1px solid rgba(255,255,255,.1);
+  background:#1e2a38;
+  border:1px solid rgba(255,255,255,.08);
   border-radius:4px 14px 14px 14px;
 }
-/* My own messages — right aligned green */
+/* My messages — right aligned with green tail */
 .chat-msg.mine{
-  align-self:flex-end;
-  background:rgba(39,174,96,.2);
-  border:1px solid rgba(39,174,96,.3);
+  background:rgba(39,174,96,.22);
+  border:1px solid rgba(39,174,96,.28);
   border-radius:14px 4px 14px 14px;
 }
-/* Admin broadcasts in chat */
+/* Admin broadcasts */
 .chat-msg.admin{
   align-self:stretch;
   background:rgba(231,76,60,.12);
@@ -346,28 +354,29 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .chat-msg.mine .msg-nick{color:rgba(39,174,96,.8);text-align:right}
 .chat-msg.admin .msg-nick{color:#ff8a7a}
 .msg-text{color:#fff}
-.msg-time{font-size:10px;color:rgba(255,255,255,.25);margin-top:3px;
+.msg-time{font-size:9px;color:rgba(255,255,255,.25);margin-top:4px;
   display:block;text-align:right}
 .chat-msg.other .msg-time{text-align:left}
-.msg-speed{
-  font-size:9px;color:rgba(255,255,255,.3);margin-left:5px;
-}
+.msg-speed{font-size:9px;color:rgba(255,255,255,.28);margin-left:4px}
 
-/* Region tab bar */
+/* Region tab bar — pill style */
 #chat-region-tabs{
-  display:flex;border-bottom:1px solid rgba(255,255,255,.07);
+  display:flex;gap:6px;padding:8px 12px;
   background:rgba(0,0,0,.2);flex-shrink:0;
+  border-bottom:1px solid rgba(255,255,255,.07);
+  overflow-x:auto;scrollbar-width:none;
 }
+#chat-region-tabs::-webkit-scrollbar{display:none}
 .crt-tab{
-  flex:1;padding:10px 4px;font-size:12px;font-weight:600;
-  color:rgba(255,255,255,.35);background:none;border:none;
-  border-bottom:2px solid transparent;cursor:pointer;transition:.2s;
-  letter-spacing:.02em;
+  flex:1;padding:6px 8px;font-size:11px;font-weight:700;
+  color:rgba(255,255,255,.38);background:rgba(255,255,255,.05);
+  border:1px solid rgba(255,255,255,.08);border-radius:20px;
+  cursor:pointer;transition:.2s;white-space:nowrap;text-align:center;
 }
-.crt-tab.north.active{color:#7fb3d3;border-bottom-color:#3498db}
-.crt-tab.central.active{color:#f8c060;border-bottom-color:#f39c12}
-.crt-tab.south.active{color:#ff8a7a;border-bottom-color:#e74c3c}
-.crt-tab.all.active{color:#5ddb8a;border-bottom-color:#27ae60}
+.crt-tab.north.active{color:#7fb3d3;background:rgba(52,152,219,.15);border-color:rgba(52,152,219,.35)}
+.crt-tab.central.active{color:#f8c060;background:rgba(243,156,18,.12);border-color:rgba(243,156,18,.35)}
+.crt-tab.south.active{color:#ff8a7a;background:rgba(231,76,60,.12);border-color:rgba(231,76,60,.35)}
+.crt-tab.all.active{color:#5ddb8a;background:rgba(39,174,96,.12);border-color:rgba(39,174,96,.3)}
 
 /* System messages */
 .chat-system{
@@ -5474,6 +5483,14 @@ function receiveChatMsg(pl) {
   }
 }
 
+// Avatar colour — consistent per nickname
+function nickAvatarColor(nick) {
+  var palette = ['#2980b9','#8e44ad','#e67e22','#c0392b','#16a085','#d35400','#1a6b3a','#6c3483'];
+  var h = 0;
+  for (var i = 0; i < nick.length; i++) h = nick.charCodeAt(i) + ((h << 5) - h);
+  return palette[Math.abs(h) % palette.length];
+}
+
 // ── APPEND A MESSAGE TO THE UI ──
 function appendChatMsg(pl, isMine, isMentioned) {
   var el = document.getElementById('chat-messages');
@@ -5482,6 +5499,17 @@ function appendChatMsg(pl, isMine, isMentioned) {
   // Store in memory
   chatMessages.push({pl: pl, mine: isMine, ts: Date.now()});
   if (chatMessages.length > MAX_CHAT_MSGS) chatMessages.shift();
+
+  // Row wrapper (WhatsApp layout)
+  var row = document.createElement('div');
+  row.className = 'wa-row ' + (isMine ? 'mine' : 'other');
+
+  // Avatar with initials
+  var av = document.createElement('div');
+  av.className = 'wa-av';
+  var nick = pl.nickname || 'A?';
+  av.textContent = nick.slice(0, 2).toUpperCase();
+  av.style.background = nickAvatarColor(nick);
 
   // Build bubble
   var div = document.createElement('div');
@@ -5577,7 +5605,9 @@ function appendChatMsg(pl, isMine, isMentioned) {
     openActionMenu(e, pl.ts, isMine, pl.nickname||'Anonymous', pl.text);
   });
 
-  el.appendChild(div);
+  row.appendChild(av);
+  row.appendChild(div);
+  el.appendChild(row);
   while (el.children.length > MAX_CHAT_MSGS + 3) el.removeChild(el.firstChild);
   scrollChatToBottom();
 }
@@ -5650,7 +5680,10 @@ setInterval(function() {
   var nodes = el.querySelectorAll('.chat-msg[data-ts]');
   nodes.forEach(function(node) {
     var ts = parseInt(node.getAttribute('data-ts'));
-    if (now - ts > CHAT_EXPIRY) node.remove();
+    if (now - ts > CHAT_EXPIRY) {
+      var p = node.parentNode;
+      if (p && p.classList.contains('wa-row')) p.remove(); else node.remove();
+    }
   });
 }, 5 * 60 * 1000);
 
