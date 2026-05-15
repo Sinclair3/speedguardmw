@@ -1596,12 +1596,17 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 
 <!-- SOS SENT CONFIRMATION -->
 <div id="sos-sent">
-  <div class="sos-sent-icon">✅</div>
-  <div class="sos-sent-title">SOS Alert Sent!</div>
-  <div class="sos-sent-sub">Your emergency contact has been notified with your GPS location. Stay calm and stay visible.</div>
+  <div class="sos-sent-icon">🆘</div>
+  <div class="sos-sent-title">SOS Ready — Tap to Send</div>
+  <div class="sos-sent-sub">Your location is ready. Tap the button below to open WhatsApp and send the alert.</div>
   <div class="sos-sent-detail" id="sos-sent-detail"></div>
-  <a id="sos-sms-fallback" href="#" target="_blank" style="display:none;width:100%;padding:12px;border-radius:12px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15);font-size:13px;font-weight:600;cursor:pointer;text-align:center;text-decoration:none;margin-bottom:10px;display:block">
-    💬 Also send via SMS (backup)
+  <a id="sos-wa-btn" href="#" target="_blank" rel="noopener"
+     style="display:block;width:100%;box-sizing:border-box;padding:16px;border-radius:14px;background:linear-gradient(135deg,#1a6b3a,#27ae60);color:#fff;font-size:16px;font-weight:800;text-align:center;text-decoration:none;margin-bottom:10px;box-shadow:0 4px 20px rgba(39,174,96,.4)">
+    📲 Open WhatsApp &amp; Send SOS
+  </a>
+  <a id="sos-sms-fallback" href="#" target="_blank" rel="noopener"
+     style="display:block;width:100%;box-sizing:border-box;padding:12px;border-radius:12px;background:rgba(255,255,255,.08);color:rgba(255,255,255,.7);border:1px solid rgba(255,255,255,.15);font-size:13px;font-weight:600;text-align:center;text-decoration:none;margin-bottom:10px">
+    💬 Send via SMS instead
   </a>
   <button class="btn-sos-close" onclick="closeSosSent()">Back to Map</button>
 </div>
@@ -2387,27 +2392,21 @@ function fireSOS(){
   // Clean number — strip spaces/dashes, keep + prefix
   var waNum = sosContact.number.replace(/[\s\-\(\)]/g,'').replace(/^\+/,'');
   var waUrl = 'https://wa.me/' + waNum + '?text=' + encoded;
-  // Use anchor click — works on iPhone Safari even from timers
-  // window.open() is blocked by Safari popup blocker from setInterval
-  var a = document.createElement('a');
-  a.href = waUrl;
-  a.target = '_blank';
-  a.rel = 'noopener';
-  document.body.appendChild(a);
-  a.click();
-  setTimeout(function(){ document.body.removeChild(a); }, 500);
 
-  // Show sent confirmation screen
+  // Show sent screen — user taps the WhatsApp button directly (Safari blocks auto-clicks from setInterval)
   var detail = document.getElementById('sos-sent-detail');
-  detail.innerHTML = '<div>📬 <b>Sent to:</b> ' + sosContact.name + ' (' + sosContact.number + ')</div>'
+  detail.innerHTML = '<div>📬 <b>To:</b> ' + sosContact.name + ' (' + sosContact.number + ')</div>'
                    + '<div>📍 <b>Location:</b> ' + locStr + nearestName + '</div>'
                    + '<div>🕐 <b>Time:</b> ' + time + '</div>'
                    + '<div>🔗 <b>Map:</b> <span style="color:#5ddb8a;word-break:break-all">' + mapsUrl + '</span></div>';
-  // SMS fallback link on sent screen
+  // Wire up the WhatsApp button — user taps it (direct gesture → Safari allows it)
+  var waBtn = document.getElementById('sos-wa-btn');
+  if(waBtn) waBtn.href = waUrl;
+  // SMS fallback
   var smsBody = encodeURIComponent('EMERGENCY: '+myNickname+' needs help. Location: '+mapsUrl);
   var sosNum  = sosContact.number.replace(/[\s]/g,'');
-  document.getElementById('sos-sms-fallback').href = 'sms:'+sosNum+'?body='+smsBody;
-  document.getElementById('sos-sms-fallback').style.display = 'inline-block';
+  var smsBtn = document.getElementById('sos-sms-fallback');
+  if(smsBtn) smsBtn.href = 'sms:'+sosNum+'?body='+smsBody;
   document.getElementById('sos-sent').classList.add('show');
 
   // Voice confirmation
@@ -2714,38 +2713,70 @@ function stopGPS(){
 //   👥 Drivers — list of live drivers sorted by last seen
 //   💬 Chat    — real-time road chat channel
 // ═══════════════════════════════════════════════════════
+var liveShowAllDrivers = false; // toggle to see drivers outside current region
+
 function refreshLivePanel(){
-  var users=Object.values(liveUsers),count=users.length;
+  var allUsers = Object.values(liveUsers);
   var el=document.getElementById('lp-list'),sub=document.getElementById('lp-s'),lbl=document.getElementById('live-lbl'),dot=document.getElementById('live-dot');
-  // Show connection status in the subtitle
-  var connStatus = !isOnline ? ' · offline'
-    : !realtimeConnected ? ' · connecting...'
-    : '';
-  if(sub)sub.textContent=count+' driver'+(count!==1?'s':'')+' on M1'+connStatus;
-  if(lbl)lbl.textContent=count+' online';
-  if(dot)dot.style.display=count>0?'inline-block':'none';
-  if(!el)return;
+
+  // Region filter — only show drivers in same GPS region unless toggled off
+  var users = allUsers;
+  var hiddenCount = 0;
+  if(chatZone && !liveShowAllDrivers) {
+    users = allUsers.filter(function(u){
+      if(!u.lat) return true; // no position — show anyway
+      var km = Math.round(latProg(u.lat) / 100 * 1140);
+      var uZone = km < 400 ? 'north' : km < 700 ? 'central' : 'south';
+      return uZone === chatZone;
+    });
+    hiddenCount = allUsers.length - users.length;
+  }
+
+  var count = users.length;
+  var connStatus = !isOnline ? ' · offline' : !realtimeConnected ? ' · connecting...' : '';
+  var regionName = chatZone ? REGION_LABEL[chatZone] : 'M1';
+  if(sub) sub.textContent = count+' driver'+(count!==1?'s':'')+' · '+(liveShowAllDrivers?'All M1':regionName)+connStatus;
+  if(lbl) lbl.textContent = count+' online';
+  if(dot) dot.style.display = allUsers.length>0?'inline-block':'none';
+  if(!el) return;
+
   if(!users.length){
-    // Helpful empty state — explains WHY there might be no drivers showing
-    // instead of just staring at the user with a blank panel.
     var emptyMsg = !isLive()
       ? '🔒 You are in Private mode.<br>Switch to Live mode to see other drivers.'
       : !isTracking
         ? '📍 Start GPS so others can see you too.<br>Other drivers appear here when live.'
-        : 'No other drivers online right now.<br>Share the app to grow the network!';
+        : (hiddenCount > 0
+            ? 'No drivers in your region right now.'
+            : 'No other drivers online right now.<br>Share the app to grow the network!');
     el.innerHTML='<div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.9">'+emptyMsg+'</div>';
-    return;
+  } else {
+    el.innerHTML='';
+    users.sort(function(a,b){return b.ts-a.ts;}).forEach(function(u){
+      var spd=u.speed,sc=spd>80?'bad':spd>50?'warn':'ok';
+      var distStr='--';
+      if(curLat!=null&&u.lat!=null){var dk=hav(curLat,curLng,u.lat,u.lng);distStr=dk<1?Math.round(dk*1000)+' m away':Math.round(dk)+' km away';}
+      var km=Math.round(latProg(u.lat)/100*1140);
+      var uRegion=km<400?'Northern M1':km<700?'Central M1':'Southern M1';
+      var c=document.createElement('div');c.className='ucard';
+      c.innerHTML='<div class="uc-r"><div class="uc-n">👤 '+u.nickname+'</div><div class="uc-spd '+sc+'" style="color:'+dc(sc)+'">'+spd+' km/h</div></div>'
+        +'<div class="uc-loc"><span>km '+(u.progress||'?')+' · '+uRegion+'</span><span style="color:#f39c12;font-weight:700;font-size:11px">📍 '+distStr+'</span></div>'
+        +'<div class="uc-t">'+ago(u.ts)+'</div>';
+      c.onclick=function(){map.setView([u.lat,u.lng],13);closeLive();};
+      el.appendChild(c);
+    });
   }
-  el.innerHTML='';
-  users.sort(function(a,b){return b.ts-a.ts;}).forEach(function(u){
-    var spd=u.speed,sc=spd>80?'bad':spd>50?'warn':'ok';
-    var distStr='--';
-    if(curLat!=null&&u.lat!=null){var dk=hav(curLat,curLng,u.lat,u.lng);distStr=dk<1?Math.round(dk*1000)+' m away':Math.round(dk)+' km away';}
-    var c=document.createElement('div');c.className='ucard';
-    c.innerHTML='<div class="uc-r"><div class="uc-n">👤 '+u.nickname+'</div><div class="uc-spd '+sc+'" style="color:'+dc(sc)+'">'+spd+' km/h</div></div><div class="uc-loc"><span>km '+(u.progress||'?')+(u.progress<50?' — North M1':' — South M1')+'</span><span style="color:#f39c12;font-weight:700;font-size:11px">📍 '+distStr+'</span></div><div class="uc-t">'+ago(u.ts)+'</div>';
-    c.onclick=function(){map.setView([u.lat,u.lng],13);closeLive();};
-    el.appendChild(c);
-  });
+
+  // "Show all" / "Show region" footer toggle
+  if(allUsers.length > 0 && chatZone) {
+    var footer = document.createElement('div');
+    footer.style.cssText='text-align:center;padding:12px 0 4px;';
+    if(liveShowAllDrivers) {
+      footer.innerHTML='<button onclick="liveShowAllDrivers=false;refreshLivePanel()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:12px;cursor:pointer">📍 Show '+REGION_LABEL[chatZone]+' only</button>';
+    } else if(hiddenCount > 0) {
+      footer.innerHTML='<button onclick="liveShowAllDrivers=true;refreshLivePanel()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:12px;cursor:pointer">🌍 '+hiddenCount+' more driver'+(hiddenCount!==1?'s':'')+' in other regions</button>';
+    }
+    el.appendChild(footer);
+  }
 }
 function openLive(){
   document.getElementById('live-panel').classList.add('open');
