@@ -6501,6 +6501,7 @@ setInterval(function(){
 var navModeOn    = false;   // is navigation mode currently active?
 var mapFollowing = true;    // is the map auto-following the driver?
 var lastAnnouncedLimit = null; // track speed limit changes for voice
+var _navPrevKmPos = null;   // previous km position — used to detect travel direction
 
 // ── M1 SPEED ZONES ──
 // Format: [startKm, endKm, limitKmh, zoneName]
@@ -6651,13 +6652,18 @@ function updateNavHUD(lat, lng, spd) {
     speak('Speed limit is now ' + zone.limit + ' kilometres per hour. ' + zone.zone + '.', 1.0);
   }
 
+  // ── Direction detection ──
+  // Compare current km position with previous to know if driver is going south (km↑) or north (km↓).
+  // Southbound: items "ahead" have larger km. Northbound: items "ahead" have smaller km.
+  var goingSouth = (_navPrevKmPos === null) || (kmPos >= _navPrevKmPos);
+
   // ── Next item (trap or town) ──
   // When a destination is set, only show items ahead on the route:
   // an item is "ahead" if it is closer to the destination than the driver is.
   var destDist = tripDest ? hav(lat, lng, tripDest.lat, tripDest.lng) : null;
   function isAhead(iLat, iLng, iKm) {
     if(destDist) return hav(iLat, iLng, tripDest.lat, tripDest.lng) < destDist;
-    if(iKm !== undefined) return iKm >= kmPos - 2; // only show items ahead (2 km grace zone)
+    if(iKm !== undefined) return goingSouth ? (iKm >= kmPos - 2) : (iKm <= kmPos + 2);
     return true;
   }
 
@@ -6709,6 +6715,11 @@ function updateNavHUD(lat, lng, spd) {
                                       : nxt.type==='school' ? '⚠️ School Zone — 40 km/h'
                                       : nxt.type==='police' ? '📞 '+nxt.phone
                                       : 'km ' + (nxt.km||'');
+  } else {
+    // Nothing ahead in range — clear so stale data doesn't stay frozen on screen
+    if(nextDist) nextDist.textContent = '--';
+    if(nextName) nextName.textContent = '🟢 Road clear';
+    if(nextType) nextType.textContent = 'No traps or services nearby';
   }
 
   // ── Progress row ──
@@ -6753,6 +6764,8 @@ function updateNavHUD(lat, lng, spd) {
   if(mapFollowing) {
     map.panTo([lat,lng], {animate:true, duration:0.5, easeLinearity:0.5});
   }
+
+  _navPrevKmPos = kmPos; // save for direction detection on next call
 }
 
 /**
