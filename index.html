@@ -5359,7 +5359,8 @@ async function subscribeToPush() {
     var existing = await reg.pushManager.getSubscription();
     if (existing) {
       pushSubscription = existing;
-      console.log('[Push] Already subscribed.');
+      console.log('[Push] Already subscribed — syncing to Supabase.');
+      savePushSubscription(existing); // ensure it's in DB even if table was created later
       return;
     }
     // Convert VAPID key to Uint8Array
