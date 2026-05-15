@@ -1257,39 +1257,61 @@ document.getElementById('pw-input').addEventListener('keydown',function(e){ if(e
 // ══════════════════════════════════════════════════════
 // M1 waypoints: [lat, lng, name, kmFromNorth]
 var SIM_ROUTE = [
-  [-9.70,  33.92, 'Songwe Border (TZ)',   0],
-  [-9.93,  33.93, 'Karonga',             27],
-  [-10.20, 33.87, 'Nkhata Bay Rd Junc',  62],
-  [-10.60, 33.83, 'Livingstonia Turn',  108],
-  [-10.87, 33.85, 'Rumphi',             148],
-  [-11.10, 33.90, 'Chikangawa Junc',    182],
-  [-11.30, 33.96, 'Ekwendeni',          210],
-  [-11.45, 34.02, 'Mzuzu',              235],
-  [-11.62, 34.01, 'Nkhata Bay Junc',    258],
-  [-11.83, 34.05, 'Luwinga',            283],
-  [-12.20, 34.15, 'Dwangwa',            330],
-  [-12.50, 34.22, 'Nkhotakota Junc',    369],
-  [-12.92, 34.30, 'Nkhotakota',         408],
-  [-13.20, 34.35, 'Kasungu Junc',       443],
-  [-13.50, 34.35, 'Benga Junction',     476],
-  [-13.65, 34.42, 'Salima Rd Bend',     494],
-  [-13.78, 34.46, 'Salima Junction',    509],
-  [-13.83, 34.28, 'Nathenje',           527],
-  [-13.93, 33.97, 'Kanengo',            548],
-  [-13.97, 33.79, 'Lilongwe',           562],
-  [-14.02, 33.82, 'Area 49',            572],
-  [-14.25, 34.15, 'Bembeke',            610],
-  [-14.38, 34.34, 'Dedza',              634],
-  [-14.55, 34.50, 'Ntcheu Junc',        658],
-  [-14.72, 34.62, 'Golomoti',           682],
-  [-14.98, 34.96, 'Balaka',             720],
-  [-15.06, 35.23, 'Liwonde',            745],
-  [-15.38, 35.32, 'Zomba Junction',     789],
-  [-15.62, 35.10, 'Limbe',              820],
-  [-15.79, 35.00, 'Blantyre',           840],
-  [-16.07, 35.15, 'Thyolo Junction',    870],
-  [-16.40, 35.22, 'Luchenza',           910],
-  [-16.85, 35.26, 'Mozambique Border',  960]
+  [-9.70,   33.92, 'Songwe Border (TZ)',      0],
+  [-9.93,   33.93, 'Karonga',                27],
+  [-10.20,  33.87, 'Nkhata Bay Rd Junc',     62],
+  [-10.60,  33.83, 'Livingstonia Turn',      108],
+  [-10.87,  33.85, 'Rumphi',                148],
+  [-11.10,  33.90, 'Chikangawa Junc',        182],
+  [-11.30,  33.96, 'Ekwendeni',             210],
+  [-11.45,  34.02, 'Mzuzu',                 235],
+  [-11.62,  34.01, 'Nkhata Bay Junc',        258],
+  [-11.83,  34.05, 'Luwinga',               283],
+  [-11.8700, 33.7991, 'Chikangawa Forest',  288],
+  [-12.0204, 33.6362, 'Mzimba Turnoff',     307],
+  [-12.20,  34.15, 'Dwangwa',               330],
+  [-12.3623, 33.5555, 'Jenda Township',     351],
+  [-12.50,  34.22, 'Nkhotakota Junc',       369],
+  [-12.5642, 33.5019, 'Nkhamenya Hospital', 375],
+  [-12.92,  34.30, 'Nkhotakota',            408],
+  [-13.20,  34.35, 'Kasungu Junc',          443],
+  [-13.2323, 33.5094, 'Chikhoma Mt Meru Fuel', 447],
+  [-13.2936, 33.5356, 'Bua Trading Center', 453],
+  [-13.4183, 33.6093, 'Madisi Market',      467],
+  [-13.50,  34.35, 'Benga Junction',        476],
+  [-13.5323, 33.7394, 'Mponela Hospital',   480],
+  [-13.6026, 33.7368, 'Dzoole Turn-off',    488],
+  [-13.65,  34.42, 'Salima Rd Bend',        494],
+  [-13.6707, 33.7757, 'Mtengo Wa Nthenga',  496],
+  [-13.7233, 33.8036, 'Dowa Turnoff',       502],
+  [-13.78,  34.46, 'Salima Junction',       509],
+  [-13.7909, 33.8175, 'Blessings Hospital', 513],
+  [-13.83,  34.28, 'Nathenje',              527],
+  [-13.93,  33.97, 'Kanengo',               548],
+  [-13.97,  33.79, 'Lilongwe',              562],
+  [-14.02,  33.82, 'Area 49',               572],
+  [-14.0341, 33.7854, 'Waka Waka Market',   574],
+  [-14.0421, 33.7893, 'Kaphiri Trading',    576],
+  [-14.0596, 33.8007, 'Bunda Roundabout',   579],
+  [-14.0714, 33.8344, 'Nanjiri Market',     580],
+  [-14.0849, 33.9078, 'Nathenje Health Ctr', 583],
+  [-14.1089, 34.0041, 'Kaphata Trading',    586],
+  [-14.1094, 34.0093, 'Nkhoma Turnoff',     587],
+  [-14.1832, 34.1252, 'Linthipe',           599],
+  [-14.1845, 34.1305, 'Linthipe Police Stn', 600],
+  [-14.25,  34.15, 'Bembeke',               610],
+  [-14.2911, 34.1648, 'Mt Meru Chimbiya Fuel', 618],
+  [-14.38,  34.34, 'Dedza',                 634],
+  [-14.55,  34.50, 'Ntcheu Junc',           658],
+  [-14.72,  34.62, 'Golomoti',              682],
+  [-14.98,  34.96, 'Balaka',                720],
+  [-15.06,  35.23, 'Liwonde',               745],
+  [-15.38,  35.32, 'Zomba Junction',        789],
+  [-15.62,  35.10, 'Limbe',                 820],
+  [-15.79,  35.00, 'Blantyre',              840],
+  [-16.07,  35.15, 'Thyolo Junction',       870],
+  [-16.40,  35.22, 'Luchenza',              910],
+  [-16.85,  35.26, 'Mozambique Border',     960]
 ];
 
 // Police stations along M1 (mirrored from index.html for proximity alerts)
@@ -1382,7 +1404,7 @@ var simTrapId    = 0;
 var simRunning   = false;
 var simPaused    = false;
 var simInterval  = null;
-var simIdx       = 14; // start at Lilongwe
+var simIdx       = 31; // start at Lilongwe
 var simFrac      = 0;  // 0-1 fraction between simIdx and simIdx+1
 var simDir       = 1;  // 1 = N→S, -1 = S→N
 var SIM_TICK_MS  = 400;
@@ -1422,7 +1444,7 @@ function simInit() {
   SIM_ROUTE.forEach(function(w, i){
     var opt = document.createElement('option');
     opt.value = i; opt.textContent = w[2]+' (km '+w[3]+')';
-    if(i===19) opt.selected = true;
+    if(i===31) opt.selected = true;
     sel.appendChild(opt);
   });
 
