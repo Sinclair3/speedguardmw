@@ -1257,9 +1257,11 @@ document.getElementById('pw-input').addEventListener('keydown',function(e){ if(e
 // ══════════════════════════════════════════════════════
 // M1 waypoints: [lat, lng, name, kmFromNorth]
 var SIM_ROUTE = [
-  [-9.70,   33.92, 'Songwe Border (TZ)',      0],
-  [-9.93,   33.93, 'Karonga',                27],
-  [-10.20,  33.87, 'Nkhata Bay Rd Junc',     62],
+  [-9.71,   33.47, 'Kasumulu Border (TZ)',    0],   // corrected — actual border crossing
+  [-9.82,   33.72, '~Songwe Valley',         13],  // intermediate — stay on land
+  [-9.93,   33.97, 'Karonga',               27],
+  [-10.12,  33.97, '~South Karonga',         45],  // stay on lakeshore road
+  [-10.32,  33.93, 'Nkhata Bay Rd Junc',     65],  // adjusted — further south
   [-10.60,  33.83, 'Livingstonia Turn',      108],
   [-10.87,  33.85, 'Rumphi',                148],
   [-11.10,  33.90, 'Chikangawa Junc',        182],
@@ -1405,7 +1407,7 @@ var simTrapId    = 0;
 var simRunning   = false;
 var simPaused    = false;
 var simInterval  = null;
-var simIdx       = 32; // start at Lilongwe
+var simIdx       = 34; // start at Lilongwe
 var simFrac      = 0;  // 0-1 fraction between simIdx and simIdx+1
 var simDir       = 1;  // 1 = N→S, -1 = S→N
 var SIM_TICK_MS  = 400;
@@ -1445,7 +1447,7 @@ function simInit() {
   SIM_ROUTE.forEach(function(w, i){
     var opt = document.createElement('option');
     opt.value = i; opt.textContent = w[2]+' (km '+w[3]+')';
-    if(i===32) opt.selected = true;
+    if(i===34) opt.selected = true;
     sel.appendChild(opt);
   });
 
