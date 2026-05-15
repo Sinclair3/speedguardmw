@@ -32,7 +32,7 @@
 //   📡 Weather data
 // ═══════════════════════════════════════════════════════
 
-var CACHE_NAME = 'speedguard-mw-v2.1';
+var CACHE_NAME = 'speedguard-mw-v2.2';
 var TILE_CACHE = 'speedguard-tiles-v1';
 
 // Core app files — always cache these on install
@@ -45,7 +45,7 @@ var CORE_FILES = [
 
 // ── INSTALL: cache core files immediately ──
 self.addEventListener('install', function(event) {
-  console.log('[SW] Installing SpeedGuard v2.1');
+  console.log('[SW] Installing SpeedGuard v2.2');
   event.waitUntil(
     caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll(CORE_FILES).catch(function(err) {
@@ -61,7 +61,7 @@ self.addEventListener('install', function(event) {
 
 // ── ACTIVATE: clean up old caches ──
 self.addEventListener('activate', function(event) {
-  console.log('[SW] Activating SpeedGuard v2.1');
+  console.log('[SW] Activating SpeedGuard v2.2');
   event.waitUntil(
     caches.keys().then(function(keys) {
       return Promise.all(
@@ -240,29 +240,49 @@ self.addEventListener('message', function(event) {
 // Receives push events and shows lock screen notifications
 // even when the app is closed or the phone is locked
 // ═══════════════════════════════════════════════════════
+var SUPA_URL = 'https://mgoxhsnmjbzjuevwryxy.supabase.co';
+var SUPA_KEY = 'sb_publishable_6GSg9fQ2tCMJ9vZTaOFcCQ_SYviH_KR';
+
 self.addEventListener('push', function(event) {
   var data = {};
-  try {
-    data = event.data ? event.data.json() : {};
-  } catch(e) {
-    data = { title: '⚠️ SpeedGuard Alert', body: event.data ? event.data.text() : 'Speed trap nearby' };
+  try { data = event.data ? event.data.json() : {}; } catch(e) {}
+
+  function showNote(title, body, url) {
+    return self.registration.showNotification(title, {
+      body:     body,
+      icon:     './icon-192.png',
+      badge:    './icon-96.png',
+      tag:      'speedguard-trap',
+      renotify: true,
+      vibrate:  [200, 100, 200, 100, 200],
+      data:     { url: url || './' },
+      actions:  [{ action: 'open', title: '🗺️ View Map' }]
+    });
   }
 
-  var title   = data.title || '⚠️ SpeedGuard Malawi';
-  var options = {
-    body:     data.body || 'Speed trap alert',
-    icon:     './icon-192.png',
-    badge:    './icon-96.png',
-    tag:      data.tag  || 'speedguard',
-    renotify: true,
-    vibrate:  data.urgency === 'critical' ? [200,100,200,100,200] : [100,50,100],
-    data:     { url: data.url || './' },
-    actions:  [{ action:'open', title:'🗺️ View Map' }]
-  };
+  // If push has no payload, fetch latest notification from sg_notifications
+  if (!data.title) {
+    event.waitUntil(
+      fetch(SUPA_URL + '/rest/v1/sg_notifications?select=title,body&order=created_at.desc&limit=1', {
+        headers: { 'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY }
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(rows) {
+        var n = rows && rows[0];
+        return showNote(
+          n ? n.title : '⚠️ SpeedGuard Malawi',
+          n ? n.body  : 'New verified trap on M1 — open the app',
+          './'
+        );
+      })
+      .catch(function() {
+        return showNote('⚠️ SpeedGuard Malawi', 'New verified trap on M1 — open the app', './');
+      })
+    );
+    return;
+  }
 
-  event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
+  event.waitUntil(showNote(data.title, data.body || 'Speed trap alert', data.url));
 });
 
 // ── Handle notification click ──
