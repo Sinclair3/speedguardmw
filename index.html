@@ -124,6 +124,30 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .sc-tier-icon{font-size:17px}
 .sc-close{width:100%;padding:13px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.7);font-size:14px;font-weight:600;cursor:pointer;margin-top:14px}
 .sc-history-btn{width:100%;padding:13px;border-radius:12px;background:rgba(39,174,96,.12);border:1px solid rgba(39,174,96,.3);color:#27ae60;font-size:14px;font-weight:700;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:6px}
+.sc-btn-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.sc-profile-btn{padding:13px;border-radius:12px;background:rgba(93,219,138,.1);border:1px solid rgba(93,219,138,.25);color:#5ddb8a;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+#profile-panel{position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.75);display:none;align-items:flex-end;justify-content:center}
+#profile-panel.open{display:flex}
+.pf-card{width:100%;max-width:480px;background:#1a1f2e;border-radius:20px 20px 0 0;padding:0 0 env(safe-area-inset-bottom);max-height:88vh;overflow-y:auto}
+.pf-handle{width:40px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:12px auto 0}
+.pf-hdr{padding:20px 20px 0;text-align:center}
+.pf-avatar{width:68px;height:68px;border-radius:50%;background:linear-gradient(135deg,#1e6b3a,#27ae60);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 10px}
+.pf-name{font-size:18px;font-weight:700;color:#fff}
+.pf-id{font-size:11px;color:rgba(255,255,255,.25);margin-top:3px}
+.pf-badge-row{display:flex;align-items:center;justify-content:center;gap:8px;margin:12px 0 4px}
+.pf-badge{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:700}
+.pf-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;padding:14px 20px}
+.pf-stat{background:rgba(255,255,255,.05);border-radius:12px;padding:14px 8px;text-align:center}
+.pf-stat-num{font-size:22px;font-weight:800;color:#27ae60}
+.pf-stat-lbl{font-size:10px;color:rgba(255,255,255,.4);margin-top:3px;line-height:1.3}
+.pf-section{padding:0 20px 14px}
+.pf-section-title{font-size:11px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px}
+.pf-contrib{background:rgba(255,255,255,.04);border-radius:12px;padding:13px 14px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.pf-contrib-icon{font-size:22px;width:32px;text-align:center}
+.pf-contrib-num{font-size:16px;font-weight:700;color:#fff}
+.pf-contrib-lbl{font-size:11px;color:rgba(255,255,255,.4);margin-top:1px}
+.pf-trusted{background:rgba(243,156,18,.08);border:1px solid rgba(243,156,18,.25);border-radius:12px;padding:13px 16px;display:flex;align-items:center;gap:12px;margin:0 20px 16px}
+.pf-close{width:calc(100% - 40px);margin:4px 20px 20px;padding:13px;border-radius:12px;background:rgba(255,255,255,.07);border:none;color:rgba(255,255,255,.5);font-size:14px;font-weight:600;cursor:pointer;display:block}
 .svc-nav-btn{padding:4px 11px;border-radius:8px;background:rgba(41,128,185,.2);border:1px solid rgba(41,128,185,.4);color:#7fb3d3;font-size:10px;font-weight:700;cursor:pointer;white-space:nowrap}
 .svc-nav-hospital{background:rgba(192,57,43,.2);border-color:rgba(192,57,43,.4);color:#e74c3c}
 /* TRIP HISTORY PANEL */
@@ -1695,7 +1719,7 @@ function loadCommunityTraps(){
   });
 }
 function saveTrapToSupabase(trap){
-  return supaFetch('sg_traps','POST',{name:trap.name,lat:trap.lat,lng:trap.lng,limit_kmh:trap.limit,type:trap.type,km:trap.km,yes_votes:0,no_votes:0}).then(function(rows){if(rows&&rows[0])trap.supaId=rows[0].id;});
+  return supaFetch('sg_traps','POST',{name:trap.name,lat:trap.lat,lng:trap.lng,limit_kmh:trap.limit,type:trap.type,km:trap.km,yes_votes:0,no_votes:0,device_id:myId}).then(function(rows){if(rows&&rows[0])trap.supaId=rows[0].id;});
 }
 function submitVoteToSupabase(supaId, isYes, voterLat, voterLng) {
   // Read current vote counts, increment the right one, write back.
@@ -3373,6 +3397,55 @@ function openScorePanel() {
 
 function closeScorePanel() {
   document.getElementById('score-panel').classList.remove('open');
+}
+
+function openProfile() {
+  closeScorePanel();
+  var hist  = JSON.parse(lsGet('sg_trip_history')||'[]');
+  var km    = Math.round(hist.reduce(function(s,t){return s+(t.distKm||0);},0));
+  var score = calcScore();
+  var bdg   = scoreBadge(score);
+  var nick  = myNickname || 'Driver';
+
+  document.getElementById('pf-avatar').textContent    = bdg.emoji;
+  document.getElementById('pf-name').textContent      = nick;
+  document.getElementById('pf-id').textContent        = 'ID · ' + myId.substr(0,14);
+  document.getElementById('pf-trips').textContent     = hist.length;
+  document.getElementById('pf-km').textContent        = km;
+  document.getElementById('pf-score').textContent     = score;
+  document.getElementById('pf-trusted-badge').style.display = 'none';
+
+  var br = document.getElementById('pf-badge-row');
+  br.innerHTML = '<span class="pf-badge" style="background:'+_pfBadgeBg(score)+';color:'+_pfBadgeCol(score)+'">'+bdg.emoji+' '+bdg.label+'</span>';
+
+  document.getElementById('profile-panel').classList.add('open');
+
+  document.getElementById('pf-reported').textContent  = '…';
+  document.getElementById('pf-confirmed').textContent = '…';
+
+  if(!navigator.onLine){
+    document.getElementById('pf-reported').textContent  = 'offline';
+    document.getElementById('pf-confirmed').textContent = 'offline';
+    return;
+  }
+  supaFetch('sg_traps?device_id=eq.'+myId+'&select=id,yes_votes').then(function(rows){
+    if(!rows){ document.getElementById('pf-reported').textContent='--'; document.getElementById('pf-confirmed').textContent='--'; return; }
+    var confirmed = rows.filter(function(r){return(r.yes_votes||0)>=VOTES_TO_VERIFY;}).length;
+    document.getElementById('pf-reported').textContent  = rows.length;
+    document.getElementById('pf-confirmed').textContent = confirmed;
+    if(confirmed >= 10) document.getElementById('pf-trusted-badge').style.display = 'flex';
+  });
+}
+
+function closeProfile() {
+  document.getElementById('profile-panel').classList.remove('open');
+}
+
+function _pfBadgeBg(s){
+  return s>=90?'rgba(243,156,18,.15)':s>=70?'rgba(189,195,199,.15)':s>=50?'rgba(205,127,50,.15)':'rgba(231,76,60,.15)';
+}
+function _pfBadgeCol(s){
+  return s>=90?'#f39c12':s>=70?'#bdc3c7':s>=50?'#cd7f32':'#e74c3c';
 }
 
 // Brand colour coding
@@ -7018,8 +7091,48 @@ function showNavBtn(show) {
       <div class="sc-tier" id="tier-bronze"><span class="sc-tier-icon">🥉</span><span>Bronze · 50–69</span></div>
       <div class="sc-tier" id="tier-learner"><span class="sc-tier-icon">💪</span><span>Learner · 25–49</span></div>
     </div>
-    <button class="sc-history-btn" onclick="openHistory()">🗺️ Trip History</button>
+    <div class="sc-btn-row">
+      <button class="sc-profile-btn" onclick="openProfile()">👤 My Profile</button>
+      <button class="sc-history-btn" style="margin-top:0" onclick="openHistory()">🗺️ Trips</button>
+    </div>
     <button class="sc-close" onclick="closeScorePanel()">Close</button>
+  </div>
+</div>
+
+<!-- PROFILE PANEL -->
+<div id="profile-panel" onclick="if(event.target===this)closeProfile()">
+  <div class="pf-card">
+    <div class="pf-handle"></div>
+    <div class="pf-hdr">
+      <div class="pf-avatar" id="pf-avatar">👤</div>
+      <div class="pf-name" id="pf-name">Driver</div>
+      <div class="pf-id" id="pf-id"></div>
+      <div class="pf-badge-row" id="pf-badge-row"></div>
+    </div>
+    <div class="pf-stats">
+      <div class="pf-stat"><div class="pf-stat-num" id="pf-trips">0</div><div class="pf-stat-lbl">Trips Logged</div></div>
+      <div class="pf-stat"><div class="pf-stat-num" id="pf-km">0</div><div class="pf-stat-lbl">km Driven</div></div>
+      <div class="pf-stat"><div class="pf-stat-num" id="pf-score">--</div><div class="pf-stat-lbl">Driver Score</div></div>
+    </div>
+    <div class="pf-section">
+      <div class="pf-section-title">Community Contributions</div>
+      <div class="pf-contrib">
+        <div class="pf-contrib-icon">🚔</div>
+        <div><div class="pf-contrib-num" id="pf-reported">…</div><div class="pf-contrib-lbl">Speed traps reported</div></div>
+      </div>
+      <div class="pf-contrib">
+        <div class="pf-contrib-icon">✅</div>
+        <div><div class="pf-contrib-num" id="pf-confirmed">…</div><div class="pf-contrib-lbl">Reports confirmed by the community</div></div>
+      </div>
+    </div>
+    <div class="pf-trusted" id="pf-trusted-badge" style="display:none">
+      <span style="font-size:26px">⭐</span>
+      <div>
+        <div style="font-size:13px;font-weight:700;color:#f39c12">Trusted Reporter</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:2px">10+ confirmed reports — the community trusts your data</div>
+      </div>
+    </div>
+    <button class="pf-close" onclick="closeProfile()">Close</button>
   </div>
 </div>
 
