@@ -4832,7 +4832,7 @@ var _DEV_PRESETS   = {
 function devGpsHold() {
   _devGpsTimer = setTimeout(function() {
     openDevGps();
-  }, 800);
+  }, 5000);
 }
 function devGpsRelease() {
   if (_devGpsTimer) { clearTimeout(_devGpsTimer); _devGpsTimer = null; }
