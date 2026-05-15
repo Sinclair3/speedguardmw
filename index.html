@@ -4824,13 +4824,61 @@ function closeReview() {
 }
 
 // ── DEV GPS SIMULATOR ──
-var _devGpsTimer   = null;
-var _devGpsPreset  = null;
-var _DEV_PRESETS   = {
+var _devGpsTimer      = null;
+var _devGpsPreset     = null;
+var _devSimInterval   = null;
+var _devCurLat        = null;
+var _devCurLng        = null;
+var _devRouteIdx      = 0;
+var _devPresetStartIdx= 0;
+
+// Simplified M1 route — 23 waypoints, Karonga → Nsanje
+var _DEV_M1_ROUTE = [
+  [-9.62,33.94],[-9.93,33.97],[-10.35,34.12],[-10.92,34.01],
+  [-11.45,34.01],[-11.83,33.98],[-12.15,33.88],[-12.36,33.93],
+  [-12.71,33.80],[-12.98,33.78],[-13.28,33.76],[-13.97,33.78],
+  [-14.25,33.84],[-14.57,34.11],[-14.96,34.47],[-15.22,34.77],
+  [-15.39,34.97],[-15.54,35.02],[-15.79,35.00],[-16.08,35.12],
+  [-16.42,35.17],[-16.75,35.14],[-17.12,35.14]
+];
+// Route start index for each preset
+var _DEV_PRESET_IDX = { north: 4, central: 11, south: 18 };
+
+var _DEV_PRESETS = {
   north:   { lat: -11.45, lng: 34.01, label: 'Northern M1 (Mzuzu)' },
   central: { lat: -13.97, lng: 33.78, label: 'Central M1 (Lilongwe)' },
   south:   { lat: -15.79, lng: 35.00, label: 'Southern M1 (Blantyre)' }
 };
+
+function _devMoveStep() {
+  var spd  = parseFloat(localStorage.getItem('sg_sim_speed') || '80');
+  var dist = spd / 7200; // km per 500ms tick at given speed
+  var safety = 0;
+  while (dist > 0 && safety++ < 20) {
+    if (_devRouteIdx >= _DEV_M1_ROUTE.length - 1) {
+      // Reached end of route — loop back to preset start
+      _devRouteIdx = _devPresetStartIdx;
+      var p = _DEV_PRESETS[_devGpsPreset];
+      _devCurLat = p.lat; _devCurLng = p.lng;
+      break;
+    }
+    var next = _DEV_M1_ROUTE[_devRouteIdx + 1];
+    var distToNext = hav(_devCurLat, _devCurLng, next[0], next[1]);
+    if (distToNext < 0.001) { _devRouteIdx++; continue; }
+    if (dist >= distToNext) {
+      _devCurLat = next[0]; _devCurLng = next[1];
+      _devRouteIdx++;
+      dist -= distToNext;
+    } else {
+      var frac = dist / distToNext;
+      _devCurLat += (next[0] - _devCurLat) * frac;
+      _devCurLng += (next[1] - _devCurLng) * frac;
+      dist = 0;
+    }
+  }
+  localStorage.setItem('sg_sim_lat', _devCurLat);
+  localStorage.setItem('sg_sim_lng', _devCurLng);
+}
 
 function devGpsHold() {
   _devGpsTimer = setTimeout(function() {
@@ -4867,11 +4915,19 @@ function applyDevGps() {
   if (!_devGpsPreset) { showToast('Pick a region first'); return; }
   var p   = _DEV_PRESETS[_devGpsPreset];
   var spd = parseFloat(document.getElementById('dgps-speed').value) || 80;
+  // Initialise movement state
+  _devCurLat         = p.lat;
+  _devCurLng         = p.lng;
+  _devRouteIdx       = _DEV_PRESET_IDX[_devGpsPreset] || 0;
+  _devPresetStartIdx = _devRouteIdx;
   localStorage.setItem('sg_sim_active', '1');
   localStorage.setItem('sg_sim_lat',    p.lat);
   localStorage.setItem('sg_sim_lng',    p.lng);
   localStorage.setItem('sg_sim_speed',  spd);
   localStorage.setItem('sg_sim_zone',   _devGpsPreset);
+  // Start movement loop — advances position along M1 every 500ms
+  if (_devSimInterval) clearInterval(_devSimInterval);
+  _devSimInterval = setInterval(_devMoveStep, 500);
   // Force driving-lock off — can't test with controls greyed out
   document.body.classList.remove('driving-lock');
   drivingLockActive = false;
@@ -4883,6 +4939,8 @@ function applyDevGps() {
 }
 
 function clearDevGps() {
+  if (_devSimInterval) { clearInterval(_devSimInterval); _devSimInterval = null; }
+  _devCurLat = null; _devCurLng = null;
   localStorage.removeItem('sg_sim_active');
   localStorage.removeItem('sg_sim_lat');
   localStorage.removeItem('sg_sim_lng');
