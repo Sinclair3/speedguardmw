@@ -2786,7 +2786,12 @@ function actuallyStartGPS(){
     // Immediately pan map to simulated start position (not user's real location)
     var _iLat=parseFloat(localStorage.getItem('sg_sim_lat')||'-13.97');
     var _iLng=parseFloat(localStorage.getItem('sg_sim_lng')||'33.79');
-    if(_iLat&&_iLng) map.setView([_iLat,_iLng],13,{animate:false});
+    if(_iLat&&_iLng){
+      curLat=_iLat; curLng=_iLng; // set immediately so tripProgress works from tick 1
+      map.setView([_iLat,_iLng],13,{animate:false});
+      // Fix tripStartLat if destination was picked before GPS started (curLat was null then)
+      if(tripDest&&!tripStartLat){tripStartLat=_iLat;tripStartLng=_iLng;tripStartDist=hav(_iLat,_iLng,tripDest.lat,tripDest.lng);}
+    }
     watchId=setInterval(function(){
       if(localStorage.getItem('sg_sim_active')!=='1'){stopGPS();return;}
       var sLat=parseFloat(localStorage.getItem('sg_sim_lat')||'0');
@@ -4832,6 +4837,7 @@ var _devCurLng        = null;
 var _devRouteIdx      = 0;
 var _devPresetStartIdx= 0;
 var _devActiveRoute   = null; // filled from OSRM or fallback
+var _devCurrentSpd    = 80;   // speed at time sim started (not read from localStorage)
 
 // Fallback route (used when OSRM is unreachable)
 var _DEV_M1_FALLBACK = [
@@ -4881,7 +4887,7 @@ function _devFetchOSRM(cb) {
 function _devMoveStep() {
   var route = _devActiveRoute;
   if (!route || route.length < 2) return;
-  var spd  = parseFloat(localStorage.getItem('sg_sim_speed') || '80');
+  var spd  = _devCurrentSpd; // fixed at sim start — don't touch admin sim's sg_sim_speed key
   var dist = spd / 24000; // km per 150ms tick
   var safety = 0;
   while (dist > 0 && safety++ < 50) {
@@ -4905,10 +4911,7 @@ function _devMoveStep() {
       dist = 0;
     }
   }
-  // Update localStorage (keeps 500ms sim interval in sync)
-  localStorage.setItem('sg_sim_lat', _devCurLat);
-  localStorage.setItem('sg_sim_lng', _devCurLng);
-  // Directly drive the UI — don't wait for the 500ms read loop
+  // Directly drive the UI — no localStorage writes (avoids conflicting with admin sim keys)
   curLat = _devCurLat; curLng = _devCurLng; curSpd = spd;
   updateUI(_devCurLat, _devCurLng, spd);
   // Smooth marker glide — apply transition after marker exists
@@ -4950,6 +4953,7 @@ function selectDevPreset(zone) {
 }
 
 function _devStartMoving(route, preset, spd) {
+  _devCurrentSpd     = spd;
   _devActiveRoute    = route;
   _devCurLat         = preset.lat;
   _devCurLng         = preset.lng;
@@ -4975,6 +4979,8 @@ function applyDevGps() {
   var chip = document.getElementById('sim-chip');
   if (chip) { chip.style.display = 'inline'; chip.title = 'Tap to exit simulation'; chip.onclick = clearDevGps; }
   if (!isTracking) actuallyStartGPS(); // bypass dest picker in dev sim mode
+  // Dev GPS drives position directly via _devMoveStep — kill the admin sim polling loop
+  if (watchId && _simMode) { clearInterval(watchId); watchId = null; }
   // Start moving immediately on fallback so the car never waits
   _devStartMoving(_DEV_M1_FALLBACK, p, spd);
   // Try OSRM in background — upgrade to real road if it loads within 8s
