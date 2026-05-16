@@ -359,24 +359,11 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .chat-msg.other .msg-time{text-align:left}
 .msg-speed{font-size:9px;color:rgba(255,255,255,.28);margin-left:4px}
 
-/* Region tab bar — pill style */
-#chat-region-tabs{
-  display:flex;gap:6px;padding:8px 12px;
-  background:rgba(0,0,0,.2);flex-shrink:0;
-  border-bottom:1px solid rgba(255,255,255,.07);
-  overflow-x:auto;scrollbar-width:none;
-}
-#chat-region-tabs::-webkit-scrollbar{display:none}
-.crt-tab{
-  flex:1;padding:6px 8px;font-size:11px;font-weight:700;
-  color:rgba(255,255,255,.38);background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.08);border-radius:20px;
-  cursor:pointer;transition:.2s;white-space:nowrap;text-align:center;
-}
-.crt-tab.north.active{color:#7fb3d3;background:rgba(52,152,219,.15);border-color:rgba(52,152,219,.35)}
-.crt-tab.central.active{color:#f8c060;background:rgba(243,156,18,.12);border-color:rgba(243,156,18,.35)}
-.crt-tab.south.active{color:#ff8a7a;background:rgba(231,76,60,.12);border-color:rgba(231,76,60,.35)}
-.crt-tab.all.active{color:#5ddb8a;background:rgba(39,174,96,.12);border-color:rgba(39,174,96,.3)}
+/* Distance pill on chat messages */
+.msg-dist{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:5px;vertical-align:middle;letter-spacing:.02em}
+.msg-dist.dist-close{background:rgba(39,174,96,.2);color:#5ddb8a;border:1px solid rgba(39,174,96,.3)}
+.msg-dist.dist-mid{background:rgba(243,156,18,.15);color:#f8c060;border:1px solid rgba(243,156,18,.25)}
+.msg-dist.dist-far{background:rgba(255,255,255,.07);color:rgba(255,255,255,.38);border:1px solid rgba(255,255,255,.1)}
 
 /* System messages */
 .chat-system{
@@ -1887,15 +1874,8 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 
   <!-- Chat panel -->
   <div id="chat-panel">
-    <div id="chat-region-tabs">
-      <button class="crt-tab north" onclick="selectChatRegion('north')">North</button>
-      <button class="crt-tab central" onclick="selectChatRegion('central')">Central</button>
-      <button class="crt-tab south" onclick="selectChatRegion('south')">South</button>
-      <button class="crt-tab all" onclick="selectChatRegion('all')">All M1</button>
-    </div>
     <div id="chat-messages">
-      <div class="chat-system">💬 M1 Region Chat — messages expire after 2 hours</div>
-      <div class="chat-system">Start GPS to auto-join your region</div>
+      <div class="chat-system">💬 M1 Road Chat — one room, all drivers · messages expire after 2 hours</div>
     </div>
     <!-- Reply bar (shown when replying) -->
     <div id="chat-reply-bar">
@@ -2887,7 +2867,6 @@ function updateUI(lat,lng,spd){
   checkProximityVotes(lat,lng);
   nightCheckOnGPS();
   weatherCheckOnGPS(lat,lng);
-  updateChatZone();          // zone-based chat channel tracking
   updateNavHUD(lat,lng,spd); // navigation HUD update
   broadcastPos(lat,lng,spd);
   // ── Trip stat accumulation ──
@@ -3094,21 +3073,22 @@ function refreshLivePanel(){
   var el=document.getElementById('lp-list'),sub=document.getElementById('lp-s'),lbl=document.getElementById('live-lbl'),dot=document.getElementById('live-dot');
 
   // Region filter — only show drivers in same GPS region unless toggled off
+  var myZone = getDriverZone();
   var users = allUsers;
   var hiddenCount = 0;
-  if(chatZone && !liveShowAllDrivers) {
+  if(myZone && !liveShowAllDrivers) {
     users = allUsers.filter(function(u){
       if(!u.lat) return true; // no position — show anyway
       var km = Math.round(latProg(u.lat) / 100 * 1140);
       var uZone = km < 400 ? 'north' : km < 700 ? 'central' : 'south';
-      return uZone === chatZone;
+      return uZone === myZone;
     });
     hiddenCount = allUsers.length - users.length;
   }
 
   var count = users.length;
   var connStatus = !isOnline ? ' · offline' : !realtimeConnected ? ' · connecting...' : '';
-  var regionName = chatZone ? REGION_LABEL[chatZone] : 'M1';
+  var regionName = myZone ? REGION_LABEL[myZone] : 'M1';
   if(sub) sub.textContent = count+' driver'+(count!==1?'s':'')+' · '+(liveShowAllDrivers?'All M1':regionName)+connStatus;
   if(lbl) lbl.textContent = count+' online';
   if(dot) dot.style.display = allUsers.length>0?'inline-block':'none';
@@ -3141,11 +3121,11 @@ function refreshLivePanel(){
   }
 
   // "Show all" / "Show region" footer toggle
-  if(allUsers.length > 0 && chatZone) {
+  if(allUsers.length > 0 && myZone) {
     var footer = document.createElement('div');
     footer.style.cssText='text-align:center;padding:12px 0 4px;';
     if(liveShowAllDrivers) {
-      footer.innerHTML='<button onclick="liveShowAllDrivers=false;refreshLivePanel()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:12px;cursor:pointer">📍 Show '+REGION_LABEL[chatZone]+' only</button>';
+      footer.innerHTML='<button onclick="liveShowAllDrivers=false;refreshLivePanel()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:12px;cursor:pointer">📍 Show '+REGION_LABEL[myZone]+' only</button>';
     } else if(hiddenCount > 0) {
       footer.innerHTML='<button onclick="liveShowAllDrivers=true;refreshLivePanel()" style="background:none;border:none;color:rgba(255,255,255,.4);font-size:12px;cursor:pointer">🌍 '+hiddenCount+' more driver'+(hiddenCount!==1?'s':'')+' in other regions</button>';
     }
@@ -3308,7 +3288,6 @@ function launchApp(){
   initRealtime();
   loadCommunityTraps();
   loadAdminLocations();
-  updateRegionTabs(); // apply saved region tab before history loads
   setTimeout(loadChatHistory, 1500); // load after DOM + WS settle
 }
 
@@ -5328,13 +5307,7 @@ var chatOpen      = false;    // is chat tab visible
 var MAX_CHAT_MSGS = 100;      // keep last 100 messages in memory
 var CHAT_EXPIRY   = 2 * 60 * 60 * 1000; // 2 hours
 
-// Region-based chat
-var chatZone        = null;   // GPS-detected region: 'north'|'central'|'south'|null
-var chatRegionTab   = lsGet('sg_chat_region') || 'all'; // active tab (persisted)
-var chatRegionManual= false;  // true when user manually picked a tab
-var ZONE_LABEL      = {north:'🔵 Northern M1', central:'🟡 Central M1', south:'🔴 Southern M1'};
-var ZONE_COLOR      = {north:'#3498db', central:'#f39c12', south:'#e74c3c'};
-var REGION_LABEL    = {north:'Northern M1', central:'Central M1', south:'Southern M1'};
+var REGION_LABEL = {north:'Northern M1', central:'Central M1', south:'Southern M1'};
 
 // ── LIVE PANEL TAB SWITCH ──
 function switchLiveTab(tab) {
@@ -5366,57 +5339,11 @@ function switchLiveTab(tab) {
   }
 }
 
-// ── REGION CHAT HELPERS ──
+// ── GPS ZONE HELPER (used by live panel driver filter) ──
 function getDriverZone() {
   if(!curLat) return null;
   var km = Math.round(latProg(curLat) / 100 * 1140);
   return km < 400 ? 'north' : km < 700 ? 'central' : 'south';
-}
-
-function updateChatZone() {
-  var zone = getDriverZone();
-  if(!zone || zone === chatZone) return;
-  var prev = chatZone;
-  chatZone = zone;
-  if(!chatRegionManual) {
-    // Auto-follow GPS region when user hasn't manually picked a tab
-    chatRegionTab = zone;
-    lsSet('sg_chat_region', zone);
-    updateRegionTabs();
-    if(prev !== null) {
-      showToast('📍 Entered ' + REGION_LABEL[zone] + ' — chat updated');
-      var el = document.getElementById('chat-messages');
-      if(el) el.innerHTML = '';
-      addChatSystem('📍 You entered ' + REGION_LABEL[zone]);
-      loadChatHistory();
-    } else {
-      addChatSystem('📍 Region: ' + REGION_LABEL[zone]);
-    }
-  }
-}
-
-function updateRegionTabs() {
-  ['north','central','south','all'].forEach(function(r) {
-    var btn = document.querySelector('.crt-tab.' + r);
-    if(btn) btn.classList.toggle('active', r === chatRegionTab);
-  });
-  var inp = document.getElementById('chat-input');
-  if(inp) inp.placeholder = chatRegionTab === 'all'
-    ? 'Message all M1 drivers...'
-    : 'Message ' + (REGION_LABEL[chatRegionTab] || chatRegionTab) + ' drivers...';
-}
-
-function selectChatRegion(region) {
-  chatRegionTab   = region;
-  chatRegionManual = (region !== chatZone && region !== 'all');
-  lsSet('sg_chat_region', region);
-  updateRegionTabs();
-  var el = document.getElementById('chat-messages');
-  if(el) el.innerHTML = '';
-  loadChatHistory();
-  addChatSystem(region === 'all'
-    ? '🌍 Showing all M1 regions'
-    : '📍 ' + REGION_LABEL[region] + ' chat');
 }
 
 // ── SEND MESSAGE ──
@@ -5428,9 +5355,6 @@ function sendChat() {
   var text  = input ? input.value.trim() : '';
   if (!text) return;
   if (text.length > 120) { showToast('❌ Message too long (max 120 chars)'); return; }
-  var outZone = chatRegionTab !== 'all' ? chatRegionTab : (chatZone || getDriverZone());
-  if (!outZone) { showToast('📍 Start GPS to join a region chat'); return; }
-
   var payload = {
     type:     'chat',
     id:       myId,
@@ -5439,9 +5363,7 @@ function sendChat() {
     lat:      curLat,
     lng:      curLng,
     progress: curLat ? Math.round(latProg(curLat)) : null,
-    zone:     chatRegionTab !== 'all' ? chatRegionTab : (chatZone || getDriverZone() || null),
     ts:       Date.now(),
-    // Reply data (null if not replying)
     replyId:   replyingTo ? replyingTo.id   : null,
     replyNick: replyingTo ? replyingTo.nick : null,
     replyText: replyingTo ? replyingTo.text : null,
@@ -5468,9 +5390,6 @@ function sendChat() {
 // ── RECEIVE MESSAGE ──
 function receiveChatMsg(pl) {
   if (pl.id === myId) return;
-  // Region filter: drop messages not matching the active tab
-  // If sender has no zone (old client / no GPS) always show
-  if (chatRegionTab !== 'all' && pl.zone && pl.zone !== chatRegionTab) return;
   var mentioned = isMentioned(pl.text);
   appendChatMsg(pl, false, mentioned);
   if (!chatOpen) {
@@ -5521,18 +5440,25 @@ function appendChatMsg(pl, isMine, isMentioned) {
   var t  = new Date(pl.ts);
   var tm = t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0');
 
-  // Show DISTANCE (km along M1) not speed — for privacy
+  // Distance + direction pill (only on other drivers' messages)
   var locStr = '';
-  if (pl.progress !== null && pl.progress !== undefined) {
-    var kmAlong = Math.round(pl.progress / 100 * 306);
+  if (!isMine) {
     if (curLat && pl.lat && pl.lng) {
-      // If we have their position, show distance from us
-      var dist = hav(curLat, curLng, pl.lat || 0, pl.lng || 0);
-      locStr = dist < 1
-        ? '<span class="msg-speed">• ' + Math.round(dist*1000) + 'm away</span>'
-        : '<span class="msg-speed">• ' + dist.toFixed(1) + 'km away</span>';
-    } else {
-      locStr = '<span class="msg-speed">• km ' + kmAlong + '</span>';
+      var dist = hav(curLat, curLng, pl.lat, pl.lng);
+      var myProg = latProg(curLat);
+      var dir = (pl.progress != null) ? (pl.progress > myProg ? ' ahead' : ' behind') : '';
+      var distLabel = dist < 1 ? Math.round(dist * 1000) + 'm' : dist.toFixed(1) + ' km';
+      var distClass = dist < 30 ? 'dist-close' : dist < 150 ? 'dist-mid' : 'dist-far';
+      locStr = '<span class="msg-dist ' + distClass + '">📍 ' + distLabel + dir + '</span>';
+    } else if (pl.progress != null && curLat) {
+      var myProg = latProg(curLat);
+      var diffKm = Math.round(Math.abs(myProg - pl.progress) / 100 * 1040);
+      var dir = pl.progress > myProg ? ' ahead' : ' behind';
+      var distClass = diffKm < 30 ? 'dist-close' : diffKm < 150 ? 'dist-mid' : 'dist-far';
+      locStr = '<span class="msg-dist ' + distClass + '">📍 ~' + diffKm + ' km' + dir + '</span>';
+    } else if (pl.progress != null) {
+      var kmAlong = Math.round(pl.progress / 100 * 1040);
+      locStr = '<span class="msg-dist dist-far">📍 km ' + kmAlong + '</span>';
     }
   }
 
@@ -6174,13 +6100,7 @@ function saveZonePref() {
   if(pushSubscription && myId) {
     supaFetch('sg_push_subs?device_id=eq.'+myId, 'PATCH', {zones:zones}).catch(function(){});
   }
-  // Auto-switch chat region to match zone selection
-  if(zones.length === 1) {
-    selectChatRegion(zones[0]);
-    showToast('📍 Zone saved — chat switched to ' + (REGION_LABEL[zones[0]] || zones[0]));
-  } else {
-    showToast('📍 Zone preference saved');
-  }
+  showToast('📍 Zone preference saved');
 }
 
 // ── SEND NOTIFICATION ──
@@ -7126,10 +7046,8 @@ function loadChatHistory() {
   // The operator 'gte' (>=) works for datetime comparisons.
   // We must NOT encode the operator dot — only the value needs encoding.
   // Using fetch directly for full control over the request URL.
-  var regionFilter = (chatRegionTab && chatRegionTab !== 'all') ? '&zone=eq.' + chatRegionTab : '';
   var url = SUPA_URL + '/rest/v1/sg_chat?select=*'
     + '&created_at=gte.' + encodeURIComponent(twoHoursAgo)
-    + regionFilter
     + '&order=created_at.asc&limit=50';
   fetch(url, {
     headers: {
