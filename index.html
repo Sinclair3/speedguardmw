@@ -2368,17 +2368,43 @@ function initRealtime(){
     channel=ws;
   }catch(e){ console.warn('Realtime failed:',e.message); setTimeout(initRealtime,5000); }
 }
-var _lastBroadcastTs = 0;
-function broadcastPos(lat,lng,spd,force){
-  if(!isLive()||!isOnline||!channel||!realtimeConnected)return;
-  var now=Date.now();
-  // Moving (>5 km/h): broadcast every call (GPS fires ~1-3s on real device).
-  // Parked/slow: throttle to every 15s — no need to spam presence for a stationary car.
-  // force=true bypasses throttle (used on reconnect and nickname change).
-  var minInterval = (spd < 5) ? 15000 : 0;
-  if(!force && (now - _lastBroadcastTs) < minInterval) return;
-  _lastBroadcastTs = now;
-  try{channel.send(JSON.stringify({topic:'realtime:m1_drivers',event:'broadcast',payload:{type:'pos',id:myId,nickname:myNickname,lat:parseFloat(lat.toFixed(5)),lng:parseFloat(lng.toFixed(5)),speed:Math.round(spd),progress:Math.round(tripProgress(lat,lng))},ref:null}));}catch(e){}
+var _lastBroadcastTs  = 0;
+var _lastBroadcastLat = null;
+var _lastBroadcastLng = null;
+var _MOVE_THRESHOLD_M = 50;   // only broadcast after moving this many metres
+var _HEARTBEAT_MS     = 25000; // always broadcast at least every 25s so others don't lose you
+
+function broadcastPos(lat, lng, spd, force) {
+  if (!isLive() || !isOnline || !channel || !realtimeConnected) return;
+  var now = Date.now();
+
+  if (!force) {
+    if (spd < 5) {
+      // Parked / very slow — heartbeat every 15s, no distance check needed
+      if ((now - _lastBroadcastTs) < 15000) return;
+    } else {
+      // Moving — skip broadcast unless we've covered 50m OR 25s have passed
+      var movedEnough = _lastBroadcastLat === null ||
+        hav(lat, lng, _lastBroadcastLat, _lastBroadcastLng) * 1000 >= _MOVE_THRESHOLD_M;
+      var heartbeatDue = (now - _lastBroadcastTs) >= _HEARTBEAT_MS;
+      if (!movedEnough && !heartbeatDue) return;
+    }
+  }
+
+  _lastBroadcastTs  = now;
+  _lastBroadcastLat = lat;
+  _lastBroadcastLng = lng;
+
+  try {
+    channel.send(JSON.stringify({
+      topic: 'realtime:m1_drivers', event: 'broadcast',
+      payload: {
+        type: 'pos', id: myId, nickname: myNickname,
+        lat: parseFloat(lat.toFixed(5)), lng: parseFloat(lng.toFixed(5)),
+        speed: Math.round(spd), progress: Math.round(tripProgress(lat, lng))
+      }, ref: null
+    }));
+  } catch(e) {}
 }
 setInterval(function(){
   var now=Date.now();
