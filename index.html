@@ -3174,16 +3174,24 @@ function refreshLivePanel(){
     users.sort(function(a,b){ return a._dk - b._dk; });
     users.forEach(function(u){
       var spd=u.speed, sc=spd>80?'bad':spd>50?'warn':'ok';
-      var distStr = u._dk===Infinity ? 'position unknown'
-        : u._dk<1 ? Math.round(u._dk*1000)+' m away'
-        : Math.round(u._dk)+' km away';
-      var distColor = u._dk<30?'#5ddb8a': u._dk<150?'#f8c060':'rgba(255,255,255,.38)';
-      var km=Math.round(latProg(u.lat)/100*1140);
-      var uRegion=km<400?'Northern M1':km<700?'Central M1':'Southern M1';
+      var distStr = u._dk===Infinity ? '📍 No GPS'
+        : u._dk<1 ? '📍 '+Math.round(u._dk*1000)+' m away'
+        : '📍 '+Math.round(u._dk)+' km away';
+      var distColor = u._dk===Infinity ? 'rgba(255,255,255,.28)'
+        : u._dk<30 ? '#5ddb8a' : u._dk<150 ? '#f8c060' : 'rgba(255,255,255,.38)';
+      // Position line — only show km + region when GPS is actually available
+      var posLine;
+      if (u.lat != null && u.progress != null) {
+        var km = Math.round(latProg(u.lat) / 100 * 1140);
+        var uRegion = km < 400 ? 'Northern M1' : km < 700 ? 'Central M1' : 'Southern M1';
+        posLine = 'km ' + u.progress + ' · ' + uRegion;
+      } else {
+        posLine = 'GPS not active';
+      }
       var c=document.createElement('div'); c.className='ucard';
       c.innerHTML='<div class="uc-r"><div class="uc-n">👤 '+u.nickname+'</div><div class="uc-spd '+sc+'" style="color:'+dc(sc)+'">'+spd+' km/h</div></div>'
-        +'<div class="uc-loc"><span>km '+(u.progress||'?')+' · '+uRegion+'</span>'
-        +'<span style="color:'+distColor+';font-weight:700;font-size:11px">📍 '+distStr+'</span></div>'
+        +'<div class="uc-loc"><span>'+posLine+'</span>'
+        +'<span style="color:'+distColor+';font-weight:700;font-size:11px">'+distStr+'</span></div>'
         +'<div class="uc-foot"><span class="uc-t">'+ago(u.ts)+'</span>'
         +'<button class="btn-mention">@ Contact</button></div>';
       c.onclick = function(){ map.setView([u.lat,u.lng],13); closeLive(); };
