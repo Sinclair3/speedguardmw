@@ -257,11 +257,15 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .lp-t{font-size:15px;font-weight:700}.lp-s{font-size:11px;color:rgba(255,255,255,.35);margin-top:2px}
 .lp-x{width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.08);border:none;color:#fff;font-size:14px;cursor:pointer}
 .lp-list{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
-.ucard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:11px 13px;cursor:pointer}
+.ucard{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:11px 13px;cursor:pointer;transition:background .15s}
+.ucard:active{background:rgba(255,255,255,.09)}
 .uc-r{display:flex;align-items:center;justify-content:space-between}
 .uc-n{font-size:13px;font-weight:600}.uc-spd{font-size:12px;font-weight:700}
 .uc-loc{font-size:11px;color:rgba(255,255,255,.38);margin-top:3px;display:flex;justify-content:space-between}
-.uc-t{font-size:10px;color:rgba(255,255,255,.22);margin-top:2px}
+.uc-foot{display:flex;align-items:center;justify-content:space-between;margin-top:5px}
+.uc-t{font-size:10px;color:rgba(255,255,255,.22)}
+.btn-mention{background:rgba(39,174,96,.12);border:1px solid rgba(39,174,96,.28);color:#5ddb8a;border-radius:8px;padding:4px 10px;font-size:10px;font-weight:700;cursor:pointer;letter-spacing:.02em;transition:background .15s}
+.btn-mention:active{background:rgba(39,174,96,.28)}
 /* MODALS */
 .mo{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.75);align-items:flex-end;justify-content:center}
 .mo.open{display:flex}
@@ -3105,17 +3109,31 @@ function refreshLivePanel(){
     el.innerHTML='<div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.9">'+emptyMsg+'</div>';
   } else {
     el.innerHTML='';
-    users.sort(function(a,b){return b.ts-a.ts;}).forEach(function(u){
-      var spd=u.speed,sc=spd>80?'bad':spd>50?'warn':'ok';
-      var distStr='--';
-      if(curLat!=null&&u.lat!=null){var dk=hav(curLat,curLng,u.lat,u.lng);distStr=dk<1?Math.round(dk*1000)+' m away':Math.round(dk)+' km away';}
+    // Attach computed distance so we can sort
+    users.forEach(function(u){
+      u._dk = (curLat != null && u.lat != null) ? hav(curLat, curLng, u.lat, u.lng) : Infinity;
+    });
+    // Sort closest first; unknown position goes to bottom
+    users.sort(function(a,b){ return a._dk - b._dk; });
+    users.forEach(function(u){
+      var spd=u.speed, sc=spd>80?'bad':spd>50?'warn':'ok';
+      var distStr = u._dk===Infinity ? 'position unknown'
+        : u._dk<1 ? Math.round(u._dk*1000)+' m away'
+        : Math.round(u._dk)+' km away';
+      var distColor = u._dk<30?'#5ddb8a': u._dk<150?'#f8c060':'rgba(255,255,255,.38)';
       var km=Math.round(latProg(u.lat)/100*1140);
       var uRegion=km<400?'Northern M1':km<700?'Central M1':'Southern M1';
-      var c=document.createElement('div');c.className='ucard';
+      var c=document.createElement('div'); c.className='ucard';
       c.innerHTML='<div class="uc-r"><div class="uc-n">👤 '+u.nickname+'</div><div class="uc-spd '+sc+'" style="color:'+dc(sc)+'">'+spd+' km/h</div></div>'
-        +'<div class="uc-loc"><span>km '+(u.progress||'?')+' · '+uRegion+'</span><span style="color:#f39c12;font-weight:700;font-size:11px">📍 '+distStr+'</span></div>'
-        +'<div class="uc-t">'+ago(u.ts)+'</div>';
-      c.onclick=function(){map.setView([u.lat,u.lng],13);closeLive();};
+        +'<div class="uc-loc"><span>km '+(u.progress||'?')+' · '+uRegion+'</span>'
+        +'<span style="color:'+distColor+';font-weight:700;font-size:11px">📍 '+distStr+'</span></div>'
+        +'<div class="uc-foot"><span class="uc-t">'+ago(u.ts)+'</span>'
+        +'<button class="btn-mention">@ Contact</button></div>';
+      c.onclick = function(){ map.setView([u.lat,u.lng],13); closeLive(); };
+      c.querySelector('.btn-mention').onclick = function(e){
+        e.stopPropagation();
+        mentionDriver(u.nickname);
+      };
       el.appendChild(c);
     });
   }
@@ -3139,13 +3157,30 @@ function openLive(){
 }
 function openChat(){
   if(!isLive()){
-    // Show the explainer sheet instead of a plain toast
     showPrivacySheet();
     return;
   }
   document.getElementById('live-panel').classList.add('open');
   refreshLivePanel();
   switchLiveTab('chat');
+}
+
+function mentionDriver(nickname) {
+  if(!isLive()){ showPrivacySheet(); return; }
+  document.getElementById('live-panel').classList.add('open');
+  refreshLivePanel();
+  switchLiveTab('chat');
+  setTimeout(function(){
+    var inp = document.getElementById('chat-input');
+    if(!inp) return;
+    var cur = inp.value.trim();
+    inp.value = (cur ? cur + ' ' : '') + '@' + nickname + ' ';
+    inp.focus();
+    // update char counter
+    var left = 120 - inp.value.length;
+    var counter = document.getElementById('chat-char-left');
+    if(counter) counter.textContent = left;
+  }, 200);
 }
 function closeLive(){
   var lp = document.getElementById('live-panel');
