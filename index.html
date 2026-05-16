@@ -2249,37 +2249,52 @@ function closeVote(){document.getElementById('vote-mo').classList.remove('open')
 // ═══════════════════════════════════════════
 // SUPABASE REALTIME — live drivers
 // ═══════════════════════════════════════════
-var channel=null,realtimeConnected=false;
+var channel=null, realtimeConnected=false, _rtJoinTimer=null;
+
 function initRealtime(){
+  // Don't stack connections — if already open or mid-handshake, bail
+  if(channel && (channel.readyState === 0 || channel.readyState === 1)) return;
   try{
     var ws=new WebSocket(SUPA_URL.replace('https','wss')+'/realtime/v1/websocket?apikey='+SUPA_KEY+'&vsn=1.0.0');
+
     ws.onopen=function(){
-      realtimeConnected=false; // not truly connected until phx_reply confirms join
+      realtimeConnected=false;
       ws.send(JSON.stringify({
         topic:'realtime:m1_drivers',
         event:'phx_join',
         payload:{config:{broadcast:{self:false}}},
         ref:'1'
       }));
-      // If GPS is already tracking when the WebSocket connects (e.g. after a reconnect),
-      // broadcast our position immediately so other drivers see us right away.
-      // Without this, they'd have to wait for the next GPS ping — up to 3 seconds.
-      // 3 seconds doesn't sound like much until you're doing 80km/h. It's 67 metres.
-      if(isTracking && curLat !== null && isLive()) {
+      // If phx_reply never arrives within 10s, the join silently failed — close and retry
+      clearTimeout(_rtJoinTimer);
+      _rtJoinTimer = setTimeout(function(){
+        if(!realtimeConnected){
+          console.warn('[WS] phx_join timeout — retrying');
+          ws.close();
+        }
+      }, 10000);
+      // Broadcast position immediately on reconnect so other drivers see us right away
+      if(isTracking && curLat !== null && isLive()){
         setTimeout(function(){ broadcastPos(curLat, curLng, curSpd, true); }, 500);
       }
     };
+
     ws.onmessage=function(e){
       try{
         var msg=JSON.parse(e.data);
-        // Confirm channel join succeeded
-        if(msg.event==='phx_reply' && msg.payload && msg.payload.status==='ok'){
-          realtimeConnected=true;
-          refreshLivePanel(); // update "connecting..." status immediately
+        if(msg.event==='phx_reply'){
+          clearTimeout(_rtJoinTimer);
+          if(msg.payload && msg.payload.status==='ok'){
+            realtimeConnected=true;
+            refreshLivePanel();
+          } else {
+            // Join rejected (e.g. policy error) — close triggers onclose → retry
+            console.warn('[WS] phx_join rejected:', JSON.stringify(msg.payload));
+            ws.close();
+          }
         }
         if(msg.event==='broadcast'&&msg.payload){
           var pl=msg.payload;
-          // ── Driver position updates (only when live) ──
           if(pl.type==='pos'){
             if(isLive()){
               var u=pl;
@@ -2290,25 +2305,17 @@ function initRealtime(){
               }
             }
           }
-          // ── Admin broadcast (always received — safety alerts) ──
-          if(pl.type==='admin_broadcast'){
-            showAdminBanner(pl.msgType, pl.message);
-          }
-          // ── Driver chat (only when live) ──
-          if(pl.type==='chat'){
-            if(isLive()) receiveChatMsg(pl);
-          }
-          // ── Chat delete (always process to remove from UI) ──
-          if(pl.type==='chat_delete'){
-            processChatDelete(pl.msgId);
-          }
+          if(pl.type==='admin_broadcast'){ showAdminBanner(pl.msgType, pl.message); }
+          if(pl.type==='chat'){ if(isLive()) receiveChatMsg(pl); }
+          if(pl.type==='chat_delete'){ processChatDelete(pl.msgId); }
         }
       }catch(err){}
     };
-    ws.onerror=function(){realtimeConnected=false;};
-    ws.onclose=function(){realtimeConnected=false;setTimeout(initRealtime,5000);};
+
+    ws.onerror=function(){ clearTimeout(_rtJoinTimer); realtimeConnected=false; };
+    ws.onclose=function(){ clearTimeout(_rtJoinTimer); realtimeConnected=false; setTimeout(initRealtime,3000); };
     channel=ws;
-  }catch(e){console.warn('Realtime failed:',e.message);}
+  }catch(e){ console.warn('Realtime failed:',e.message); setTimeout(initRealtime,5000); }
 }
 var _lastBroadcastTs = 0;
 function broadcastPos(lat,lng,spd,force){
@@ -7157,8 +7164,10 @@ setInterval(function(){
 // Without this, a driver can sit for hours with realtimeConnected=true
 // but actually talking to nobody. Very sad. Very fixable.
 setInterval(function(){
-  if(!channel || channel.readyState !== 1) { // 1 = OPEN
-    console.log('[WS] Connection lost — reconnecting...');
+  // readyState: 0=CONNECTING 1=OPEN 2=CLOSING 3=CLOSED
+  // Only intervene if CLOSED or CLOSING — leave CONNECTING alone
+  if(!channel || channel.readyState === 3 || channel.readyState === 2) {
+    console.log('[WS] Health check: socket closed — reconnecting...');
     realtimeConnected = false;
     initRealtime();
   }
