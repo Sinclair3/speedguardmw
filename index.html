@@ -9,6 +9,12 @@
 <meta name="theme-color" content="#0a0f14">
 <link rel="manifest" href="manifest.json">
 <title>Pansewu — M1 Road</title>
+<!-- DNS pre-resolution for critical third-party origins -->
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://a.tile.openstreetmap.org">
+<link rel="preconnect" href="https://b.tile.openstreetmap.org">
+<link rel="preconnect" href="https://c.tile.openstreetmap.org">
+<link rel="preconnect" href="https://mgoxhsnmjbzjuevwryxy.supabase.co">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
@@ -2023,8 +2029,6 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 <div id="sg-toast"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
 <script>
 // ═══════════════════════════════════════════════════════
 // SUPABASE CONFIG
@@ -7340,7 +7344,7 @@ function loadChatHistory() {
   // Using fetch directly for full control over the request URL.
   var url = SUPA_URL + '/rest/v1/sg_chat?select=*'
     + '&created_at=gte.' + encodeURIComponent(twoHoursAgo)
-    + '&order=created_at.asc&limit=50';
+    + '&order=created_at.asc&limit=20';
   fetch(url, {
     headers: {
       'apikey': SUPA_KEY,
