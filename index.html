@@ -5516,12 +5516,13 @@ function updateChatStatus() {
 
 // ── MENTIONS STORE ──
 var myMentions = [];
+var myMentionsUnread = 0;
 var mentionsOpen = false;
 
 function addMention(pl) {
   myMentions.push({ pl: pl, ts: Date.now() });
+  myMentionsUnread++;
   updateMentionsBadge();
-  // Update hint with real nickname
   var hint = document.getElementById('mp-nick-hint');
   if (hint && myNickname) hint.textContent = myNickname;
 }
@@ -5529,12 +5530,11 @@ function addMention(pl) {
 function updateMentionsBadge() {
   var badge = document.getElementById('mbell-count');
   var btn   = document.getElementById('btn-mentions');
-  var count = myMentions.length;
   if (badge) {
-    if (count > 0) { badge.style.display = 'inline'; badge.textContent = count > 9 ? '9+' : count; }
+    if (myMentionsUnread > 0) { badge.style.display = 'inline'; badge.textContent = myMentionsUnread > 9 ? '9+' : myMentionsUnread; }
     else badge.style.display = 'none';
   }
-  if (btn) btn.classList.toggle('has-new', count > 0);
+  if (btn) btn.classList.toggle('has-new', myMentionsUnread > 0);
 }
 
 function toggleMentions() {
@@ -5543,7 +5543,12 @@ function toggleMentions() {
   var msgs  = document.getElementById('chat-messages');
   if (panel) panel.classList.toggle('show', mentionsOpen);
   if (msgs)  msgs.style.display = mentionsOpen ? 'none' : '';
-  if (mentionsOpen) renderMentions();
+  if (mentionsOpen) {
+    // Clear badge as soon as panel is opened — messages are now read
+    myMentionsUnread = 0;
+    updateMentionsBadge();
+    renderMentions();
+  }
 }
 
 function renderMentions() {
