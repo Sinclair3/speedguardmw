@@ -5552,10 +5552,14 @@ function toggleMentions() {
   if (panel) panel.classList.toggle('show', mentionsOpen);
   if (msgs)  msgs.style.display = mentionsOpen ? 'none' : '';
   if (mentionsOpen) {
-    // Clear badge as soon as panel is opened — messages are now read
     myMentionsUnread = 0;
     updateMentionsBadge();
     renderMentions();
+  } else {
+    // Closing panel = viewed — clear all mentions so only new ones appear next time
+    myMentions = [];
+    myMentionsUnread = 0;
+    updateMentionsBadge();
   }
 }
 
