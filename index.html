@@ -363,6 +363,35 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .chat-msg.other .msg-time{text-align:left}
 .msg-speed{font-size:9px;color:rgba(255,255,255,.28);margin-left:4px}
 
+/* ── CHAT CONNECTION STATUS BAR ── */
+#chat-header-bar{display:flex;align-items:center;justify-content:space-between;padding:5px 12px;background:rgba(0,0,0,.25);flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06)}
+.conn-status{display:flex;align-items:center;gap:5px;font-size:10px;font-weight:800;letter-spacing:.05em;text-transform:uppercase}
+.conn-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.conn-status.connected .conn-dot{background:#27ae60;box-shadow:0 0 6px rgba(39,174,96,.7)}
+.conn-status.connected .conn-label{color:#5ddb8a}
+.conn-status.disconnected .conn-dot{background:#e74c3c;animation:bk .8s infinite}
+.conn-status.disconnected .conn-label{color:#ff7a7a}
+.conn-status.connecting .conn-dot{background:#f39c12;animation:bk 1.2s infinite}
+.conn-status.connecting .conn-label{color:#f8c060}
+/* Mentions bell */
+#btn-mentions{background:none;border:none;cursor:pointer;display:flex;align-items:center;gap:4px;padding:3px 7px;border-radius:8px;color:rgba(255,255,255,.4);font-size:12px;transition:background .15s}
+#btn-mentions:active{background:rgba(255,255,255,.08)}
+#btn-mentions.has-new{color:#f8c060}
+#mbell-count{font-size:9px;font-weight:800;background:#e74c3c;color:#fff;border-radius:8px;padding:1px 5px;display:none}
+/* ── MENTIONS PANEL ── */
+#mentions-panel{display:none;flex-direction:column;flex:1;min-height:0;background:#0a0f14}
+#mentions-panel.show{display:flex}
+.mp-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
+.mp-hdr-title{font-size:13px;font-weight:800;color:#f8c060}
+.mp-hdr-close{background:none;border:none;color:rgba(255,255,255,.4);font-size:18px;cursor:pointer;line-height:1}
+.mp-list{flex:1;overflow-y:auto;padding:8px 10px;display:flex;flex-direction:column;gap:8px;scrollbar-width:thin}
+.mp-empty{text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8}
+.mp-card{background:rgba(248,192,96,.07);border:1px solid rgba(248,192,96,.2);border-radius:12px;padding:10px 12px}
+.mp-from{font-size:11px;font-weight:700;color:#f8c060;margin-bottom:4px}
+.mp-text{font-size:13px;color:#fff;line-height:1.45;margin-bottom:7px;word-break:break-word}
+.mp-footer{display:flex;align-items:center;justify-content:space-between}
+.mp-time{font-size:10px;color:rgba(255,255,255,.28)}
+.mp-jump{background:rgba(39,174,96,.12);border:1px solid rgba(39,174,96,.28);color:#5ddb8a;border-radius:8px;padding:3px 10px;font-size:10px;font-weight:700;cursor:pointer}
 /* Distance pill on chat messages */
 .msg-dist{display:inline-block;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:5px;vertical-align:middle;letter-spacing:.02em}
 .msg-dist.dist-close{background:rgba(39,174,96,.2);color:#5ddb8a;border:1px solid rgba(39,174,96,.3)}
@@ -1884,6 +1913,26 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
 
   <!-- Chat panel -->
   <div id="chat-panel">
+    <!-- Connection status + mentions bell -->
+    <div id="chat-header-bar">
+      <div class="conn-status connecting" id="chat-conn-status">
+        <span class="conn-dot"></span>
+        <span class="conn-label">Connecting...</span>
+      </div>
+      <button id="btn-mentions" onclick="toggleMentions()" title="Your mentions">
+        🔔 <span id="mbell-count">0</span>
+      </button>
+    </div>
+    <!-- Mentions panel (replaces messages when open) -->
+    <div id="mentions-panel">
+      <div class="mp-hdr">
+        <span class="mp-hdr-title">🔔 Your Mentions</span>
+        <button class="mp-hdr-close" onclick="toggleMentions()">✕</button>
+      </div>
+      <div class="mp-list" id="mentions-list">
+        <div class="mp-empty">No mentions yet.<br>When someone tags @<span id="mp-nick-hint">you</span> in chat it appears here.</div>
+      </div>
+    </div>
     <div id="chat-messages">
       <div class="chat-system">💬 M1 Road Chat — one room, all drivers · messages expire after 2 hours</div>
     </div>
@@ -2265,21 +2314,17 @@ function initRealtime(){
 
     ws.onopen=function(){
       realtimeConnected=false;
+      updateChatStatus();
       ws.send(JSON.stringify({
         topic:'realtime:m1_drivers',
         event:'phx_join',
         payload:{config:{broadcast:{self:false}}},
         ref:'1'
       }));
-      // If phx_reply never arrives within 10s, the join silently failed — close and retry
       clearTimeout(_rtJoinTimer);
       _rtJoinTimer = setTimeout(function(){
-        if(!realtimeConnected){
-          console.warn('[WS] phx_join timeout — retrying');
-          ws.close();
-        }
+        if(!realtimeConnected){ console.warn('[WS] phx_join timeout — retrying'); ws.close(); }
       }, 10000);
-      // Broadcast position immediately on reconnect so other drivers see us right away
       if(isTracking && curLat !== null && isLive()){
         setTimeout(function(){ broadcastPos(curLat, curLng, curSpd, true); }, 500);
       }
@@ -2292,9 +2337,9 @@ function initRealtime(){
           clearTimeout(_rtJoinTimer);
           if(msg.payload && msg.payload.status==='ok'){
             realtimeConnected=true;
+            updateChatStatus();
             refreshLivePanel();
           } else {
-            // Join rejected (e.g. policy error) — close triggers onclose → retry
             console.warn('[WS] phx_join rejected:', JSON.stringify(msg.payload));
             ws.close();
           }
@@ -2318,8 +2363,8 @@ function initRealtime(){
       }catch(err){}
     };
 
-    ws.onerror=function(){ clearTimeout(_rtJoinTimer); realtimeConnected=false; };
-    ws.onclose=function(){ clearTimeout(_rtJoinTimer); realtimeConnected=false; setTimeout(initRealtime,3000); };
+    ws.onerror=function(){ clearTimeout(_rtJoinTimer); realtimeConnected=false; updateChatStatus(); };
+    ws.onclose=function(){ clearTimeout(_rtJoinTimer); realtimeConnected=false; updateChatStatus(); setTimeout(initRealtime,3000); };
     channel=ws;
   }catch(e){ console.warn('Realtime failed:',e.message); setTimeout(initRealtime,5000); }
 }
@@ -5439,16 +5484,109 @@ function receiveChatMsg(pl) {
   if (pl.id === myId) return;
   var mentioned = isMentioned(pl.text);
   appendChatMsg(pl, false, mentioned);
+  // Unread badge — always count when chat panel is closed
   if (!chatOpen) {
-    if (!sgSettings.muteChat || mentioned) {
-      chatUnread++;
-      updateChatBadge();
-      // Stronger notification for mentions
-      var prefix = mentioned ? '🔔 You were mentioned! ' : '💬 ';
-      showToast(prefix + (pl.nickname||'Driver') + ': ' + pl.text.substring(0,40) + (pl.text.length>40?'...':''));
-      if(mentioned) speak('You were mentioned by '+(pl.nickname||'a driver'), 1.0);
-    }
+    chatUnread++;
+    updateChatBadge();
   }
+  // Toast ONLY for mentions — not every message
+  if (mentioned) {
+    addMention(pl);
+    showToast('🔔 ' + (pl.nickname||'Driver') + ' mentioned you: ' + pl.text.substring(0,50) + (pl.text.length>50?'...':''));
+    speak('You were mentioned by ' + (pl.nickname||'a driver'), 1.0);
+  }
+}
+
+// ── CONNECTION STATUS BAR ──
+function updateChatStatus() {
+  var el = document.getElementById('chat-conn-status');
+  if (!el) return;
+  var label = el.querySelector('.conn-label');
+  if (realtimeConnected) {
+    el.className = 'conn-status connected';
+    if (label) label.textContent = 'Connected';
+  } else if (!isOnline) {
+    el.className = 'conn-status disconnected';
+    if (label) label.textContent = 'Offline';
+  } else {
+    el.className = 'conn-status connecting';
+    if (label) label.textContent = 'Connecting...';
+  }
+}
+
+// ── MENTIONS STORE ──
+var myMentions = [];
+var mentionsOpen = false;
+
+function addMention(pl) {
+  myMentions.push({ pl: pl, ts: Date.now() });
+  updateMentionsBadge();
+  // Update hint with real nickname
+  var hint = document.getElementById('mp-nick-hint');
+  if (hint && myNickname) hint.textContent = myNickname;
+}
+
+function updateMentionsBadge() {
+  var badge = document.getElementById('mbell-count');
+  var btn   = document.getElementById('btn-mentions');
+  var count = myMentions.length;
+  if (badge) {
+    if (count > 0) { badge.style.display = 'inline'; badge.textContent = count > 9 ? '9+' : count; }
+    else badge.style.display = 'none';
+  }
+  if (btn) btn.classList.toggle('has-new', count > 0);
+}
+
+function toggleMentions() {
+  mentionsOpen = !mentionsOpen;
+  var panel = document.getElementById('mentions-panel');
+  var msgs  = document.getElementById('chat-messages');
+  if (panel) panel.classList.toggle('show', mentionsOpen);
+  if (msgs)  msgs.style.display = mentionsOpen ? 'none' : '';
+  if (mentionsOpen) renderMentions();
+}
+
+function renderMentions() {
+  var list = document.getElementById('mentions-list');
+  if (!list) return;
+  if (myMentions.length === 0) {
+    list.innerHTML = '<div class="mp-empty">No mentions yet.<br>When someone tags @'
+      + escChat(myNickname || 'you') + ' in chat it appears here.</div>';
+    return;
+  }
+  list.innerHTML = '';
+  myMentions.slice().reverse().forEach(function(m) {
+    var t  = new Date(m.ts);
+    var tm = t.getHours().toString().padStart(2,'0') + ':' + t.getMinutes().toString().padStart(2,'0');
+    var card = document.createElement('div');
+    card.className = 'mp-card';
+    card.innerHTML =
+      '<div class="mp-from">👤 ' + escChat(m.pl.nickname || 'Driver') + '</div>'
+      + '<div class="mp-text">' + parseMentions(m.pl.text) + '</div>'
+      + '<div class="mp-footer">'
+      + '<span class="mp-time">' + tm + '</span>'
+      + '<button class="mp-jump" onclick="jumpToMention(' + m.pl.ts + ')">Jump to →</button>'
+      + '</div>';
+    list.appendChild(card);
+  });
+}
+
+function jumpToMention(ts) {
+  mentionsOpen = false;
+  var panel = document.getElementById('mentions-panel');
+  var msgs  = document.getElementById('chat-messages');
+  if (panel) panel.classList.remove('show');
+  if (msgs)  msgs.style.display = '';
+  setTimeout(function() {
+    var el = document.querySelector('.chat-msg[data-ts="' + ts + '"]');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.style.boxShadow = '0 0 0 2px #f8c060';
+      setTimeout(function() { el.style.boxShadow = ''; }, 1800);
+    } else {
+      showToast('⏱️ That message has expired from chat');
+    }
+  }, 120);
 }
 
 // Avatar colour — consistent per nickname
