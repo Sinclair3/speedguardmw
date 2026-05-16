@@ -3092,8 +3092,7 @@ function refreshLivePanel(){
 
   var count = users.length;
   var connStatus = !isOnline ? ' · offline' : !realtimeConnected ? ' · connecting...' : '';
-  var regionName = myZone ? REGION_LABEL[myZone] : 'M1';
-  if(sub) sub.textContent = count+' driver'+(count!==1?'s':'')+' · '+(liveShowAllDrivers?'All M1':regionName)+connStatus;
+  if(sub) sub.textContent = count+' driver'+(count!==1?'s':'')+' · M1 Road'+connStatus;
   if(lbl) lbl.textContent = count+' online';
   if(dot) dot.style.display = allUsers.length>0?'inline-block':'none';
   if(!el) return;
