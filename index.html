@@ -721,16 +721,17 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .ps-modes{display:flex;gap:10px;margin-bottom:18px}
 .ps-mode{
   flex:1;border-radius:14px;padding:13px 12px;text-align:center;
-  border:2px solid;transition:all .2s;
+  border:2px solid;transition:all .2s;cursor:pointer;position:relative;
 }
-.ps-mode.private{
-  background:rgba(243,156,18,.08);
-  border-color:rgba(243,156,18,.3);
-}
-.ps-mode.live{
-  background:rgba(39,174,96,.08);
-  border-color:rgba(39,174,96,.3);
-}
+.ps-mode:hover{transform:scale(1.03)}
+.ps-mode.private{background:rgba(243,156,18,.08);border-color:rgba(243,156,18,.3)}
+.ps-mode.live{background:rgba(39,174,96,.08);border-color:rgba(39,174,96,.3)}
+/* Selected state — glowing ring */
+.ps-mode.private.ps-sel{border-color:rgba(243,156,18,.85);box-shadow:0 0 0 3px rgba(243,156,18,.2);background:rgba(243,156,18,.14)}
+.ps-mode.live.ps-sel{border-color:rgba(39,174,96,.85);box-shadow:0 0 0 3px rgba(39,174,96,.2);background:rgba(39,174,96,.14)}
+/* Checkmark in top-right when selected */
+.ps-check{position:absolute;top:8px;right:8px;font-size:13px;opacity:0;transition:opacity .2s}
+.ps-mode.ps-sel .ps-check{opacity:1}
 .ps-mode-icon{font-size:24px;margin-bottom:6px}
 .ps-mode-name{font-size:13px;font-weight:800;margin-bottom:4px}
 .ps-mode.private .ps-mode-name{color:#f8c060}
@@ -743,13 +744,18 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
 .ps-mode.private .ps-current-badge{background:rgba(243,156,18,.2);color:#f8c060}
 .ps-mode.live .ps-current-badge{background:rgba(39,174,96,.2);color:#5ddb8a}
 
-/* Action buttons */
+/* Single action button — style swaps based on selection */
 .ps-btn-live{
   width:100%;padding:15px;border-radius:14px;
   background:linear-gradient(135deg,#1a6b3a,#27ae60);
   color:#fff;border:none;font-size:15px;font-weight:800;
   cursor:pointer;margin-bottom:10px;
-  box-shadow:0 4px 16px rgba(39,174,96,.3);
+  box-shadow:0 4px 16px rgba(39,174,96,.3);transition:all .25s;
+}
+.ps-btn-live.ps-cancel{
+  background:rgba(255,255,255,.06);
+  color:rgba(255,255,255,.5);border:1px solid rgba(255,255,255,.1);
+  box-shadow:none;font-size:14px;font-weight:600;
 }
 .ps-btn-cancel{
   width:100%;padding:13px;border-radius:14px;
@@ -6233,26 +6239,78 @@ function urlBase64ToUint8Array(base64String) {
 // Explains the two modes clearly and lets them
 // switch to Live with one tap — or stay private.
 // ═══════════════════════════════════════════════════════
+var _psSelection = 'private'; // tracks which card is selected
+
+function psSelect(mode) {
+  _psSelection = mode;
+  var priv = document.getElementById('ps-card-private');
+  var live = document.getElementById('ps-card-live');
+  var btn  = document.getElementById('ps-action-btn');
+  if(!priv || !live || !btn) return;
+
+  // Toggle selected ring
+  priv.classList.toggle('ps-sel', mode === 'private');
+  live.classList.toggle('ps-sel', mode === 'live');
+
+  // Swap action button style + label
+  if(mode === 'live') {
+    btn.textContent = '👥 Switch to Live Mode & Open Chat';
+    btn.classList.remove('ps-cancel');
+  } else {
+    btn.textContent = 'Stay in Private Mode';
+    btn.classList.add('ps-cancel');
+  }
+}
+
+function psConfirm() {
+  if(_psSelection === 'live') {
+    goLiveFromSheet();
+  } else {
+    document.getElementById('privacy-sheet').classList.remove('show');
+  }
+}
+
 function showPrivacySheet() {
+  // Pre-select whichever mode is currently active
+  var currentMode = isLive() ? 'live' : 'private';
+  _psSelection = currentMode;
+  // Reset card states
+  var priv = document.getElementById('ps-card-private');
+  var live = document.getElementById('ps-card-live');
+  if(priv) priv.classList.toggle('ps-sel', currentMode === 'private');
+  if(live) live.classList.toggle('ps-sel', currentMode === 'live');
+  // Badge — show YOU ARE HERE on current mode
+  var bp = document.getElementById('ps-badge-private');
+  var bl = document.getElementById('ps-badge-live');
+  if(bp) { bp.textContent = 'YOU ARE HERE'; bp.style.opacity = currentMode==='private' ? '1':'0'; }
+  if(bl) { bl.textContent = 'YOU ARE HERE'; bl.style.opacity = currentMode==='live'    ? '1':'0'; }
+  // Action button
+  var btn = document.getElementById('ps-action-btn');
+  if(btn) {
+    if(currentMode === 'live') {
+      btn.textContent = 'Stay in Live Mode';
+      btn.classList.remove('ps-cancel');
+    } else {
+      btn.textContent = 'Stay in Private Mode';
+      btn.classList.add('ps-cancel');
+    }
+  }
   document.getElementById('privacy-sheet').classList.add('show');
 }
 
 function closePrivacySheet(event) {
-  // Close if tapping the dark backdrop (not the card itself)
   if (event && event.target !== document.getElementById('privacy-sheet')) return;
   document.getElementById('privacy-sheet').classList.remove('show');
 }
 
 function goLiveFromSheet() {
   document.getElementById('privacy-sheet').classList.remove('show');
-  // Switch to live mode
   sgSettings.live = true;
   lsSet('sg_set_live', '1');
   var tog = document.getElementById('tog-live');
   if (tog) tog.checked = true;
   applyPrivacyMode(false);
   showToast('👥 You are now Live — opening chat');
-  // Open the chat panel
   setTimeout(function() { openChat(); }, 300);
 }
 
@@ -7987,30 +8045,29 @@ function showNavBtn(show) {
     <div class="ps-icon">💬</div>
     <div class="ps-title">Chat requires Live Mode</div>
 
-    <!-- Side-by-side mode comparison -->
+    <!-- Side-by-side mode comparison — both cards are selectable -->
     <div class="ps-modes">
-      <div class="ps-mode private">
+      <div class="ps-mode private ps-sel" id="ps-card-private" onclick="psSelect('private')">
+        <span class="ps-check">✓</span>
         <div class="ps-mode-icon">🔒</div>
         <div class="ps-mode-name">Private Mode</div>
         <div class="ps-mode-desc">
           You are invisible to other drivers. No one can see your location. Chat is disabled.
         </div>
-        <span class="ps-current-badge">YOU ARE HERE</span>
+        <span class="ps-current-badge" id="ps-badge-private">YOU ARE HERE</span>
       </div>
-      <div class="ps-mode live">
+      <div class="ps-mode live" id="ps-card-live" onclick="psSelect('live')">
+        <span class="ps-check">✓</span>
         <div class="ps-mode-icon">👥</div>
         <div class="ps-mode-name">Live Mode</div>
         <div class="ps-mode-desc">
           Other drivers can see you on the map. You can see them and use the road chat.
         </div>
-        <span class="ps-current-badge" style="opacity:0">·</span>
+        <span class="ps-current-badge" id="ps-badge-live" style="opacity:0">·</span>
       </div>
     </div>
 
-    <button class="ps-btn-live" onclick="goLiveFromSheet()">
-      👥 Switch to Live Mode &amp; Open Chat
-    </button>
-    <button class="ps-btn-cancel" onclick="closePrivacySheet()">
+    <button class="ps-btn-live ps-cancel" id="ps-action-btn" onclick="psConfirm()">
       Stay in Private Mode
     </button>
     <div class="ps-settings-hint">
