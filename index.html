@@ -5538,11 +5538,12 @@ function addMention(pl) {
 function updateMentionsBadge() {
   var badge = document.getElementById('mbell-count');
   var btn   = document.getElementById('btn-mentions');
+  var count = myMentions.length;
   if (badge) {
-    if (myMentionsUnread > 0) { badge.style.display = 'inline'; badge.textContent = myMentionsUnread > 9 ? '9+' : myMentionsUnread; }
+    if (count > 0) { badge.style.display = 'inline'; badge.textContent = count > 9 ? '9+' : count; }
     else badge.style.display = 'none';
   }
-  if (btn) btn.classList.toggle('has-new', myMentionsUnread > 0);
+  if (btn) btn.classList.toggle('has-new', count > 0);
 }
 
 function toggleMentions() {
@@ -5552,14 +5553,7 @@ function toggleMentions() {
   if (panel) panel.classList.toggle('show', mentionsOpen);
   if (msgs)  msgs.style.display = mentionsOpen ? 'none' : '';
   if (mentionsOpen) {
-    myMentionsUnread = 0;
-    updateMentionsBadge();
     renderMentions();
-  } else {
-    // Closing panel = viewed — clear all mentions so only new ones appear next time
-    myMentions = [];
-    myMentionsUnread = 0;
-    updateMentionsBadge();
   }
 }
 
@@ -5588,12 +5582,23 @@ function renderMentions() {
   });
 }
 
+function dismissMention(ts) {
+  myMentions = myMentions.filter(function(m) { return m.pl.ts !== ts; });
+  updateMentionsBadge();
+  renderMentions();
+}
+
 function jumpToMention(ts) {
-  mentionsOpen = false;
+  // Remove this mention — it's been viewed
+  dismissMention(ts);
+  // If no mentions left, close panel automatically
   var panel = document.getElementById('mentions-panel');
   var msgs  = document.getElementById('chat-messages');
-  if (panel) panel.classList.remove('show');
-  if (msgs)  msgs.style.display = '';
+  if (myMentions.length === 0) {
+    mentionsOpen = false;
+    if (panel) panel.classList.remove('show');
+    if (msgs)  msgs.style.display = '';
+  }
   setTimeout(function() {
     var el = document.querySelector('.chat-msg[data-ts="' + ts + '"]');
     if (el) {
