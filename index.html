@@ -3275,10 +3275,17 @@ function closeLive(){
 // ═══════════════════════════════════════════════════════
 function shareLocationWhatsApp() {
   if(!curLat) { showToast('📍 Start GPS first to share your location'); return; }
-  var place = nearestPlace(curLat, curLng);
-  var km    = Math.round(latProg(curLat) / 100 * 1140);
-  var link  = 'https://maps.google.com/?q=' + curLat.toFixed(5) + ',' + curLng.toFixed(5);
-  var msg   = '📍 I\'m at km ' + km + ' on M1 near ' + place + '.\n' + link;
+  var place   = nearestPlace(curLat, curLng);
+  var km      = Math.round(latProg(curLat) / 100 * 1140);
+  var mapsUrl = 'https://maps.google.com/?q=' + curLat.toFixed(5) + ',' + curLng.toFixed(5);
+  var appUrl  = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+  var msg =
+    '📍 I\'m at km ' + km + ' on the M1 near ' + place + '.\n' +
+    '🗺️ ' + mapsUrl + '\n\n' +
+    '🛡️ I\'m using *Pansewu* — free M1 road safety app.\n' +
+    'Speed trap alerts, live driver tracking & road chat.\n\n' +
+    '👉 Open this link on your phone & tap *"Add to Home Screen"* to install:\n' +
+    appUrl;
   window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
 }
 
