@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SpeedGuard Malawi — Admin</title>
+<title>Pansewu Control Center</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
@@ -11,17 +11,38 @@
 body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;color:#fff;min-height:100vh}
 
 /* LOGIN */
-#login-screen{position:fixed;inset:0;z-index:9999;background:linear-gradient(135deg,#080c10,#0a1a0f);display:flex;align-items:center;justify-content:center;padding:24px}
-.login-card{background:#0e1820;border:1px solid rgba(39,174,96,.25);border-radius:22px;padding:36px 28px;width:100%;max-width:380px;text-align:center}
-.login-logo{font-size:42px;margin-bottom:12px}
-.login-title{font-size:22px;font-weight:800;margin-bottom:4px}
-.login-title span{color:#27ae60}
-.login-sub{font-size:13px;color:rgba(255,255,255,.4);margin-bottom:28px}
-.login-input{width:100%;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:#fff;font-size:16px;text-align:center;letter-spacing:3px;margin-bottom:12px;outline:none;transition:border-color .2s}
-.login-input:focus{border-color:rgba(39,174,96,.5)}
-.login-input::placeholder{letter-spacing:0;color:rgba(255,255,255,.25);font-size:14px}
-.btn-login{width:100%;padding:15px;border-radius:12px;background:linear-gradient(135deg,#1a6b3a,#27ae60);color:#fff;border:none;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 16px rgba(39,174,96,.3)}
-.login-err{font-size:12px;color:#e74c3c;margin-top:8px;min-height:18px}
+/* ── LOGIN / CONTROL CENTER ── */
+#login-screen{position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;padding:24px;overflow:hidden;
+  background:#03060a;
+  background-image:linear-gradient(rgba(0,255,100,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(0,255,100,.03) 1px,transparent 1px);
+  background-size:40px 40px}
+#login-screen::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 40%,rgba(0,180,80,.07),transparent 70%);pointer-events:none}
+@keyframes scanline{0%{top:-6%}100%{top:106%}}
+#login-screen::after{content:'';position:absolute;left:0;right:0;height:6px;background:linear-gradient(transparent,rgba(0,255,100,.07),transparent);animation:scanline 5s linear infinite;pointer-events:none}
+@keyframes pulse-ring{0%,100%{opacity:.5;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
+@keyframes blink-dot{0%,100%{opacity:1}50%{opacity:.2}}
+.login-card{position:relative;background:rgba(5,12,18,.92);border:1px solid rgba(0,200,80,.22);border-radius:4px;padding:40px 32px 32px;width:100%;max-width:400px;text-align:center;box-shadow:0 0 60px rgba(0,200,80,.08),inset 0 0 40px rgba(0,0,0,.4)}
+.login-card::before,.login-card::after{content:'';position:absolute;width:14px;height:14px;border-color:rgba(0,255,100,.5);border-style:solid}
+.login-card::before{top:-1px;left:-1px;border-width:2px 0 0 2px;border-radius:3px 0 0 0}
+.login-card::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0;border-radius:0 0 3px 0}
+.cc-status-bar{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:24px;font-size:10px;font-weight:700;letter-spacing:.15em;color:rgba(0,255,100,.6);text-transform:uppercase}
+.cc-dot{width:7px;height:7px;border-radius:50%;background:#00ff64;box-shadow:0 0 8px #00ff64;animation:blink-dot 2s ease-in-out infinite}
+.cc-emblem{position:relative;width:80px;height:80px;margin:0 auto 20px;display:flex;align-items:center;justify-content:center}
+.cc-ring{position:absolute;inset:0;border-radius:50%;border:1.5px solid rgba(0,200,80,.35);animation:pulse-ring 3s ease-in-out infinite}
+.cc-ring2{position:absolute;inset:8px;border-radius:50%;border:1px solid rgba(0,200,80,.2);animation:pulse-ring 3s ease-in-out infinite .6s}
+.cc-icon{font-size:36px;position:relative;z-index:1}
+.cc-title{font-family:'Courier New',monospace;font-size:26px;font-weight:900;letter-spacing:.12em;color:#fff;text-transform:uppercase;line-height:1.1;margin-bottom:4px}
+.cc-title span{color:#00e664}
+.cc-subtitle{font-family:'Courier New',monospace;font-size:10px;font-weight:700;letter-spacing:.3em;color:rgba(0,200,80,.55);text-transform:uppercase;margin-bottom:6px}
+.cc-route{font-size:11px;color:rgba(255,255,255,.25);letter-spacing:.06em;margin-bottom:28px;font-family:'Courier New',monospace}
+.login-input{width:100%;padding:14px 16px;border-radius:3px;background:rgba(0,255,100,.04);border:1px solid rgba(0,200,80,.25);color:#00e664;font-size:16px;font-family:'Courier New',monospace;text-align:center;letter-spacing:4px;margin-bottom:14px;outline:none;transition:all .2s}
+.login-input:focus{border-color:rgba(0,255,100,.6);background:rgba(0,255,100,.07);box-shadow:0 0 16px rgba(0,255,100,.1)}
+.login-input::placeholder{letter-spacing:0;color:rgba(255,255,255,.2);font-size:12px;font-family:'Courier New',monospace}
+.btn-login{width:100%;padding:15px;border-radius:3px;background:transparent;border:1px solid rgba(0,200,80,.5);color:#00e664;font-size:12px;font-family:'Courier New',monospace;font-weight:700;letter-spacing:.2em;text-transform:uppercase;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.btn-login:hover{background:rgba(0,200,80,.12);border-color:#00e664;box-shadow:0 0 20px rgba(0,255,100,.15)}
+.login-err{font-size:11px;font-family:'Courier New',monospace;color:#ff4444;margin-top:10px;min-height:18px;letter-spacing:.05em}
+.cc-corner-br{position:absolute;bottom:-1px;left:-1px;width:14px;height:14px;border-color:rgba(0,255,100,.5);border-style:solid;border-width:0 0 2px 2px;border-radius:0 0 0 3px}
+.cc-corner-tr{position:absolute;top:-1px;right:-1px;width:14px;height:14px;border-color:rgba(0,255,100,.5);border-style:solid;border-width:2px 2px 0 0;border-radius:0 3px 0 0}
 
 /* LAYOUT */
 #app{display:none}
@@ -259,11 +280,17 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
 <!-- LOGIN -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo">🛡️</div>
-    <div class="login-title">SpeedGuard <span>Admin</span></div>
-    <div class="login-sub">M1 Road Safety · Control Panel<br>Enter your admin password to continue</div>
-    <input class="login-input" type="password" id="pw-input" placeholder="Admin password">
-    <button class="btn-login" onclick="tryLogin()">Enter Dashboard →</button>
+    <span class="cc-corner-br"></span><span class="cc-corner-tr"></span>
+    <div class="cc-status-bar"><span class="cc-dot"></span>SYSTEM ONLINE &nbsp;·&nbsp; M1 CORRIDOR ACTIVE</div>
+    <div class="cc-emblem">
+      <div class="cc-ring"></div><div class="cc-ring2"></div>
+      <div class="cc-icon">🛰️</div>
+    </div>
+    <div class="cc-title">PANSEWU <span>MW</span></div>
+    <div class="cc-subtitle">Control Center</div>
+    <div class="cc-route">M1 · KARONGA → BLANTYRE · 1,140 KM</div>
+    <input class="login-input" type="password" id="pw-input" placeholder="ENTER ACCESS CODE" onkeydown="if(event.key==='Enter')tryLogin()">
+    <button class="btn-login" onclick="tryLogin()">[ AUTHENTICATE → ]</button>
     <div class="login-err" id="login-err"></div>
   </div>
 </div>
@@ -273,8 +300,8 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
 
   <div class="top-bar">
     <div class="top-bar-left">
-      <div class="tb-logo">SpeedGuard <span>Malawi</span></div>
-      <div class="tb-badge">Admin</div>
+      <div class="tb-logo">Pansewu <span>Control Center</span></div>
+      <div class="tb-badge">Ops</div>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <span id="live-count" style="font-size:12px;color:rgba(255,255,255,.4)">👥 0 online</span>
@@ -2481,23 +2508,25 @@ function sendDailyDigest(){
     });
     var peakH=Object.keys(hourMap).sort(function(a,b){return hourMap[b]-hourMap[a];})[0];
     var peakLabel=peakH!==undefined?(peakH+':00–'+peakH+':59'):'N/A';
-    // Zone breakdown (Lilongwe vs Blantyre vs Other)
-    var zones={Lilongwe:0,Blantyre:0,Other:0};
+    // Zone breakdown across full M1 (Karonga → Blantyre)
+    var zones={Karonga:0,Mzuzu:0,Lilongwe:0,Blantyre:0,Other:0};
     sessions.forEach(function(s){
       var loc=(s.location||'').toLowerCase();
-      if(loc.indexOf('lilongwe')>=0)zones.Lilongwe++;
-      else if(loc.indexOf('blantyre')>=0)zones.Blantyre++;
+      if(loc.indexOf('karonga')>=0||loc.indexOf('chitipa')>=0||loc.indexOf('rumphi')>=0)zones.Karonga++;
+      else if(loc.indexOf('mzuzu')>=0||loc.indexOf('mzimba')>=0||loc.indexOf('nkhata')>=0)zones.Mzuzu++;
+      else if(loc.indexOf('lilongwe')>=0||loc.indexOf('salima')>=0||loc.indexOf('kasungu')>=0)zones.Lilongwe++;
+      else if(loc.indexOf('blantyre')>=0||loc.indexOf('zomba')>=0||loc.indexOf('thyolo')>=0||loc.indexOf('limbe')>=0)zones.Blantyre++;
       else zones.Other++;
     });
     // Unique users
     var unique=new Set((results[1]||[]).map(function(s){return s.device_id;})).size;
     sendWhatsApp(
-      '📊 SpeedGuard MW Daily Digest – '+todayKey+'\n'+
+      '📊 Pansewu MW Daily Digest – '+todayKey+'\n'+
       '━━━━━━━━━━━━━━━━━━━━\n'+
       '🚗 Sessions today: '+count+'\n'+
       '👥 Unique users: '+unique+'\n'+
       '⏰ Peak time: '+peakLabel+'\n'+
-      '📍 Lilongwe: '+zones.Lilongwe+' | Blantyre: '+zones.Blantyre+' | Other: '+zones.Other
+      '📍 Karonga: '+zones.Karonga+' | Mzuzu: '+zones.Mzuzu+' | Lilongwe: '+zones.Lilongwe+' | Blantyre: '+zones.Blantyre+' | Other: '+zones.Other
     );
   });
 }
