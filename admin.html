@@ -43,6 +43,10 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;co
 .login-err{font-size:11px;font-family:'Courier New',monospace;color:#ff4444;margin-top:10px;min-height:18px;letter-spacing:.05em}
 .cc-corner-br{position:absolute;bottom:-1px;left:-1px;width:14px;height:14px;border-color:rgba(0,255,100,.5);border-style:solid;border-width:0 0 2px 2px;border-radius:0 0 0 3px}
 .cc-corner-tr{position:absolute;top:-1px;right:-1px;width:14px;height:14px;border-color:rgba(0,255,100,.5);border-style:solid;border-width:2px 2px 0 0;border-radius:0 3px 0 0}
+.cc-footer{margin-top:22px;padding-top:16px;border-top:1px solid rgba(0,255,100,.1);display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:center}
+.cc-footer-item{display:flex;flex-direction:column;gap:3px}
+.cc-footer-label{font-size:8px;font-family:'Courier New',monospace;color:rgba(0,255,100,.4);letter-spacing:.15em;text-transform:uppercase}
+.cc-footer-val{font-size:11px;font-family:'Courier New',monospace;color:rgba(255,255,255,.65);letter-spacing:.04em;line-height:1.3}
 
 /* LAYOUT */
 #app{display:none}
@@ -284,14 +288,41 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
     <div class="cc-status-bar"><span class="cc-dot"></span>SYSTEM ONLINE &nbsp;·&nbsp; M1 CORRIDOR ACTIVE</div>
     <div class="cc-emblem">
       <div class="cc-ring"></div><div class="cc-ring2"></div>
-      <div class="cc-icon">🛰️</div>
+      <svg width="46" height="46" viewBox="0 0 46 46" fill="none" xmlns="http://www.w3.org/2000/svg" style="position:relative;z-index:1">
+        <!-- Road surface -->
+        <path d="M8 44 L20 2 L26 2 L38 44 Z" fill="rgba(0,180,80,.18)" stroke="rgba(0,255,100,.45)" stroke-width="1"/>
+        <!-- Left edge line -->
+        <line x1="10" y1="42" x2="20.5" y2="4" stroke="rgba(0,255,100,.6)" stroke-width="1.2"/>
+        <!-- Right edge line -->
+        <line x1="36" y1="42" x2="25.5" y2="4" stroke="rgba(0,255,100,.6)" stroke-width="1.2"/>
+        <!-- Centre dashes -->
+        <line x1="23" y1="40" x2="23" y2="33" stroke="rgba(0,255,100,.9)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="23" y1="28" x2="23" y2="21" stroke="rgba(0,255,100,.9)" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="23" y1="16" x2="23" y2="10" stroke="rgba(0,255,100,.9)" stroke-width="1.5" stroke-linecap="round"/>
+        <!-- Horizon glow dot -->
+        <circle cx="23" cy="3" r="2" fill="#00ff64" opacity=".7"/>
+      </svg>
     </div>
     <div class="cc-title">PANSEWU <span>MW</span></div>
     <div class="cc-subtitle">Control Center</div>
-    <div class="cc-route">M1 · KARONGA → BLANTYRE · 1,140 KM</div>
+    <div class="cc-route">M1 · KARONGA → CHIKWAWA · 1,140 KM</div>
     <input class="login-input" type="password" id="pw-input" placeholder="ENTER ACCESS CODE" onkeydown="if(event.key==='Enter')tryLogin()">
     <button class="btn-login" onclick="tryLogin()">[ AUTHENTICATE → ]</button>
     <div class="login-err" id="login-err"></div>
+    <div class="cc-footer">
+      <div class="cc-footer-item">
+        <span class="cc-footer-label">Local Time</span>
+        <span class="cc-footer-val" id="cc-clock">--:--:--</span>
+      </div>
+      <div class="cc-footer-item">
+        <span class="cc-footer-label">Last Session</span>
+        <span class="cc-footer-val" id="cc-last-login">—</span>
+      </div>
+      <div class="cc-footer-item">
+        <span class="cc-footer-label">Last Location</span>
+        <span class="cc-footer-val" id="cc-location">detecting…</span>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1136,6 +1167,37 @@ var VOTES_TO_VERIFY= 3;
 var DEFAULT_PW     = 'speedguard2025';
 
 // ── AUTH ──
+// ── LOGIN SCREEN WIDGETS ──
+(function(){
+  // Live clock
+  function tickClock(){
+    var el=document.getElementById('cc-clock');
+    if(el) el.textContent=new Date().toLocaleTimeString('en-GB');
+  }
+  tickClock(); setInterval(tickClock,1000);
+
+  // Last session
+  var lastTs=localStorage.getItem('sg_last_login_ts');
+  var lastLoc=localStorage.getItem('sg_last_login_loc');
+  var llEl=document.getElementById('cc-last-login');
+  if(llEl&&lastTs){
+    var d=new Date(parseInt(lastTs));
+    llEl.textContent=d.toLocaleDateString('en-GB',{day:'2-digit',month:'short'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+  } else if(llEl){ llEl.textContent='First login'; }
+
+  // Last login location
+  var locEl=document.getElementById('cc-location');
+  if(locEl&&lastLoc){ locEl.textContent=lastLoc; }
+  // Fetch current IP location for next login record
+  fetch('https://ipapi.co/json/').then(function(r){return r.json();}).then(function(d){
+    var loc=(d.city||'')+(d.city&&d.region?', ':'' )+(d.region||'');
+    if(!loc) loc=d.country_name||'Unknown';
+    window._loginLoc=loc;
+    // Show detected location immediately if no previous one
+    if(locEl&&!lastLoc) locEl.textContent=loc;
+  }).catch(function(){ window._loginLoc='Unknown'; if(locEl&&!lastLoc) locEl.textContent='Unknown'; });
+})();
+
 function tryLogin() {
   var pw  = document.getElementById('pw-input').value;
   var err = document.getElementById('login-err');
@@ -1145,8 +1207,11 @@ function tryLogin() {
   supa('sg_admin_config?key=eq.admin_password&select=value').then(function(rows){
     var saved = (rows && rows[0]) ? rows[0].value : (localStorage.getItem('sg_admin_pw') || DEFAULT_PW);
     if (pw === saved) {
-      localStorage.setItem('sg_admin_sess', Date.now().toString());
-      localStorage.setItem('sg_admin_pw', saved); // cache locally
+      var now = Date.now();
+      localStorage.setItem('sg_admin_sess', now.toString());
+      localStorage.setItem('sg_admin_pw', saved);
+      localStorage.setItem('sg_last_login_ts', now.toString());
+      localStorage.setItem('sg_last_login_loc', window._loginLoc || 'Unknown');
       err.textContent = '';
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display = 'block';
@@ -1160,7 +1225,10 @@ function tryLogin() {
     // Supabase unreachable — fall back to local password
     var saved = localStorage.getItem('sg_admin_pw') || DEFAULT_PW;
     if (pw === saved) {
-      localStorage.setItem('sg_admin_sess', Date.now().toString());
+      var now = Date.now();
+      localStorage.setItem('sg_admin_sess', now.toString());
+      localStorage.setItem('sg_last_login_ts', now.toString());
+      localStorage.setItem('sg_last_login_loc', window._loginLoc || 'Unknown');
       err.textContent = '';
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display = 'block';
