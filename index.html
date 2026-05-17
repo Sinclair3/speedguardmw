@@ -3059,6 +3059,7 @@ function actuallyStartGPS(){
   watchId=navigator.geolocation.watchPosition(function(pos){
     var la=pos.coords.latitude,lo=pos.coords.longitude,sp=pos.coords.speed;
     curLat=la;curLng=lo;
+    patchSessionLocation(la, lo);
     var spd=0;
     if(sp!=null&&sp>=0){spd=sp*3.6;}
     else if(lastLat!=null){var dt=(Date.now()-lastTime)/3600000;spd=dt>0?hav(lastLat,lastLng,la,lo)/dt:0;}
@@ -4998,8 +4999,11 @@ function saveNickEdit() {
 // No personal data — just device ID hash, nickname (optional),
 // date and platform. Think of it like a website page-view counter.
 // ═══════════════════════════════════════════════════════
+var _sessionRowId = null;
+var _sessionStart = Date.now();
+var _sessionLocPatched = false;
+
 function logSession() {
-  // Only log once per 24 hours per device
   var lastLog = parseInt(lsGet('sg_last_log') || '0');
   if (Date.now() - lastLog < 24 * 60 * 60 * 1000) return;
   var ua = navigator.userAgent || '';
@@ -5012,9 +5016,36 @@ function logSession() {
     platform: platform,
     app_version: '2.0'
   }).then(function(r) {
-    if (r && r[0]) lsSet('sg_last_log', Date.now().toString());
+    if (r && r[0]) {
+      lsSet('sg_last_log', Date.now().toString());
+      _sessionRowId = r[0].id;
+    }
   }).catch(function(){});
 }
+
+function patchSessionLocation(lat, lng) {
+  if (_sessionLocPatched || !_sessionRowId || !lat || !lng) return;
+  _sessionLocPatched = true;
+  var km = Math.round(latProg(lat) / 100 * 1140);
+  var place = nearestPlace(lat, lng);
+  var region = km < 400 ? 'Northern M1' : km < 700 ? 'Central M1' : 'Southern M1';
+  var label = place + ' · km ' + km + ' · ' + region;
+  supaFetch('sg_sessions?id=eq.' + _sessionRowId, 'PATCH', {
+    location: label, lat: parseFloat(lat.toFixed(4)), lng: parseFloat(lng.toFixed(4))
+  }).catch(function(){});
+}
+
+window.addEventListener('beforeunload', function() {
+  if (!_sessionRowId) return;
+  var mins = Math.round((Date.now() - _sessionStart) / 60000);
+  if (mins < 1) return;
+  fetch(SUPA_URL + '/rest/v1/sg_sessions?id=eq.' + _sessionRowId, {
+    method: 'PATCH',
+    headers: {'apikey': SUPA_KEY, 'Authorization': 'Bearer ' + SUPA_KEY, 'Content-Type': 'application/json'},
+    body: JSON.stringify({duration_min: mins}),
+    keepalive: true
+  });
+});
 
 
 // ═══════════════════════════════════════════════════════

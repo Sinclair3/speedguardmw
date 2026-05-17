@@ -343,14 +343,13 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
             <th>#</th>
             <th>Nickname</th>
             <th>Platform</th>
-            <th>Version</th>
-            <th>First Seen</th>
-            <th>Last Seen</th>
-            <th>Sessions</th>
+            <th>Location</th>
+            <th>Duration</th>
+            <th>When</th>
           </tr>
         </thead>
         <tbody id="users-tbody">
-          <tr><td colspan="7" style="text-align:center;padding:24px;color:rgba(255,255,255,.3)"><span class="spinner"></span> Loading...</td></tr>
+          <tr><td colspan="6" style="text-align:center;padding:24px;color:rgba(255,255,255,.3)"><span class="spinner"></span> Loading...</td></tr>
         </tbody>
       </table>
     </div>
@@ -576,16 +575,28 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
         Run this SQL once in your Supabase SQL Editor to create the sessions tracking table:
       </div>
       <pre style="background:rgba(0,0,0,.4);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:14px;font-size:11px;color:#5ddb8a;overflow-x:auto;line-height:1.7;white-space:pre-wrap">create table sg_sessions (
-  id          bigint generated always as identity primary key,
-  device_id   text not null,
-  nickname    text,
-  platform    text,
-  app_version text,
-  created_at  timestamptz default now()
+  id           bigint generated always as identity primary key,
+  device_id    text not null,
+  nickname     text,
+  platform     text,
+  app_version  text,
+  location     text,
+  lat          double precision,
+  lng          double precision,
+  duration_min integer,
+  created_at   timestamptz default now()
 );
 alter table sg_sessions enable row level security;
 create policy "Anyone can insert" on sg_sessions for insert with check (true);
-create policy "Anyone can read"  on sg_sessions for select using (true);
+create policy "Anyone can read"   on sg_sessions for select using (true);
+create policy "Anyone can update" on sg_sessions for update using (true);
+
+-- If sg_sessions already exists, run these ALTER statements instead:
+-- alter table sg_sessions add column if not exists location text;
+-- alter table sg_sessions add column if not exists lat double precision;
+-- alter table sg_sessions add column if not exists lng double precision;
+-- alter table sg_sessions add column if not exists duration_min integer;
+-- create policy "Anyone can update" on sg_sessions for update using (true);
 
 -- Run this too for reviews:
 create table sg_reviews (
@@ -1048,36 +1059,33 @@ function renderPlatforms(rows){
 }
 
 function renderUsersTable(rows){
-  // Group by device_id — show unique devices with first/last seen + count
-  var devices={};
-  rows.forEach(function(r){
-    var id=r.device_id;
-    if(!devices[id]) devices[id]={nickname:r.nickname,platform:r.platform,version:r.app_version,first:r.created_at,last:r.created_at,count:0};
-    devices[id].count++;
-    if(r.created_at < devices[id].first) devices[id].first=r.created_at;
-    if(r.created_at > devices[id].last)  devices[id].last =r.created_at;
-  });
-
-  var devArr=Object.values(devices).sort(function(a,b){ return b.last.localeCompare(a.last); });
   var tbody=document.getElementById('users-tbody');
   tbody.innerHTML='';
 
-  if(devArr.length===0){
-    tbody.innerHTML='<tr><td colspan="7" class="empty">No sessions yet. Make sure the sg_sessions table exists in Supabase.</td></tr>';
+  var recent=rows.slice(0,50);
+  if(recent.length===0){
+    tbody.innerHTML='<tr><td colspan="6" class="empty">No sessions yet. Make sure the sg_sessions table exists in Supabase.</td></tr>';
     return;
   }
 
-  devArr.forEach(function(u,i){
+  recent.forEach(function(r,i){
     var tr=document.createElement('tr');
-    var platEmoji=u.platform==='iOS'?'📱':u.platform==='Android'?'🤖':u.platform==='Windows'?'💻':'🔲';
+    var platEmoji=r.platform==='iOS'?'📱':r.platform==='Android'?'🤖':r.platform==='Windows'?'💻':'🔲';
+    var locHtml=r.location
+      ? '<span style="color:#fff">'+esc(r.location)+'</span>'
+      : '<span style="color:rgba(255,255,255,.25)">GPS not shared</span>';
+    var durHtml=r.duration_min
+      ? (r.duration_min>=60
+          ? '<span style="color:#5ddb8a;font-weight:700">'+Math.floor(r.duration_min/60)+'h '+( r.duration_min%60)+'m</span>'
+          : '<span style="color:#5ddb8a;font-weight:700">'+r.duration_min+' min</span>')
+      : '<span style="color:rgba(255,255,255,.25)">—</span>';
     tr.innerHTML=
       '<td style="color:rgba(255,255,255,.4)">'+(i+1)+'</td>'
-      +'<td><b style="color:#fff">'+esc(u.nickname||'Anonymous')+'</b></td>'
-      +'<td>'+platEmoji+' '+esc(u.platform||'--')+'</td>'
-      +'<td style="color:rgba(255,255,255,.4)">v'+(u.version||'?')+'</td>'
-      +'<td class="first-seen">'+fmtDate(u.first)+'</td>'
-      +'<td>'+fmtDate(u.last)+'</td>'
-      +'<td style="color:#5ddb8a;font-weight:700">'+u.count+'</td>';
+      +'<td><b style="color:#fff">'+esc(r.nickname||'Anonymous')+'</b></td>'
+      +'<td>'+platEmoji+' '+esc(r.platform||'--')+'</td>'
+      +'<td style="font-size:12px">'+locHtml+'</td>'
+      +'<td>'+durHtml+'</td>'
+      +'<td class="first-seen">'+fmtDate(r.created_at)+'</td>';
     tbody.appendChild(tr);
   });
 }
