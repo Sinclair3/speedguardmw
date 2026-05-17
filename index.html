@@ -2145,6 +2145,87 @@ function loadAdminLocations(){
   });
 }
 
+// ── APP CONFIG (maintenance, force-update, road alerts, hotspots, word filter) ──
+var _wordFilter = null; // null = not loaded yet
+var _hotspotLayers = [];
+
+function loadAppConfig() {
+  if (!navigator.onLine) return;
+
+  // Admin config keys
+  supaFetch('sg_admin_config?select=*').then(function(rows) {
+    if (!rows) return;
+    rows.forEach(function(r) {
+      if (r.key === 'maintenance_mode' && r.value === '1') {
+        showMaintenanceBanner();
+      }
+      if (r.key === 'force_update_msg' && r.value && r.value.trim()) {
+        showForceUpdateBanner(r.value.trim());
+      }
+    });
+  });
+
+  // Road alerts
+  supaFetch('sg_road_alerts?select=*&active=eq.true').then(function(rows) {
+    if (!rows || !rows.length) return;
+    renderRoadAlerts(rows);
+  });
+
+  // Hotspot zones
+  supaFetch('sg_hotspots?select=*').then(function(rows) {
+    if (!rows || !rows.length) return;
+    _hotspotLayers.forEach(function(l) { map.removeLayer(l); });
+    _hotspotLayers = [];
+    rows.forEach(function(z) {
+      // Approximate lat range for km on M1 (M1 is ~1140km, lat goes from ~-13.5 to ~-16.8)
+      var latFrom = -13.5 - (z.km_from / 1140) * 3.3;
+      var latTo   = -13.5 - (z.km_to   / 1140) * 3.3;
+      var layer = L.rectangle([[latFrom, 33.6],[latTo, 35.4]], {
+        color: '#e74c3c', weight: 0, fillColor: '#e74c3c', fillOpacity: 0.18
+      }).addTo(map).bindTooltip('🔴 ' + z.name + (z.reason ? ' — ' + z.reason : ''), {sticky: true});
+      _hotspotLayers.push(layer);
+    });
+  });
+}
+
+function showMaintenanceBanner() {
+  var b = document.getElementById('maintenance-banner');
+  if (b) { b.style.display = 'flex'; return; }
+  b = document.createElement('div');
+  b.id = 'maintenance-banner';
+  b.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#080c10;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;text-align:center';
+  b.innerHTML = '<div style="font-size:48px;margin-bottom:16px">🔧</div>'
+    + '<div style="font-size:22px;font-weight:800;color:#fff;margin-bottom:8px">App Under Maintenance</div>'
+    + '<div style="font-size:14px;color:rgba(255,255,255,.5);line-height:1.7">We\'re making improvements to Pansewu.<br>Please check back shortly.</div>';
+  document.body.appendChild(b);
+}
+
+function showForceUpdateBanner(msg) {
+  if (document.getElementById('force-update-bar')) return;
+  var bar = document.createElement('div');
+  bar.id = 'force-update-bar';
+  bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:9998;background:linear-gradient(135deg,#b7770d,#f39c12);color:#fff;padding:10px 16px;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:10px';
+  bar.innerHTML = '<span>📣 ' + msg + '</span>'
+    + '<button onclick="this.parentNode.remove()" style="background:rgba(0,0,0,.2);border:none;color:#fff;border-radius:8px;padding:4px 10px;cursor:pointer;font-size:12px">✕</button>';
+  document.body.prepend(bar);
+}
+
+function renderRoadAlerts(rows) {
+  var existing = document.getElementById('road-alerts-bar');
+  if (existing) existing.remove();
+  var bar = document.createElement('div');
+  bar.id = 'road-alerts-bar';
+  bar.style.cssText = 'position:fixed;bottom:80px;left:0;right:0;z-index:800;pointer-events:none;padding:0 8px;display:flex;flex-direction:column;gap:4px;max-height:160px;overflow:hidden';
+  var icons = {info:'ℹ️', warning:'⚠️', danger:'🚨'};
+  var colors = {info:'rgba(41,128,185,.9)', warning:'rgba(180,100,10,.95)', danger:'rgba(180,30,30,.95)'};
+  bar.innerHTML = rows.map(function(r) {
+    var km = r.km_from != null ? ' · km ' + r.km_from + (r.km_to ? '–' + r.km_to : '') : '';
+    return '<div style="background:' + (colors[r.type]||colors.info) + ';color:#fff;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;pointer-events:auto;display:flex;align-items:center;gap:8px">'
+      + (icons[r.type]||'📢') + ' ' + r.message + km + '</div>';
+  }).join('');
+  document.body.appendChild(bar);
+}
+
 function loadCommunityTraps(){
   if (!navigator.onLine) { console.log('[App] Offline — skipping community trap load'); return; }
   supaFetch('sg_traps?select=*&order=created_at.desc').then(function(rows){
@@ -2850,6 +2931,17 @@ function fireSOS(){
   if(smsBtn) smsBtn.href = 'sms:'+sosNum+'?body='+smsBody;
   document.getElementById('sos-sent').classList.add('show');
 
+  // Log SOS to database for admin visibility
+  var place = curLat ? nearestPlace(curLat, curLng) : null;
+  supaFetch('sg_sos_log', 'POST', {
+    device_id: myId,
+    nickname:  myNickname || 'Anonymous',
+    lat:       curLat ? parseFloat(curLat.toFixed(5)) : null,
+    lng:       curLng ? parseFloat(curLng.toFixed(5)) : null,
+    speed:     Math.round(curSpd || 0),
+    location:  place ? place + (curLat ? ' · km ' + Math.round(latProg(curLat)/100*1140) : '') : null
+  }).catch(function(){});
+
   // Voice confirmation
   speak('Emergency SOS sent to ' + sosContact.name + '. Help is on the way. Stay visible.', 1.0);
 }
@@ -3420,6 +3512,7 @@ function launchApp(){
   renderBreakdownMarkers();
   fetchWeatherInitial();
   logSession();
+  loadAppConfig();
   registerServiceWorker();
   // Check initial online state
   if (!navigator.onLine) updateOfflineBar(false);
@@ -5523,6 +5616,19 @@ function sendChat() {
   var text  = input ? input.value.trim() : '';
   if (!text) return;
   if (text.length > 120) { showToast('❌ Message too long (max 120 chars)'); return; }
+
+  // Word filter check (lazy-load once)
+  if (_wordFilter === null) {
+    supaFetch('sg_word_filter?select=word').then(function(rows) {
+      _wordFilter = rows ? rows.map(function(r){ return r.word.toLowerCase(); }) : [];
+    });
+    // allow first message through while loading, filter will apply next send
+  }
+  if (_wordFilter && _wordFilter.length) {
+    var lower = text.toLowerCase();
+    var blocked = _wordFilter.some(function(w){ return lower.includes(w); });
+    if (blocked) { showToast('🚫 Your message contains a blocked word'); return; }
+  }
   var payload = {
     type:     'chat',
     id:       myId,
@@ -6532,14 +6638,33 @@ function closePrivacySheet(event) {
 }
 
 function goLiveFromSheet() {
-  document.getElementById('privacy-sheet').classList.remove('show');
-  sgSettings.live = true;
-  lsSet('sg_set_live', '1');
-  var tog = document.getElementById('tog-live');
-  if (tog) tog.checked = true;
-  applyPrivacyMode(false);
-  showToast('👥 You are now Live — opening chat');
-  setTimeout(function() { openChat(); }, 300);
+  // Blacklist check before going live
+  supaFetch('sg_blacklist?device_id=eq.' + myId + '&select=reason').then(function(rows) {
+    if (rows && rows.length) {
+      var reason = rows[0].reason || 'Violated community guidelines';
+      showToast('⛔ Your account has been restricted: ' + reason);
+      document.getElementById('privacy-sheet').classList.remove('show');
+      return;
+    }
+    document.getElementById('privacy-sheet').classList.remove('show');
+    sgSettings.live = true;
+    lsSet('sg_set_live', '1');
+    var tog = document.getElementById('tog-live');
+    if (tog) tog.checked = true;
+    applyPrivacyMode(false);
+    showToast('👥 You are now Live — opening chat');
+    setTimeout(function() { openChat(); }, 300);
+  }).catch(function() {
+    // If check fails, allow through so network issues don't block drivers
+    document.getElementById('privacy-sheet').classList.remove('show');
+    sgSettings.live = true;
+    lsSet('sg_set_live', '1');
+    var tog = document.getElementById('tog-live');
+    if (tog) tog.checked = true;
+    applyPrivacyMode(false);
+    showToast('👥 You are now Live — opening chat');
+    setTimeout(function() { openChat(); }, 300);
+  });
 }
 
 

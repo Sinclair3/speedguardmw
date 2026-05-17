@@ -164,6 +164,58 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;co
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
 
+/* MODERATION */
+.chat-log{max-height:380px;overflow-y:auto;border:1px solid rgba(255,255,255,.08);border-radius:12px;margin-bottom:14px}
+.chat-log-row{display:flex;justify-content:space-between;align-items:flex-start;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);gap:10px}
+.chat-log-row:last-child{border-bottom:none}
+.chat-log-row:hover{background:rgba(255,255,255,.03)}
+.cl-text{flex:1;font-size:13px;min-width:0;word-break:break-word}
+.cl-meta{font-size:11px;color:rgba(255,255,255,.35);margin-top:3px}
+.btn-del-msg{padding:4px 10px;border-radius:7px;background:rgba(231,76,60,.15);border:1px solid rgba(231,76,60,.3);color:#ff8a7a;font-size:11px;cursor:pointer;flex-shrink:0}
+.tag-list{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;min-height:28px}
+.tag{display:flex;align-items:center;gap:5px;padding:4px 10px;border-radius:20px;background:rgba(231,76,60,.13);border:1px solid rgba(231,76,60,.3);font-size:12px;font-weight:600;color:#ff8a7a}
+.tag-x{cursor:pointer;font-size:14px;opacity:.7}
+.tag-x:hover{opacity:1}
+.bl-row{display:flex;justify-content:space-between;align-items:center;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
+.bl-row:last-child{border-bottom:none}
+/* ROAD ALERTS */
+.alert-card{background:rgba(255,255,255,.04);border-left:3px solid #7fb3d3;border-radius:0 12px 12px 0;padding:12px 16px;display:flex;align-items:flex-start;gap:12px;margin-bottom:8px;border-top:1px solid rgba(255,255,255,.06);border-right:1px solid rgba(255,255,255,.06);border-bottom:1px solid rgba(255,255,255,.06)}
+.alert-card.t-warning{border-left-color:#f8c060}
+.alert-card.t-danger{border-left-color:#ff8a7a}
+.alert-card.inactive{opacity:.4}
+.alert-info{flex:1}
+.alert-msg{font-size:14px;font-weight:600}
+.alert-km{font-size:11px;color:rgba(255,255,255,.4);margin-top:3px}
+.hotspot-card{background:rgba(231,76,60,.06);border:1px solid rgba(231,76,60,.2);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.hotspot-info{flex:1}
+.hotspot-name{font-size:14px;font-weight:700;color:#ff8a7a}
+.hotspot-km{font-size:11px;color:rgba(255,255,255,.4);margin-top:2px}
+/* TOGGLE SWITCH */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid rgba(255,255,255,.06)}
+.toggle-row:last-child{border-bottom:none}
+.toggle-info{flex:1;margin-right:16px}
+.toggle-title{font-size:14px;font-weight:600}
+.toggle-sub{font-size:12px;color:rgba(255,255,255,.4);margin-top:2px}
+.sw{position:relative;width:44px;height:24px;flex-shrink:0}
+.sw input{opacity:0;width:0;height:0;position:absolute}
+.sw-slider{position:absolute;cursor:pointer;inset:0;background:rgba(255,255,255,.15);border-radius:24px;transition:.3s}
+.sw-slider:before{content:'';position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.3s}
+.sw input:checked+.sw-slider{background:#27ae60}
+.sw input:checked+.sw-slider:before{transform:translateX(20px)}
+/* SOS LOG */
+.sos-card{background:rgba(231,76,60,.06);border:1px solid rgba(231,76,60,.2);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.sos-icon{font-size:22px;flex-shrink:0}
+.sos-info{flex:1}
+.sos-name{font-size:14px;font-weight:700;color:#ff8a7a}
+.sos-detail{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px}
+/* EXPORT BTN */
+.btn-export{padding:7px 14px;border-radius:9px;background:rgba(127,179,211,.13);border:1px solid rgba(127,179,211,.3);color:#7fb3d3;font-size:12px;font-weight:600;cursor:pointer}
+.btn-export:hover{background:rgba(127,179,211,.22)}
+/* VERSION TABLE */
+.ver-table{width:100%;border-collapse:collapse;margin-top:8px}
+.ver-table th{text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:rgba(255,255,255,.35);padding:6px 10px;border-bottom:1px solid rgba(255,255,255,.08)}
+.ver-table td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.05);font-size:13px}
+
 /* LIVE DRIVERS MAP */
 #live-drivers-map{height:320px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.1);margin-bottom:16px}
 .ld-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:4px}
@@ -249,6 +301,9 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
     <div class="tab" onclick="switchTab('reviews',this)">⭐ Reviews</div>
     <div class="tab" onclick="switchTab('locations',this)">📍 Locations</div>
     <div class="tab" onclick="switchTab('broadcast',this)">📢 Broadcast</div>
+    <div class="tab" onclick="switchTab('moderation',this)">🛡️ Moderation</div>
+    <div class="tab" onclick="switchTab('alerts',this)">🚧 Road Alerts</div>
+    <div class="tab" onclick="switchTab('soslog',this)">🆘 SOS Log</div>
     <div class="tab" onclick="switchTab('simulator',this)">🎮 Simulator</div>
     <div class="tab" onclick="switchTab('settings',this)">⚙️ Settings</div>
   </div>
@@ -549,28 +604,79 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
   <div id="tab-settings" class="content" style="display:none">
     <div class="section-hdr">
       <div><div class="section-title">App Settings</div>
-        <div class="section-sub">Admin configuration — applies immediately</div>
+        <div class="section-sub">Admin configuration — most changes apply to all drivers within 60 seconds</div>
       </div>
     </div>
+
+    <!-- App Controls -->
     <div class="set-card">
-      <div class="set-lbl">Verification Threshold</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.55);margin-bottom:12px;line-height:1.6">
-        Driver confirmations needed before a community trap fires alerts. Currently: <b style="color:#27ae60" id="thresh-disp">3 votes</b>
+      <div class="set-lbl">App Controls</div>
+      <div class="toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-title">🔧 Maintenance Mode</div>
+          <div class="toggle-sub">Shows a maintenance screen to all drivers — app is read-only</div>
+        </div>
+        <label class="sw"><input type="checkbox" id="sw-maintenance" onchange="setConfig('maintenance_mode', this.checked?'1':'0')"><span class="sw-slider"></span></label>
+      </div>
+    </div>
+
+    <!-- Force Update -->
+    <div class="set-card">
+      <div class="set-lbl">Force Update Notice</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.55);margin-bottom:10px">Banner shown to all drivers asking them to refresh. Leave blank to hide.</div>
+      <textarea id="force-update-msg" class="bc-input" rows="2" placeholder="e.g. New version available — please close and reopen the app to update." style="margin-bottom:10px;resize:none"></textarea>
+      <button onclick="setConfig('force_update_msg', document.getElementById('force-update-msg').value.trim())" style="padding:10px 18px;border-radius:10px;background:rgba(243,156,18,.13);border:1px solid rgba(243,156,18,.35);color:#f8c060;font-size:13px;font-weight:700;cursor:pointer">📣 Save &amp; Broadcast</button>
+    </div>
+
+    <!-- Trap Settings -->
+    <div class="set-card">
+      <div class="set-lbl">Trap Settings</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.55);margin-bottom:12px">Votes to verify: <b style="color:#27ae60" id="thresh-disp">3</b> &nbsp;·&nbsp; Expiry: <b style="color:#f8c060" id="expiry-disp">4 h</b></div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+        <button onclick="setConfig('votes_to_verify','2')" class="btn-refresh">2 votes (fast)</button>
+        <button onclick="setConfig('votes_to_verify','3')" class="btn-refresh">3 votes (default)</button>
+        <button onclick="setConfig('votes_to_verify','5')" class="btn-refresh">5 votes (strict)</button>
       </div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button onclick="setThresh(2)" style="padding:9px 16px;border-radius:9px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:600;cursor:pointer">2 votes (faster)</button>
-        <button onclick="setThresh(3)" style="padding:9px 16px;border-radius:9px;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#5ddb8a;font-size:13px;font-weight:600;cursor:pointer">3 votes (default)</button>
-        <button onclick="setThresh(5)" style="padding:9px 16px;border-radius:9px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:13px;font-weight:600;cursor:pointer">5 votes (strict)</button>
+        <button onclick="setConfig('trap_expiry_hours','2')"  class="btn-refresh">2 h expiry</button>
+        <button onclick="setConfig('trap_expiry_hours','4')"  class="btn-refresh">4 h (default)</button>
+        <button onclick="setConfig('trap_expiry_hours','8')"  class="btn-refresh">8 h expiry</button>
+        <button onclick="setConfig('trap_expiry_hours','24')" class="btn-refresh">24 h expiry</button>
       </div>
     </div>
+
+    <!-- Export Data -->
+    <div class="set-card">
+      <div class="set-lbl">Export Data</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn-export" onclick="exportCSV('sessions')">⬇ Sessions CSV</button>
+        <button class="btn-export" onclick="exportCSV('traps')">⬇ Traps CSV</button>
+        <button class="btn-export" onclick="exportCSV('reviews')">⬇ Reviews CSV</button>
+        <button class="btn-export" onclick="exportCSV('sos')">⬇ SOS Log CSV</button>
+      </div>
+    </div>
+
+    <!-- App Version Breakdown -->
+    <div class="set-card">
+      <div class="set-lbl">App Version Tracker</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:10px">Which version users are running — from session logs</div>
+      <table class="ver-table">
+        <thead><tr><th>Version</th><th>Sessions</th><th>% of total</th><th>Last seen</th></tr></thead>
+        <tbody id="ver-tbody"><tr><td colspan="4" style="color:rgba(255,255,255,.3);padding:12px 10px">Load Usage tab first</td></tr></tbody>
+      </table>
+    </div>
+
+    <!-- Danger Zone -->
     <div class="set-card">
       <div class="set-lbl">Danger Zone</div>
-      <div style="font-size:13px;color:rgba(255,255,255,.55);margin-bottom:14px;line-height:1.6">These actions affect all drivers immediately.</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.55);margin-bottom:14px">These actions affect all drivers immediately.</div>
       <div style="display:flex;gap:10px;flex-wrap:wrap">
         <button onclick="confirmAction('clearExpired')" style="padding:10px 18px;border-radius:10px;background:rgba(243,156,18,.13);border:1px solid rgba(243,156,18,.35);color:#f8c060;font-size:13px;font-weight:700;cursor:pointer">🧹 Clear Expired Traps</button>
         <button onclick="confirmAction('clearAll')" style="padding:10px 18px;border-radius:10px;background:rgba(231,76,60,.13);border:1px solid rgba(231,76,60,.35);color:#ff7a7a;font-size:13px;font-weight:700;cursor:pointer">⚠️ Delete ALL Community Traps</button>
       </div>
     </div>
+
+    <!-- Admin Password -->
     <div class="set-card">
       <div class="set-lbl">Admin Password</div>
       <div style="font-size:13px;color:rgba(255,255,255,.55);margin-bottom:12px">Change your dashboard login password.</div>
@@ -622,7 +728,7 @@ alter table sg_reviews enable row level security;
 create policy "Anyone can insert" on sg_reviews for insert with check (true);
 create policy "Anyone can read"   on sg_reviews for select using (true);
 
--- Run this too for admin password:
+-- Admin config (password, maintenance mode, force update, trap settings):
 create table sg_admin_config (
   id    bigint generated always as identity primary key,
   key   text unique not null,
@@ -631,8 +737,179 @@ create table sg_admin_config (
 alter table sg_admin_config enable row level security;
 create policy "Anyone can read"   on sg_admin_config for select using (true);
 create policy "Anyone can insert" on sg_admin_config for insert with check (true);
-create policy "Anyone can update" on sg_admin_config for update using (true);</pre>
+create policy "Anyone can update" on sg_admin_config for update using (true);
+
+-- Word filter (banned chat words):
+create table sg_word_filter (
+  id         bigint generated always as identity primary key,
+  word       text unique not null,
+  created_at timestamptz default now()
+);
+alter table sg_word_filter enable row level security;
+create policy "Anyone can read"   on sg_word_filter for select using (true);
+create policy "Admin can insert"  on sg_word_filter for insert with check (true);
+create policy "Admin can delete"  on sg_word_filter for delete using (true);
+
+-- User blacklist:
+create table sg_blacklist (
+  id         bigint generated always as identity primary key,
+  device_id  text unique not null,
+  nickname   text,
+  reason     text,
+  created_at timestamptz default now()
+);
+alter table sg_blacklist enable row level security;
+create policy "Anyone can read"   on sg_blacklist for select using (true);
+create policy "Admin can insert"  on sg_blacklist for insert with check (true);
+create policy "Admin can delete"  on sg_blacklist for delete using (true);
+
+-- Road condition alerts:
+create table sg_road_alerts (
+  id         bigint generated always as identity primary key,
+  message    text not null,
+  type       text default 'info',
+  km_from    int,
+  km_to      int,
+  active     boolean default true,
+  created_at timestamptz default now()
+);
+alter table sg_road_alerts enable row level security;
+create policy "Anyone can read"   on sg_road_alerts for select using (true);
+create policy "Admin can insert"  on sg_road_alerts for insert with check (true);
+create policy "Admin can update"  on sg_road_alerts for update using (true);
+create policy "Admin can delete"  on sg_road_alerts for delete using (true);
+
+-- Accident hotspot zones:
+create table sg_hotspots (
+  id         bigint generated always as identity primary key,
+  name       text not null,
+  km_from    int not null,
+  km_to      int not null,
+  reason     text,
+  created_at timestamptz default now()
+);
+alter table sg_hotspots enable row level security;
+create policy "Anyone can read"   on sg_hotspots for select using (true);
+create policy "Admin can insert"  on sg_hotspots for insert with check (true);
+create policy "Admin can delete"  on sg_hotspots for delete using (true);
+
+-- SOS event log:
+create table sg_sos_log (
+  id         bigint generated always as identity primary key,
+  device_id  text,
+  nickname   text,
+  lat        double precision,
+  lng        double precision,
+  speed      int,
+  location   text,
+  created_at timestamptz default now()
+);
+alter table sg_sos_log enable row level security;
+create policy "Anyone can insert" on sg_sos_log for insert with check (true);
+create policy "Admin can read"    on sg_sos_log for select using (true);</pre>
     </div>
+  </div>
+
+  <!-- ══ TAB: MODERATION ══ -->
+  <div id="tab-moderation" class="content" style="display:none">
+
+    <!-- Chat History -->
+    <div class="section-hdr">
+      <div><div class="section-title">💬 Chat History</div>
+        <div class="section-sub">Last 50 messages · click Delete to remove from all users</div>
+      </div>
+      <button class="btn-refresh" onclick="loadChatLog()">↻ Refresh</button>
+    </div>
+    <div id="chat-log-wrap" class="chat-log"><div class="empty"><span class="spinner"></span> Loading…</div></div>
+
+    <!-- Word Filter -->
+    <div class="section-hdr" style="margin-top:20px">
+      <div><div class="section-title">🚫 Word Filter</div>
+        <div class="section-sub">Banned words are silently blocked in chat before sending</div>
+      </div>
+    </div>
+    <div class="set-card">
+      <div class="tag-list" id="word-tag-list"><span style="color:rgba(255,255,255,.25);font-size:12px">No banned words yet</span></div>
+      <div style="display:flex;gap:8px">
+        <input id="word-input" class="bc-input" placeholder="Type a word to ban…" style="flex:1;margin-bottom:0" onkeydown="if(event.key==='Enter')addWord()">
+        <button class="btn-bc" onclick="addWord()" style="padding:10px 18px">+ Add</button>
+      </div>
+    </div>
+
+    <!-- User Blacklist -->
+    <div class="section-hdr" style="margin-top:20px">
+      <div><div class="section-title">⛔ User Blacklist</div>
+        <div class="section-sub">Blocked users cannot go Live or submit trap reports</div>
+      </div>
+    </div>
+    <div class="set-card">
+      <div id="blacklist-wrap" style="border:1px solid rgba(255,255,255,.08);border-radius:10px;margin-bottom:12px;min-height:40px">
+        <div class="empty" style="padding:16px">No users blacklisted</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="bl-device" class="bc-input" placeholder="Device ID" style="flex:2;margin-bottom:0">
+        <input id="bl-nick" class="bc-input" placeholder="Nickname (optional)" style="flex:1;margin-bottom:0">
+        <input id="bl-reason" class="bc-input" placeholder="Reason" style="flex:2;margin-bottom:0">
+        <button class="btn-bc" onclick="addBlacklist()" style="padding:10px 18px;background:linear-gradient(135deg,#922b21,#e74c3c)">⛔ Block</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: ROAD ALERTS ══ -->
+  <div id="tab-alerts" class="content" style="display:none">
+
+    <!-- Active Alerts -->
+    <div class="section-hdr">
+      <div><div class="section-title">🚧 Road Condition Alerts</div>
+        <div class="section-sub">Sticky alerts shown on all drivers' maps until deactivated</div>
+      </div>
+      <button class="btn-refresh" onclick="loadAlerts()">↻ Refresh</button>
+    </div>
+    <div class="set-card">
+      <div id="alerts-wrap"><div class="empty">No active alerts</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+        <select id="alert-type" class="bc-type" style="flex-shrink:0">
+          <option value="info">ℹ️ Info</option>
+          <option value="warning">⚠️ Warning</option>
+          <option value="danger">🚨 Danger</option>
+        </select>
+        <input id="alert-msg" class="bc-input" placeholder="e.g. Road flooded at km 340 — use detour" style="flex:3;margin-bottom:0">
+        <input id="alert-km-from" class="bc-input" type="number" placeholder="km from" style="flex:1;margin-bottom:0;min-width:80px">
+        <input id="alert-km-to" class="bc-input" type="number" placeholder="km to" style="flex:1;margin-bottom:0;min-width:80px">
+        <button class="btn-bc" onclick="addAlert()">+ Post Alert</button>
+      </div>
+    </div>
+
+    <!-- Hotspot Zones -->
+    <div class="section-hdr" style="margin-top:24px">
+      <div><div class="section-title">🔴 Accident Hotspot Zones</div>
+        <div class="section-sub">High-risk km ranges shown as a red overlay on the map</div>
+      </div>
+    </div>
+    <div class="set-card">
+      <div id="hotspots-wrap"><div class="empty">No hotspot zones defined</div></div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">
+        <input id="hs-name" class="bc-input" placeholder="Zone name (e.g. Golomoti Bend)" style="flex:3;margin-bottom:0">
+        <input id="hs-reason" class="bc-input" placeholder="Reason (e.g. sharp curve, accident prone)" style="flex:3;margin-bottom:0">
+        <input id="hs-from" class="bc-input" type="number" placeholder="km from" style="flex:1;margin-bottom:0;min-width:80px">
+        <input id="hs-to" class="bc-input" type="number" placeholder="km to" style="flex:1;margin-bottom:0;min-width:80px">
+        <button class="btn-bc" onclick="addHotspot()" style="background:linear-gradient(135deg,#7b241c,#e74c3c)">+ Add Zone</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ TAB: SOS LOG ══ -->
+  <div id="tab-soslog" class="content" style="display:none">
+    <div class="section-hdr">
+      <div><div class="section-title">🆘 SOS Events</div>
+        <div class="section-sub">Logged every time a driver fires the 3-second SOS hold</div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="btn-export" onclick="exportCSV('sos')">⬇ Export CSV</button>
+        <button class="btn-refresh" onclick="loadSosLog()">↻ Refresh</button>
+      </div>
+    </div>
+    <div id="sos-log-wrap"><div class="empty"><span class="spinner"></span> Loading…</div></div>
   </div>
 
   <!-- ══ TAB: SIMULATOR ══ -->
@@ -948,14 +1225,18 @@ function initApp(){
 function switchTab(tab, el){
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
-  ['usage','live','traps','reviews','locations','broadcast','simulator','settings'].forEach(function(t){
+  ['usage','live','traps','reviews','locations','broadcast','moderation','alerts','soslog','simulator','settings'].forEach(function(t){
     document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
   });
-  if(tab==='live')      renderLiveDrivers();
-  if(tab==='traps')     loadTraps();
-  if(tab==='reviews')   loadReviews();
-  if(tab==='locations') loadLocations();
-  if(tab==='simulator') simInit();
+  if(tab==='live')       renderLiveDrivers();
+  if(tab==='traps')      loadTraps();
+  if(tab==='reviews')    loadReviews();
+  if(tab==='locations')  loadLocations();
+  if(tab==='moderation') loadModeration();
+  if(tab==='alerts')     loadAlerts();
+  if(tab==='soslog')     loadSosLog();
+  if(tab==='settings')   loadSettingsConfig();
+  if(tab==='simulator')  simInit();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1553,6 +1834,286 @@ var simTrapMarkers = [];
 var simTraps     = [];
 var simTrapId    = 0;
 var simRunning   = false;
+// ══════════════════════════════════════════════════════
+// MODERATION — Chat log, Word Filter, Blacklist
+// ══════════════════════════════════════════════════════
+function loadModeration(){ loadChatLog(); loadWordFilter(); loadBlacklist(); }
+
+function loadChatLog(){
+  var w=document.getElementById('chat-log-wrap');
+  w.innerHTML='<div class="empty"><span class="spinner"></span> Loading…</div>';
+  supa('sg_chat?select=*&order=created_at.desc&limit=50').then(function(rows){
+    if(!rows||!rows.length){w.innerHTML='<div class="empty">No messages yet</div>';return;}
+    w.innerHTML=rows.map(function(r){
+      return '<div class="chat-log-row">'+
+        '<div class="cl-text"><b style="color:#5ddb8a">'+esc(r.nickname||'?')+'</b> '+esc(r.text||'')+
+          '<div class="cl-meta">'+fmtDate(r.created_at)+'</div></div>'+
+        '<button class="btn-del-msg" onclick="deleteChatMsg(\''+r.id+'\',this)">🗑 Delete</button>'+
+      '</div>';
+    }).join('');
+  });
+}
+
+function deleteChatMsg(id,btn){
+  btn.disabled=true; btn.textContent='…';
+  supa('sg_chat?id=eq.'+id,'DELETE').then(function(){
+    btn.closest('.chat-log-row').style.opacity='.3';
+    btn.textContent='✓';
+    showToast('Message deleted');
+  });
+}
+
+var _wordFilterCache=[];
+function loadWordFilter(){
+  supa('sg_word_filter?select=*&order=created_at.asc').then(function(rows){
+    _wordFilterCache=rows||[];
+    renderWordTags();
+  });
+}
+function renderWordTags(){
+  var el=document.getElementById('word-tag-list');
+  if(!el)return;
+  if(!_wordFilterCache.length){el.innerHTML='<span style="color:rgba(255,255,255,.25);font-size:12px">No banned words yet</span>';return;}
+  el.innerHTML=_wordFilterCache.map(function(w){
+    return '<span class="tag">'+esc(w.word)+' <span class="tag-x" onclick="removeWord(\''+w.id+'\')">×</span></span>';
+  }).join('');
+}
+function addWord(){
+  var inp=document.getElementById('word-input');
+  var word=(inp.value||'').trim().toLowerCase();
+  if(!word)return;
+  inp.value='';
+  supa('sg_word_filter','POST',{word:word}).then(function(r){
+    if(r&&r[0]) _wordFilterCache.push(r[0]);
+    renderWordTags();
+    showToast('Word "'+word+'" banned');
+  });
+}
+function removeWord(id){
+  supa('sg_word_filter?id=eq.'+id,'DELETE').then(function(){
+    _wordFilterCache=_wordFilterCache.filter(function(w){return w.id!=id;});
+    renderWordTags();
+    showToast('Word removed');
+  });
+}
+
+function loadBlacklist(){
+  supa('sg_blacklist?select=*&order=created_at.desc').then(function(rows){
+    var w=document.getElementById('blacklist-wrap');
+    if(!w)return;
+    if(!rows||!rows.length){w.innerHTML='<div class="empty" style="padding:16px">No users blacklisted</div>';return;}
+    w.innerHTML=rows.map(function(r){
+      return '<div class="bl-row">'+
+        '<div><b>'+esc(r.nickname||'Unknown')+'</b><span style="color:rgba(255,255,255,.35);font-size:11px;margin-left:8px">'+esc(r.device_id)+'</span>'+
+          (r.reason?'<div style="font-size:11px;color:rgba(255,255,255,.4);margin-top:2px">'+esc(r.reason)+'</div>':'')+
+        '</div>'+
+        '<button class="btn-del-msg" onclick="removeBlacklist(\''+r.id+'\')">✕ Unblock</button>'+
+      '</div>';
+    }).join('');
+  });
+}
+function addBlacklist(){
+  var did=(document.getElementById('bl-device').value||'').trim();
+  var nick=(document.getElementById('bl-nick').value||'').trim();
+  var reason=(document.getElementById('bl-reason').value||'').trim();
+  if(!did){showToast('Enter a device ID');return;}
+  supa('sg_blacklist','POST',{device_id:did,nickname:nick,reason:reason}).then(function(){
+    document.getElementById('bl-device').value='';
+    document.getElementById('bl-nick').value='';
+    document.getElementById('bl-reason').value='';
+    loadBlacklist();
+    showToast('User blocked');
+  });
+}
+function removeBlacklist(id){
+  supa('sg_blacklist?id=eq.'+id,'DELETE').then(function(){loadBlacklist();showToast('User unblocked');});
+}
+
+// ══════════════════════════════════════════════════════
+// ROAD ALERTS & HOTSPOTS
+// ══════════════════════════════════════════════════════
+function loadAlerts(){ loadRoadAlerts(); loadHotspots(); }
+
+function loadRoadAlerts(){
+  supa('sg_road_alerts?select=*&order=created_at.desc').then(function(rows){
+    var w=document.getElementById('alerts-wrap');
+    if(!rows||!rows.length){w.innerHTML='<div class="empty">No alerts posted</div>';return;}
+    var icons={info:'ℹ️',warning:'⚠️',danger:'🚨'};
+    w.innerHTML=rows.map(function(r){
+      var km=r.km_from!=null?'km '+r.km_from+(r.km_to?'–'+r.km_to:''):'All M1';
+      return '<div class="alert-card t-'+r.type+(r.active?'':' inactive')+'">'+
+        '<div style="font-size:22px">'+(icons[r.type]||'📢')+'</div>'+
+        '<div class="alert-info"><div class="alert-msg">'+esc(r.message)+'</div>'+
+          '<div class="alert-km">'+km+' · '+fmtDate(r.created_at)+(r.active?' · <span style="color:#5ddb8a">Active</span>':' · <span style="color:rgba(255,255,255,.3)">Inactive</span>')+'</div></div>'+
+        '<div style="display:flex;gap:6px;flex-shrink:0">'+
+          '<button class="btn-refresh" onclick="toggleAlert(\''+r.id+'\','+!r.active+')">'+(r.active?'Pause':'Resume')+'</button>'+
+          '<button class="btn-del-msg" onclick="deleteAlert(\''+r.id+'\')">🗑</button>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  });
+}
+function addAlert(){
+  var msg=(document.getElementById('alert-msg').value||'').trim();
+  if(!msg){showToast('Enter an alert message');return;}
+  var type=document.getElementById('alert-type').value;
+  var kf=parseInt(document.getElementById('alert-km-from').value)||null;
+  var kt=parseInt(document.getElementById('alert-km-to').value)||null;
+  supa('sg_road_alerts','POST',{message:msg,type:type,km_from:kf,km_to:kt,active:true}).then(function(){
+    document.getElementById('alert-msg').value='';
+    loadRoadAlerts();
+    showToast('Alert posted');
+  });
+}
+function toggleAlert(id,active){
+  supa('sg_road_alerts?id=eq.'+id,'PATCH',{active:active}).then(loadRoadAlerts);
+}
+function deleteAlert(id){
+  supa('sg_road_alerts?id=eq.'+id,'DELETE').then(function(){loadRoadAlerts();showToast('Alert removed');});
+}
+
+function loadHotspots(){
+  supa('sg_hotspots?select=*&order=km_from.asc').then(function(rows){
+    var w=document.getElementById('hotspots-wrap');
+    if(!rows||!rows.length){w.innerHTML='<div class="empty">No hotspot zones defined</div>';return;}
+    w.innerHTML=rows.map(function(r){
+      return '<div class="hotspot-card">'+
+        '<div style="font-size:22px">🔴</div>'+
+        '<div class="hotspot-info"><div class="hotspot-name">'+esc(r.name)+'</div>'+
+          '<div class="hotspot-km">km '+r.km_from+'–'+r.km_to+(r.reason?' · '+esc(r.reason):'')+'</div></div>'+
+        '<button class="btn-del-msg" onclick="deleteHotspot(\''+r.id+'\')">🗑</button>'+
+      '</div>';
+    }).join('');
+  });
+}
+function addHotspot(){
+  var name=(document.getElementById('hs-name').value||'').trim();
+  var reason=(document.getElementById('hs-reason').value||'').trim();
+  var from=parseInt(document.getElementById('hs-from').value);
+  var to=parseInt(document.getElementById('hs-to').value);
+  if(!name||!from||!to){showToast('Fill in name, km from and km to');return;}
+  supa('sg_hotspots','POST',{name:name,reason:reason,km_from:from,km_to:to}).then(function(){
+    document.getElementById('hs-name').value='';
+    document.getElementById('hs-reason').value='';
+    document.getElementById('hs-from').value='';
+    document.getElementById('hs-to').value='';
+    loadHotspots();
+    showToast('Hotspot zone added');
+  });
+}
+function deleteHotspot(id){
+  supa('sg_hotspots?id=eq.'+id,'DELETE').then(function(){loadHotspots();showToast('Hotspot removed');});
+}
+
+// ══════════════════════════════════════════════════════
+// SOS LOG
+// ══════════════════════════════════════════════════════
+function loadSosLog(){
+  var w=document.getElementById('sos-log-wrap');
+  w.innerHTML='<div class="empty"><span class="spinner"></span> Loading…</div>';
+  supa('sg_sos_log?select=*&order=created_at.desc&limit=100').then(function(rows){
+    if(!rows||!rows.length){w.innerHTML='<div class="empty">No SOS events logged yet</div>';return;}
+    w.innerHTML=rows.map(function(r){
+      var mapLink=r.lat?'<a href="https://maps.google.com/?q='+r.lat+','+r.lng+'" target="_blank" style="color:#7fb3d3;font-size:11px;margin-left:6px">📍 Map</a>':'';
+      return '<div class="sos-card">'+
+        '<div class="sos-icon">🆘</div>'+
+        '<div class="sos-info">'+
+          '<div class="sos-name">'+esc(r.nickname||'Unknown driver')+mapLink+'</div>'+
+          '<div class="sos-detail">'+(r.location||'Location unknown')+' · '+(r.speed!=null?r.speed+' km/h · ':'')+fmtDate(r.created_at)+'</div>'+
+        '</div>'+
+      '</div>';
+    }).join('');
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// SETTINGS CONFIG (sg_admin_config key/value store)
+// ══════════════════════════════════════════════════════
+function loadSettingsConfig(){
+  supa('sg_admin_config?select=*').then(function(rows){
+    if(!rows) return;
+    rows.forEach(function(r){
+      if(r.key==='maintenance_mode'){
+        var sw=document.getElementById('sw-maintenance');
+        if(sw) sw.checked=r.value==='1';
+      }
+      if(r.key==='force_update_msg'){
+        var ta=document.getElementById('force-update-msg');
+        if(ta) ta.value=r.value||'';
+      }
+      if(r.key==='votes_to_verify'){
+        var el=document.getElementById('thresh-disp');
+        if(el) el.textContent=r.value;
+      }
+      if(r.key==='trap_expiry_hours'){
+        var el=document.getElementById('expiry-disp');
+        if(el) el.textContent=r.value+' h';
+      }
+    });
+    renderVersionTable();
+  });
+}
+
+function setConfig(key, value){
+  supa('sg_admin_config?key=eq.'+key,'PATCH',{value:String(value)}).then(function(r){
+    if(!r||!r.length){
+      supa('sg_admin_config','POST',{key:key,value:String(value)}).then(function(){loadSettingsConfig();});
+    } else { loadSettingsConfig(); }
+    showToast('✅ '+key+' updated');
+  });
+}
+
+function renderVersionTable(){
+  if(!allSessions||!allSessions.length) return;
+  var vers={};
+  allSessions.forEach(function(r){
+    var v=r.app_version||'unknown';
+    if(!vers[v]) vers[v]={count:0,last:r.created_at};
+    vers[v].count++;
+    if(r.created_at>vers[v].last) vers[v].last=r.created_at;
+  });
+  var total=allSessions.length;
+  var arr=Object.entries(vers).sort(function(a,b){return b[1].count-a[1].count;});
+  var tb=document.getElementById('ver-tbody');
+  if(!tb) return;
+  tb.innerHTML=arr.map(function(e){
+    var pct=Math.round(e[1].count/total*100);
+    return '<tr><td style="font-weight:700;color:#5ddb8a">v'+esc(e[0])+'</td>'+
+      '<td>'+e[1].count+'</td>'+
+      '<td><div style="background:rgba(39,174,96,.15);border-radius:4px;height:6px;width:100%;margin-bottom:3px"><div style="background:#27ae60;height:6px;border-radius:4px;width:'+pct+'%"></div></div>'+pct+'%</td>'+
+      '<td style="color:rgba(255,255,255,.4);font-size:11px">'+fmtDate(e[1].last)+'</td></tr>';
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+// EXPORT CSV
+// ══════════════════════════════════════════════════════
+function exportCSV(type){
+  var endpoint={
+    sessions:'sg_sessions?select=*&order=created_at.desc',
+    traps:'sg_traps?select=*&order=created_at.desc',
+    reviews:'sg_reviews?select=*&order=created_at.desc',
+    sos:'sg_sos_log?select=*&order=created_at.desc'
+  }[type];
+  if(!endpoint){showToast('Unknown export type');return;}
+  showToast('⏳ Preparing CSV…');
+  supa(endpoint).then(function(rows){
+    if(!rows||!rows.length){showToast('No data to export');return;}
+    var keys=Object.keys(rows[0]);
+    var csv=[keys.join(',')].concat(rows.map(function(r){
+      return keys.map(function(k){
+        var v=r[k]===null||r[k]===undefined?'':String(r[k]);
+        return '"'+v.replace(/"/g,'""')+'"';
+      }).join(',');
+    })).join('\n');
+    var a=document.createElement('a');
+    a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+    a.download='pansewu_'+type+'_'+new Date().toISOString().slice(0,10)+'.csv';
+    a.click();
+    showToast('✅ CSV downloaded');
+  });
+}
+
 var simPaused    = false;
 var simInterval  = null;
 var simIdx       = 34; // start at Lilongwe
