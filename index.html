@@ -5627,7 +5627,11 @@ function sendChat() {
   if (_wordFilter && _wordFilter.length) {
     var lower = text.toLowerCase();
     var blocked = _wordFilter.some(function(w){ return lower.includes(w); });
-    if (blocked) { showToast('🚫 Your message contains a blocked word'); return; }
+    if (blocked) {
+      showToast('🚫 Your message contains a blocked word');
+      fetch(SUPA_URL+'/rest/v1/sg_word_filter_log',{method:'POST',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({device_id:myId,nickname:myNickname||'Anonymous',message:text})}).catch(function(){});
+      return;
+    }
   }
   var payload = {
     type:     'chat',
@@ -6644,6 +6648,7 @@ function goLiveFromSheet() {
       var reason = rows[0].reason || 'Violated community guidelines';
       showToast('⛔ Your account has been restricted: ' + reason);
       document.getElementById('privacy-sheet').classList.remove('show');
+      fetch(SUPA_URL+'/rest/v1/sg_blacklist_attempts',{method:'POST',headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({device_id:myId,nickname:myNickname||'Anonymous',lat:curLat,lng:curLng})}).catch(function(){});
       return;
     }
     document.getElementById('privacy-sheet').classList.remove('show');

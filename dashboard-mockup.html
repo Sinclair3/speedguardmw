@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pansewu M1 — Operations Center</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#04080d;color:#fff;min-height:100vh;overflow-x:hidden}
+
+/* ── TOP BAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:10px 20px;background:rgba(0,0,0,.6);border-bottom:1px solid rgba(39,174,96,.2);backdrop-filter:blur(12px);position:sticky;top:0;z-index:100}
+.tb-brand{display:flex;align-items:center;gap:10px}
+.tb-logo{font-size:20px;font-weight:900;letter-spacing:-.5px}
+.tb-logo span{color:#27ae60}
+.tb-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(39,174,96,.7);border:1px solid rgba(39,174,96,.3);padding:3px 8px;border-radius:6px}
+.tb-center{display:flex;align-items:center;gap:20px}
+.sys-pill{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;padding:5px 12px;border-radius:20px;background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.3);color:#5ddb8a}
+.sys-dot{width:7px;height:7px;border-radius:50%;background:#27ae60;animation:pulse-g 2s ease infinite}
+@keyframes pulse-g{0%,100%{box-shadow:0 0 0 0 rgba(39,174,96,.6)}50%{box-shadow:0 0 0 5px rgba(39,174,96,0)}}
+.tb-clock{font-size:13px;font-weight:700;color:rgba(255,255,255,.6);font-variant-numeric:tabular-nums}
+.tb-right{display:flex;align-items:center;gap:16px}
+.env-badge{font-size:10px;font-weight:800;padding:3px 9px;border-radius:6px;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.4);color:#5ddb8a;text-transform:uppercase;letter-spacing:.08em}
+
+/* ── HEALTH BAR ── */
+.healthbar{display:flex;gap:0;background:rgba(0,0,0,.4);border-bottom:1px solid rgba(255,255,255,.05);padding:0 20px;overflow-x:auto}
+.hb-item{display:flex;align-items:center;gap:8px;padding:9px 20px;border-right:1px solid rgba(255,255,255,.06);flex-shrink:0}
+.hb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.hb-dot.ok{background:#27ae60;box-shadow:0 0 8px rgba(39,174,96,.6)}
+.hb-dot.warn{background:#f39c12;box-shadow:0 0 8px rgba(243,156,18,.5)}
+.hb-dot.err{background:#e74c3c;box-shadow:0 0 8px rgba(231,76,60,.5)}
+.hb-label{font-size:11px;font-weight:700;color:rgba(255,255,255,.7)}
+.hb-val{font-size:10px;color:rgba(255,255,255,.35);margin-left:2px}
+
+/* ── KPI STRIP ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(6,1fr);gap:1px;background:rgba(255,255,255,.05);border-bottom:1px solid rgba(255,255,255,.05)}
+.kpi{background:#04080d;padding:16px 20px;position:relative;overflow:hidden}
+.kpi::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px}
+.kpi.green::after{background:linear-gradient(90deg,transparent,#27ae60,transparent)}
+.kpi.blue::after{background:linear-gradient(90deg,transparent,#2980b9,transparent)}
+.kpi.yellow::after{background:linear-gradient(90deg,transparent,#f39c12,transparent)}
+.kpi.red::after{background:linear-gradient(90deg,transparent,#e74c3c,transparent)}
+.kpi.purple::after{background:linear-gradient(90deg,transparent,#8e44ad,transparent)}
+.kpi.teal::after{background:linear-gradient(90deg,transparent,#16a085,transparent)}
+.kpi-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.35);margin-bottom:6px}
+.kpi-val{font-size:32px;font-weight:900;line-height:1;margin-bottom:4px;font-variant-numeric:tabular-nums}
+.kpi.green .kpi-val{color:#5ddb8a}
+.kpi.blue .kpi-val{color:#7fb3d3}
+.kpi.yellow .kpi-val{color:#f8c060}
+.kpi.red .kpi-val{color:#ff8a7a}
+.kpi.purple .kpi-val{color:#c39bd3}
+.kpi.teal .kpi-val{color:#76d7c4}
+.kpi-delta{font-size:11px;color:rgba(255,255,255,.35)}
+.kpi-delta.up{color:#5ddb8a}
+.kpi-delta.dn{color:#ff8a7a}
+
+/* ── MAIN GRID ── */
+.main{display:grid;grid-template-columns:280px 1fr 300px;gap:1px;background:rgba(255,255,255,.05);min-height:calc(100vh - 130px)}
+.col{background:#04080d;display:flex;flex-direction:column;gap:1px}
+
+/* ── PANELS ── */
+.panel{background:#070d14;padding:14px 16px;flex-shrink:0}
+.panel-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.panel-title{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.4)}
+.panel-badge{font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px}
+.pb-green{background:rgba(39,174,96,.15);color:#5ddb8a;border:1px solid rgba(39,174,96,.25)}
+.pb-red{background:rgba(231,76,60,.15);color:#ff8a7a;border:1px solid rgba(231,76,60,.25)}
+.pb-yellow{background:rgba(243,156,18,.15);color:#f8c060;border:1px solid rgba(243,156,18,.25)}
+
+/* ── SYSTEM HEALTH LIST ── */
+.svc-row{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.svc-row:last-child{border-bottom:none}
+.svc-left{display:flex;align-items:center;gap:8px}
+.svc-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.svc-name{font-size:12px;font-weight:600}
+.svc-sub{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px}
+.svc-status{font-size:10px;font-weight:700;padding:2px 7px;border-radius:6px}
+.ss-ok{background:rgba(39,174,96,.12);color:#5ddb8a}
+.ss-warn{background:rgba(243,156,18,.12);color:#f8c060}
+.ss-err{background:rgba(231,76,60,.12);color:#ff8a7a}
+
+/* ── M1 ROAD VISUAL ── */
+.road-visual{position:relative;background:linear-gradient(180deg,#04080d 0%,#060e18 100%);border-radius:8px;overflow:hidden;height:320px;flex-shrink:0}
+.road-svg{width:100%;height:100%}
+.zone-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;fill:rgba(255,255,255,.3)}
+.road-line{stroke:#f39c12;stroke-width:3;fill:none;stroke-linecap:round}
+.road-bg{stroke:rgba(243,156,18,.15);stroke-width:12;fill:none}
+.driver-dot{fill:#27ae60;filter:drop-shadow(0 0 4px #27ae60)}
+.driver-dot.fast{fill:#f8c060;filter:drop-shadow(0 0 4px #f8c060)}
+.driver-dot.sos{fill:#e74c3c;filter:drop-shadow(0 0 6px #e74c3c)}
+.trap-marker{fill:#e74c3c}
+.hotspot-zone{fill:rgba(231,76,60,.15);stroke:rgba(231,76,60,.4);stroke-width:1}
+.km-tick{stroke:rgba(255,255,255,.1);stroke-width:1}
+.km-label{font-size:8px;fill:rgba(255,255,255,.25)}
+.city-dot{fill:#7fb3d3}
+.city-label{font-size:9px;fill:rgba(127,179,211,.8);font-weight:600}
+
+/* ── BAR CHART ── */
+.chart-wrap{height:120px;display:flex;align-items:flex-end;gap:5px;padding:0 4px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bar{width:100%;border-radius:4px 4px 0 0;background:linear-gradient(180deg,#27ae60,#1a6b3a);min-height:3px;position:relative;transition:height .4s}
+.bar.today{background:linear-gradient(180deg,#5ddb8a,#27ae60);box-shadow:0 0 10px rgba(39,174,96,.3)}
+.bar-lbl{font-size:8px;color:rgba(255,255,255,.3);text-align:center}
+.bar-val{font-size:8px;color:#5ddb8a;font-weight:700;position:absolute;top:-14px;left:50%;transform:translateX(-50%);white-space:nowrap}
+
+/* ── DONUT CHART ── */
+.donut-wrap{display:flex;align-items:center;gap:16px}
+.donut-svg{flex-shrink:0}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:7px}
+.dl-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.dl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dl-label{font-size:11px;color:rgba(255,255,255,.6);flex:1}
+.dl-val{font-size:12px;font-weight:700}
+
+/* ── ACTIVITY FEED ── */
+.feed{flex:1;overflow-y:auto;max-height:280px}
+.feed::-webkit-scrollbar{width:3px}
+.feed::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.feed-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.feed-row:last-child{border-bottom:none}
+.feed-icon{font-size:14px;flex-shrink:0;margin-top:1px}
+.feed-body{flex:1;min-width:0}
+.feed-text{font-size:12px;color:rgba(255,255,255,.8);line-height:1.4}
+.feed-text b{color:#fff}
+.feed-time{font-size:10px;color:rgba(255,255,255,.3);margin-top:2px}
+.feed-tag{font-size:9px;font-weight:700;padding:1px 6px;border-radius:5px;margin-left:5px;vertical-align:middle}
+.ft-chat{background:rgba(41,128,185,.2);color:#7fb3d3}
+.ft-trap{background:rgba(231,76,60,.2);color:#ff8a7a}
+.ft-sos{background:rgba(231,76,60,.3);color:#ff6b6b;animation:blink .8s ease infinite}
+.ft-session{background:rgba(39,174,96,.15);color:#5ddb8a}
+.ft-alert{background:rgba(243,156,18,.2);color:#f8c060}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ── DRIVER LIST ── */
+.driver-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.driver-row:last-child{border-bottom:none}
+.dr-av{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1a6b3a,#27ae60);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+.dr-info{flex:1;min-width:0}
+.dr-name{font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dr-loc{font-size:10px;color:rgba(255,255,255,.4);margin-top:1px}
+.dr-spd{font-size:12px;font-weight:800;flex-shrink:0}
+
+/* ── ZONE TRAFFIC ── */
+.zone-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.zone-row:last-child{border-bottom:none}
+.zone-name{font-size:12px;font-weight:700;width:90px;flex-shrink:0}
+.zone-bar-wrap{flex:1;background:rgba(255,255,255,.06);border-radius:4px;height:6px;overflow:hidden}
+.zone-bar{height:100%;border-radius:4px}
+.zone-count{font-size:12px;font-weight:700;width:24px;text-align:right;flex-shrink:0}
+
+/* ── ALERT PANEL ── */
+.alert-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.alert-row:last-child{border-bottom:none}
+.al-icon{font-size:16px;flex-shrink:0}
+.al-body{flex:1}
+.al-msg{font-size:12px;font-weight:600;color:rgba(255,255,255,.85)}
+.al-meta{font-size:10px;color:rgba(255,255,255,.35);margin-top:2px}
+.al-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:5px;margin-left:6px}
+.ab-warn{background:rgba(243,156,18,.2);color:#f8c060}
+.ab-danger{background:rgba(231,76,60,.2);color:#ff8a7a}
+.ab-info{background:rgba(41,128,185,.2);color:#7fb3d3}
+
+/* ── SPARK LINE ── */
+.sparkline{overflow:visible}
+
+/* ── STAT MINI ── */
+.stat-mini{display:flex;justify-content:space-between;gap:8px;margin-top:8px}
+.sm-item{flex:1;background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px;text-align:center}
+.sm-val{font-size:18px;font-weight:800;margin-bottom:2px}
+.sm-lbl{font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.06em}
+
+/* ── UPTIME BAR ── */
+.uptime-bar{display:flex;gap:2px;margin-top:8px}
+.uptime-seg{flex:1;height:20px;border-radius:3px;position:relative;cursor:default}
+.uptime-seg.up{background:rgba(39,174,96,.5)}
+.uptime-seg.down{background:rgba(231,76,60,.5)}
+.uptime-seg.deg{background:rgba(243,156,18,.4)}
+.uptime-label{display:flex;justify-content:space-between;font-size:9px;color:rgba(255,255,255,.25);margin-top:4px}
+
+/* ── TRAFFIC HEATMAP ── */
+.heatmap-grid{display:grid;grid-template-columns:repeat(24,1fr);gap:2px;margin-top:8px}
+.hm-cell{height:16px;border-radius:2px;background:rgba(39,174,96,var(--op,0.05))}
+.hm-labels{display:flex;justify-content:space-between;font-size:8px;color:rgba(255,255,255,.25);margin-top:3px}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+
+/* ── SCANLINE EFFECT ── */
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,rgba(0,0,0,.03) 0px,rgba(0,0,0,.03) 1px,transparent 1px,transparent 2px);pointer-events:none;z-index:9999}
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="tb-brand">
+    <div class="tb-logo">Pansewu <span>M1</span></div>
+    <div class="tb-tag">Operations Center</div>
+  </div>
+  <div class="tb-center">
+    <div class="sys-pill"><span class="sys-dot"></span> All Systems Operational</div>
+    <div style="font-size:11px;color:rgba(255,255,255,.25)">Lilongwe ↔ Blantyre M1 · 1,140 km</div>
+  </div>
+  <div class="tb-right">
+    <div class="env-badge">Live</div>
+    <div class="tb-clock" id="clock">--:--:--</div>
+  </div>
+</div>
+
+<!-- HEALTH BAR -->
+<div class="healthbar">
+  <div class="hb-item"><div class="hb-dot ok"></div><span class="hb-label">Supabase DB</span><span class="hb-val">12ms</span></div>
+  <div class="hb-item"><div class="hb-dot ok"></div><span class="hb-label">Realtime WS</span><span class="hb-val">connected</span></div>
+  <div class="hb-item"><div class="hb-dot ok"></div><span class="hb-label">Push Service</span><span class="hb-val">active</span></div>
+  <div class="hb-item"><div class="hb-dot ok"></div><span class="hb-label">GitHub Pages</span><span class="hb-val">online</span></div>
+  <div class="hb-item"><div class="hb-dot warn"></div><span class="hb-label">Edge Functions</span><span class="hb-val">notify-trap</span></div>
+  <div class="hb-item"><div class="hb-dot ok"></div><span class="hb-label">Chat DB</span><span class="hb-val">sg_chat</span></div>
+  <div class="hb-item" style="border-right:none"><div class="hb-dot ok"></div><span class="hb-label">RLS Policies</span><span class="hb-val">enforced</span></div>
+</div>
+
+<!-- KPI STRIP -->
+<div class="kpi-strip">
+  <div class="kpi green">
+    <div class="kpi-label">Live Drivers</div>
+    <div class="kpi-val">7</div>
+    <div class="kpi-delta up">▲ 3 from 1h ago</div>
+  </div>
+  <div class="kpi blue">
+    <div class="kpi-label">Sessions Today</div>
+    <div class="kpi-val">142</div>
+    <div class="kpi-delta up">▲ 18% vs yesterday</div>
+  </div>
+  <div class="kpi yellow">
+    <div class="kpi-label">Active Traps</div>
+    <div class="kpi-val">11</div>
+    <div class="kpi-delta">3 verified · 8 pending</div>
+  </div>
+  <div class="kpi red">
+    <div class="kpi-label">SOS Events Today</div>
+    <div class="kpi-val">2</div>
+    <div class="kpi-delta dn">▲ 1 vs yesterday</div>
+  </div>
+  <div class="kpi purple">
+    <div class="kpi-label">Chat Messages / hr</div>
+    <div class="kpi-val">38</div>
+    <div class="kpi-delta up">▲ active conversation</div>
+  </div>
+  <div class="kpi teal">
+    <div class="kpi-label">Push Delivered</div>
+    <div class="kpi-val">96%</div>
+    <div class="kpi-delta">4 subscriptions dead</div>
+  </div>
+</div>
+
+<!-- MAIN 3-COLUMN GRID -->
+<div class="main">
+
+  <!-- ── LEFT COLUMN ── -->
+  <div class="col">
+
+    <!-- System Services -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">System Services</div>
+        <span class="panel-badge pb-green">6/7 OK</span>
+      </div>
+      <div class="svc-row">
+        <div class="svc-left"><div class="svc-dot" style="background:#27ae60"></div>
+          <div><div class="svc-name">Supabase Database</div><div class="svc-sub">REST · RLS enforced</div></div>
+        </div><span class="svc-status ss-ok">12 ms</span>
+      </div>
+      <div class="svc-row">
+        <div class="svc-left"><div class="svc-dot" style="background:#27ae60"></div>
+          <div><div class="svc-name">Realtime WebSocket</div><div class="svc-sub">m1_drivers channel</div></div>
+        </div><span class="svc-status ss-ok">7 connected</span>
+      </div>
+      <div class="svc-row">
+        <div class="svc-left"><div class="svc-dot" style="background:#27ae60"></div>
+          <div><div class="svc-name">Push Notifications</div><div class="svc-sub">VAPID · 23 subscribers</div></div>
+        </div><span class="svc-status ss-ok">Active</span>
+      </div>
+      <div class="svc-row">
+        <div class="svc-left"><div class="svc-dot" style="background:#f39c12"></div>
+          <div><div class="svc-name">Edge Function</div><div class="svc-sub">notify-trap · last run 2h</div></div>
+        </div><span class="svc-status ss-warn">Idle</span>
+      </div>
+      <div class="svc-row">
+        <div class="svc-left"><div class="svc-dot" style="background:#27ae60"></div>
+          <div><div class="svc-name">GitHub Pages CDN</div><div class="svc-sub">sinclair3.github.io</div></div>
+        </div><span class="svc-status ss-ok">Online</span>
+      </div>
+      <div class="svc-row">
+        <div class="svc-left"><div class="svc-dot" style="background:#27ae60"></div>
+          <div><div class="svc-name">Service Worker</div><div class="svc-sub">sw.js · cache v2.0</div></div>
+        </div><span class="svc-status ss-ok">Active</span>
+      </div>
+    </div>
+
+    <!-- Uptime -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">30-Day Uptime</div>
+        <span class="panel-badge pb-green">99.1%</span>
+      </div>
+      <div class="uptime-bar" id="uptime-bar"></div>
+      <div class="uptime-label"><span>30 days ago</span><span>Today</span></div>
+    </div>
+
+    <!-- Zone Traffic -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">Zone Traffic</div>
+        <span class="panel-badge pb-green">Live</span>
+      </div>
+      <div class="zone-row">
+        <div class="zone-name" style="color:#7fb3d3">🔵 Northern</div>
+        <div class="zone-bar-wrap"><div class="zone-bar" style="width:55%;background:linear-gradient(90deg,#2980b9,#7fb3d3)"></div></div>
+        <div class="zone-count" style="color:#7fb3d3">3</div>
+      </div>
+      <div class="zone-row">
+        <div class="zone-name" style="color:#f8c060">🟡 Central</div>
+        <div class="zone-bar-wrap"><div class="zone-bar" style="width:36%;background:linear-gradient(90deg,#d68910,#f8c060)"></div></div>
+        <div class="zone-count" style="color:#f8c060">2</div>
+      </div>
+      <div class="zone-row">
+        <div class="zone-name" style="color:#5ddb8a">🟢 Southern</div>
+        <div class="zone-bar-wrap"><div class="zone-bar" style="width:36%;background:linear-gradient(90deg,#1a6b3a,#5ddb8a)"></div></div>
+        <div class="zone-count" style="color:#5ddb8a">2</div>
+      </div>
+      <div style="margin-top:12px">
+        <div class="panel-title" style="margin-bottom:8px">Hourly Session Heatmap (Today)</div>
+        <div class="heatmap-grid" id="heatmap"></div>
+        <div class="hm-labels"><span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span></div>
+      </div>
+    </div>
+
+    <!-- Platform Breakdown -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">Platform Breakdown</div>
+      </div>
+      <div class="donut-wrap">
+        <svg class="donut-svg" width="80" height="80" viewBox="0 0 80 80">
+          <circle cx="40" cy="40" r="28" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="14"/>
+          <!-- Android 61% -->
+          <circle cx="40" cy="40" r="28" fill="none" stroke="#5ddb8a" stroke-width="14" stroke-dasharray="107.6 68" stroke-dashoffset="44" transform="rotate(-90 40 40)"/>
+          <!-- iOS 28% -->
+          <circle cx="40" cy="40" r="28" fill="none" stroke="#7fb3d3" stroke-width="14" stroke-dasharray="49.5 126.1" stroke-dashoffset="-63.6" transform="rotate(-90 40 40)"/>
+          <!-- Windows 11% -->
+          <circle cx="40" cy="40" r="28" fill="none" stroke="#f8c060" stroke-width="14" stroke-dasharray="19.5 156.1" stroke-dashoffset="-113.1" transform="rotate(-90 40 40)"/>
+        </svg>
+        <div class="donut-legend">
+          <div class="dl-row"><div class="dl-dot" style="background:#5ddb8a"></div><div class="dl-label">Android</div><div class="dl-val" style="color:#5ddb8a">61%</div></div>
+          <div class="dl-row"><div class="dl-dot" style="background:#7fb3d3"></div><div class="dl-label">iOS</div><div class="dl-val" style="color:#7fb3d3">28%</div></div>
+          <div class="dl-row"><div class="dl-dot" style="background:#f8c060"></div><div class="dl-label">Windows</div><div class="dl-val" style="color:#f8c060">11%</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── CENTER COLUMN ── -->
+  <div class="col">
+
+    <!-- M1 Road Map -->
+    <div class="panel" style="flex:0 0 auto">
+      <div class="panel-hdr">
+        <div class="panel-title">M1 Live Road View — Lilongwe to Blantyre</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:10px;color:rgba(255,255,255,.35)">🚗 7 drivers · 🚔 11 traps · 🔴 2 hotspots</span>
+          <span class="panel-badge pb-green">Live</span>
+        </div>
+      </div>
+      <div class="road-visual">
+        <svg class="road-svg" viewBox="0 0 700 300" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="roadGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#2980b9" stop-opacity=".3"/>
+              <stop offset="40%" stop-color="#f39c12" stop-opacity=".3"/>
+              <stop offset="100%" stop-color="#27ae60" stop-opacity=".3"/>
+            </linearGradient>
+          </defs>
+          <!-- Road background -->
+          <rect x="0" y="0" width="700" height="300" fill="#06101a"/>
+          <!-- Zone backgrounds -->
+          <rect x="0" y="0" width="240" height="300" fill="rgba(41,128,185,.04)"/>
+          <rect x="240" y="0" width="220" height="300" fill="rgba(243,156,18,.04)"/>
+          <rect x="460" y="0" width="240" height="300" fill="rgba(39,174,96,.04)"/>
+          <!-- Zone labels -->
+          <text x="120" y="20" class="zone-label" text-anchor="middle">Northern M1</text>
+          <text x="350" y="20" class="zone-label" text-anchor="middle">Central M1</text>
+          <text x="580" y="20" class="zone-label" text-anchor="middle">Southern M1</text>
+          <!-- Zone dividers -->
+          <line x1="240" y1="0" x2="240" y2="300" stroke="rgba(255,255,255,.06)" stroke-width="1" stroke-dasharray="4,4"/>
+          <line x1="460" y1="0" x2="460" y2="300" stroke="rgba(255,255,255,.06)" stroke-width="1" stroke-dasharray="4,4"/>
+          <!-- Hotspot zones -->
+          <rect x="180" y="100" width="60" height="100" rx="4" class="hotspot-zone"/>
+          <rect x="395" y="80" width="65" height="140" rx="4" class="hotspot-zone"/>
+          <!-- Road BG glow -->
+          <path d="M 30,150 C 80,130 130,170 180,150 C 230,130 280,160 330,150 C 380,140 430,155 480,145 C 530,135 580,160 660,150" class="road-bg"/>
+          <!-- Road main line -->
+          <path d="M 30,150 C 80,130 130,170 180,150 C 230,130 280,160 330,150 C 380,140 430,155 480,145 C 530,135 580,160 660,150" class="road-line"/>
+          <!-- Km ticks -->
+          <line x1="100" y1="140" x2="100" y2="160" class="km-tick"/><text x="100" y="175" class="km-label" text-anchor="middle">km 200</text>
+          <line x1="240" y1="130" x2="240" y2="150" class="km-tick"/><text x="240" y="165" class="km-label" text-anchor="middle">km 400</text>
+          <line x1="350" y1="148" x2="350" y2="168" class="km-tick"/><text x="350" y="183" class="km-label" text-anchor="middle">km 570</text>
+          <line x1="460" y1="144" x2="460" y2="164" class="km-tick"/><text x="460" y="179" class="km-label" text-anchor="middle">km 760</text>
+          <!-- Cities -->
+          <circle cx="30" cy="150" r="5" class="city-dot"/><text x="30" y="135" class="city-label" text-anchor="middle">Lilongwe</text>
+          <circle cx="660" cy="150" r="5" class="city-dot"/><text x="660" y="135" class="city-label" text-anchor="middle">Blantyre</text>
+          <circle cx="350" cy="150" r="3" fill="rgba(127,179,211,.5)"/><text x="350" y="200" class="city-label" text-anchor="middle">Dedza</text>
+          <!-- Trap markers -->
+          <polygon points="90,125 95,115 100,125" class="trap-marker"/>
+          <polygon points="160,125 165,115 170,125" class="trap-marker"/>
+          <polygon points="300,132 305,122 310,132" class="trap-marker"/>
+          <polygon points="430,127 435,117 440,127" class="trap-marker"/>
+          <polygon points="530,120 535,110 540,120" class="trap-marker"/>
+          <!-- Hotspot labels -->
+          <text x="210" y="108" style="font-size:8px;fill:rgba(231,76,60,.7);font-weight:700">🔴 Hotspot</text>
+          <text x="396" y="88" style="font-size:8px;fill:rgba(231,76,60,.7);font-weight:700">🔴 Golomoti</text>
+          <!-- Drivers -->
+          <circle cx="80" cy="145" r="5" class="driver-dot"><animate attributeName="r" values="5;6;5" dur="2s" repeatCount="indefinite"/></circle>
+          <text x="80" y="132" style="font-size:8px;fill:#5ddb8a;font-weight:700;text-anchor:middle">John · 82</text>
+          <circle cx="155" cy="143" r="5" class="driver-dot fast"><animate attributeName="r" values="5;6;5" dur="1.8s" repeatCount="indefinite"/></circle>
+          <text x="155" y="130" style="font-size:8px;fill:#f8c060;font-weight:700;text-anchor:middle">Mary · 104</text>
+          <circle cx="285" cy="145" r="5" class="driver-dot"><animate attributeName="r" values="5;6;5" dur="2.2s" repeatCount="indefinite"/></circle>
+          <text x="285" y="132" style="font-size:8px;fill:#5ddb8a;font-weight:700;text-anchor:middle">Peter · 76</text>
+          <circle cx="380" cy="148" r="5" class="driver-dot"><animate attributeName="r" values="5;6;5" dur="2s" repeatCount="indefinite"/></circle>
+          <circle cx="490" cy="143" r="5" class="driver-dot fast"><animate attributeName="r" values="5;6;5" dur="1.5s" repeatCount="indefinite"/></circle>
+          <text x="490" y="130" style="font-size:8px;fill:#f8c060;font-weight:700;text-anchor:middle">Ali · 112</text>
+          <circle cx="570" cy="145" r="5" class="driver-dot"><animate attributeName="r" values="5;6;5" dur="2.3s" repeatCount="indefinite"/></circle>
+          <circle cx="620" cy="148" r="5" class="driver-dot"><animate attributeName="r" values="5;6;5" dur="2s" repeatCount="indefinite"/></circle>
+          <!-- Speed legend -->
+          <circle cx="30" cy="280" r="4" class="driver-dot"/>
+          <text x="40" y="284" style="font-size:8px;fill:rgba(255,255,255,.4)">&lt;100 km/h</text>
+          <circle cx="110" cy="280" r="4" class="driver-dot fast"/>
+          <text x="120" y="284" style="font-size:8px;fill:rgba(255,255,255,.4)">&gt;100 km/h</text>
+          <polygon points="190,278 193,272 196,278" class="trap-marker"/>
+          <text x="202" y="284" style="font-size:8px;fill:rgba(255,255,255,.4)">Speed Trap</text>
+          <rect x="270" y="274" width="16" height="8" rx="1" class="hotspot-zone"/>
+          <text x="292" y="284" style="font-size:8px;fill:rgba(255,255,255,.4)">Hotspot Zone</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Session Chart + Activity Feed side by side -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;flex:1">
+
+      <!-- Session Chart -->
+      <div class="panel">
+        <div class="panel-hdr">
+          <div class="panel-title">Daily Sessions — Last 14 Days</div>
+        </div>
+        <div class="chart-wrap" id="session-chart"></div>
+        <div class="stat-mini">
+          <div class="sm-item"><div class="sm-val" style="color:#5ddb8a">142</div><div class="sm-lbl">Today</div></div>
+          <div class="sm-item"><div class="sm-val" style="color:#7fb3d3">118</div><div class="sm-lbl">Yesterday</div></div>
+          <div class="sm-item"><div class="sm-val" style="color:#f8c060">847</div><div class="sm-lbl">This Week</div></div>
+          <div class="sm-item"><div class="sm-val" style="color:#c39bd3">3.2k</div><div class="sm-lbl">This Month</div></div>
+        </div>
+      </div>
+
+      <!-- Activity Feed -->
+      <div class="panel" style="display:flex;flex-direction:column">
+        <div class="panel-hdr">
+          <div class="panel-title">Live Activity Feed</div>
+          <span class="panel-badge pb-green">Streaming</span>
+        </div>
+        <div class="feed">
+          <div class="feed-row">
+            <div class="feed-icon">🚗</div>
+            <div class="feed-body">
+              <div class="feed-text"><b>John Banda</b> went Live<span class="feed-tag ft-session">Session</span></div>
+              <div class="feed-time">just now · km 82 · Northern M1</div>
+            </div>
+          </div>
+          <div class="feed-row">
+            <div class="feed-icon">💬</div>
+            <div class="feed-body">
+              <div class="feed-text"><b>Mary C</b> "Roadblock at Kamuzu…"<span class="feed-tag ft-chat">Chat</span></div>
+              <div class="feed-time">1 min ago · km 104</div>
+            </div>
+          </div>
+          <div class="feed-row">
+            <div class="feed-icon">🚔</div>
+            <div class="feed-body">
+              <div class="feed-text">New trap reported — <b>Lumbadzi</b><span class="feed-tag ft-trap">Trap</span></div>
+              <div class="feed-time">3 min ago · km 95 · 80 km/h zone</div>
+            </div>
+          </div>
+          <div class="feed-row">
+            <div class="feed-icon">🆘</div>
+            <div class="feed-body">
+              <div class="feed-text"><b>Ali M</b> fired SOS<span class="feed-tag ft-sos">SOS</span></div>
+              <div class="feed-time">7 min ago · km 490 · 112 km/h</div>
+            </div>
+          </div>
+          <div class="feed-row">
+            <div class="feed-icon">✅</div>
+            <div class="feed-body">
+              <div class="feed-text">Trap verified — <b>Nkhotakota Rd</b> (3 votes)<span class="feed-tag ft-trap">Trap</span></div>
+              <div class="feed-time">12 min ago</div>
+            </div>
+          </div>
+          <div class="feed-row">
+            <div class="feed-icon">⚠️</div>
+            <div class="feed-body">
+              <div class="feed-text">Road alert posted — <b>Golomoti flooding</b><span class="feed-tag ft-alert">Alert</span></div>
+              <div class="feed-time">18 min ago · km 560–580</div>
+            </div>
+          </div>
+          <div class="feed-row">
+            <div class="feed-icon">🚗</div>
+            <div class="feed-body">
+              <div class="feed-text"><b>Peter K</b> opened app<span class="feed-tag ft-session">Session</span></div>
+              <div class="feed-time">22 min ago · Android v2.0 · Central</div>
+            </div>
+          </div>
+          <div class="feed-row">
+            <div class="feed-icon">🔔</div>
+            <div class="feed-body">
+              <div class="feed-text">Push sent to <b>8 subscribers</b> — Zone: Central<span class="feed-tag ft-alert">Push</span></div>
+              <div class="feed-time">31 min ago · 7 delivered · 1 failed</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ── RIGHT COLUMN ── -->
+  <div class="col">
+
+    <!-- Live Drivers -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">Connected Drivers</div>
+        <span class="panel-badge pb-green">7 Online</span>
+      </div>
+      <div class="driver-row">
+        <div class="dr-av">🚗</div>
+        <div class="dr-info"><div class="dr-name">John Banda</div><div class="dr-loc">km 82 · Northern M1 · GPS active</div></div>
+        <div class="dr-spd" style="color:#5ddb8a">82<span style="font-size:9px;font-weight:400;color:rgba(255,255,255,.4)"> km/h</span></div>
+      </div>
+      <div class="driver-row">
+        <div class="dr-av">🚗</div>
+        <div class="dr-info"><div class="dr-name">Mary Chikwanda</div><div class="dr-loc">km 104 · Northern M1</div></div>
+        <div class="dr-spd" style="color:#f8c060">104<span style="font-size:9px;font-weight:400;color:rgba(255,255,255,.4)"> km/h</span></div>
+      </div>
+      <div class="driver-row">
+        <div class="dr-av">🚗</div>
+        <div class="dr-info"><div class="dr-name">Peter Kamanga</div><div class="dr-loc">km 285 · Central M1</div></div>
+        <div class="dr-spd" style="color:#5ddb8a">76<span style="font-size:9px;font-weight:400;color:rgba(255,255,255,.4)"> km/h</span></div>
+      </div>
+      <div class="driver-row">
+        <div class="dr-av">🚗</div>
+        <div class="dr-info"><div class="dr-name">Grace M</div><div class="dr-loc">km 380 · Central M1</div></div>
+        <div class="dr-spd" style="color:#5ddb8a">91<span style="font-size:9px;font-weight:400;color:rgba(255,255,255,.4)"> km/h</span></div>
+      </div>
+      <div class="driver-row">
+        <div class="dr-av">🚗</div>
+        <div class="dr-info"><div class="dr-name">Ali Mponda</div><div class="dr-loc">km 490 · Southern M1</div></div>
+        <div class="dr-spd" style="color:#ff8a7a">112<span style="font-size:9px;font-weight:400;color:rgba(255,255,255,.4)"> km/h</span></div>
+      </div>
+      <div class="driver-row">
+        <div class="dr-av">🚗</div>
+        <div class="dr-info"><div class="dr-name">Driver_7F2A</div><div class="dr-loc">km 570 · Southern M1</div></div>
+        <div class="dr-spd" style="color:#5ddb8a">88<span style="font-size:9px;font-weight:400;color:rgba(255,255,255,.4)"> km/h</span></div>
+      </div>
+      <div class="driver-row" style="border-bottom:none">
+        <div class="dr-av">🚗</div>
+        <div class="dr-info"><div class="dr-name">Driver_B31C</div><div class="dr-loc">km 620 · Southern M1</div></div>
+        <div class="dr-spd" style="color:#5ddb8a">79<span style="font-size:9px;font-weight:400;color:rgba(255,255,255,.4)"> km/h</span></div>
+      </div>
+    </div>
+
+    <!-- Active Road Alerts -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">Active Road Alerts</div>
+        <span class="panel-badge pb-yellow">3 Active</span>
+      </div>
+      <div class="alert-row">
+        <div class="al-icon">🚨</div>
+        <div class="al-body">
+          <div class="al-msg">Road flooding — use diversion<span class="al-badge ab-danger">Danger</span></div>
+          <div class="al-meta">km 560–580 · Golomoti · 18 min ago</div>
+        </div>
+      </div>
+      <div class="alert-row">
+        <div class="al-icon">⚠️</div>
+        <div class="al-body">
+          <div class="al-msg">Construction — single lane<span class="al-badge ab-warn">Warning</span></div>
+          <div class="al-meta">km 230–245 · Ntcheu · 2h ago</div>
+        </div>
+      </div>
+      <div class="alert-row" style="border-bottom:none">
+        <div class="al-icon">ℹ️</div>
+        <div class="al-body">
+          <div class="al-msg">Police checkpoint active<span class="al-badge ab-info">Info</span></div>
+          <div class="al-meta">km 95 · Lumbadzi · 45 min ago</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Speed Monitor -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">Speed Monitor</div>
+        <span class="panel-badge pb-yellow">1 over 100</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <div style="background:rgba(39,174,96,.08);border:1px solid rgba(39,174,96,.15);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:20px;font-weight:900;color:#5ddb8a">5</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Under 100</div>
+        </div>
+        <div style="background:rgba(243,156,18,.08);border:1px solid rgba(243,156,18,.15);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:20px;font-weight:900;color:#f8c060">1</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">100–120</div>
+        </div>
+        <div style="background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.15);border-radius:10px;padding:10px;text-align:center">
+          <div style="font-size:20px;font-weight:900;color:#ff8a7a">1</div>
+          <div style="font-size:9px;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:.05em;margin-top:2px">Over 120</div>
+        </div>
+      </div>
+      <div style="margin-top:10px;padding:8px 10px;background:rgba(231,76,60,.08);border:1px solid rgba(231,76,60,.2);border-radius:8px;font-size:11px">
+        <span style="color:#ff8a7a;font-weight:700">⚠️ Ali Mponda</span>
+        <span style="color:rgba(255,255,255,.5)"> · 112 km/h · km 490 · Southern M1</span>
+      </div>
+    </div>
+
+    <!-- DB Table Sizes -->
+    <div class="panel">
+      <div class="panel-hdr">
+        <div class="panel-title">Database Tables</div>
+      </div>
+      <div class="zone-row">
+        <div class="zone-name" style="color:rgba(255,255,255,.7);font-size:11px">sg_sessions</div>
+        <div class="zone-bar-wrap"><div class="zone-bar" style="width:85%;background:linear-gradient(90deg,#2980b9,#7fb3d3)"></div></div>
+        <div style="font-size:11px;color:#7fb3d3;font-weight:700;width:36px;text-align:right">3.2k</div>
+      </div>
+      <div class="zone-row">
+        <div class="zone-name" style="color:rgba(255,255,255,.7);font-size:11px">sg_chat</div>
+        <div class="zone-bar-wrap"><div class="zone-bar" style="width:12%;background:linear-gradient(90deg,#1a6b3a,#5ddb8a)"></div></div>
+        <div style="font-size:11px;color:#5ddb8a;font-weight:700;width:36px;text-align:right">38</div>
+      </div>
+      <div class="zone-row">
+        <div class="zone-name" style="color:rgba(255,255,255,.7);font-size:11px">sg_traps</div>
+        <div class="zone-bar-wrap"><div class="zone-bar" style="width:18%;background:linear-gradient(90deg,#7b241c,#e74c3c)"></div></div>
+        <div style="font-size:11px;color:#ff8a7a;font-weight:700;width:36px;text-align:right">142</div>
+      </div>
+      <div class="zone-row">
+        <div class="zone-name" style="color:rgba(255,255,255,.7);font-size:11px">sg_reviews</div>
+        <div class="zone-bar-wrap"><div class="zone-bar" style="width:8%;background:linear-gradient(90deg,#6c3483,#c39bd3)"></div></div>
+        <div style="font-size:11px;color:#c39bd3;font-weight:700;width:36px;text-align:right">24</div>
+      </div>
+      <div class="zone-row">
+        <div class="zone-name" style="color:rgba(255,255,255,.7);font-size:11px">sg_sos_log</div>
+        <div class="zone-bar-wrap"><div class="zone-bar" style="width:3%;background:linear-gradient(90deg,#7b241c,#ff8a7a)"></div></div>
+        <div style="font-size:11px;color:#ff8a7a;font-weight:700;width:36px;text-align:right">11</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// Clock
+function tick(){
+  var d=new Date();
+  var h=String(d.getHours()).padStart(2,'0');
+  var m=String(d.getMinutes()).padStart(2,'0');
+  var s=String(d.getSeconds()).padStart(2,'0');
+  document.getElementById('clock').textContent=h+':'+m+':'+s+' · '+d.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+}
+tick(); setInterval(tick,1000);
+
+// Uptime bar (30 days, mostly green)
+var ub=document.getElementById('uptime-bar');
+var pattern=[1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,1,1,1,1,1,1,1,1,3,3,1,1,1,1];
+pattern.forEach(function(v){
+  var seg=document.createElement('div');
+  seg.className='uptime-seg '+(v===1?'up':v===2?'deg':'down');
+  ub.appendChild(seg);
+});
+
+// Session bar chart (14 days mock data)
+var vals=[68,95,82,110,103,88,120,98,130,115,107,125,118,142];
+var max=Math.max.apply(null,vals);
+var bc=document.getElementById('session-chart');
+var days=['M','T','W','T','F','S','S','M','T','W','T','F','S','T'];
+vals.forEach(function(v,i){
+  var col=document.createElement('div');
+  col.className='bar-col';
+  var pct=Math.round(v/max*100);
+  var isToday=i===vals.length-1;
+  col.innerHTML='<div class="bar'+(isToday?' today':'')+'" style="height:'+pct+'%"><span class="bar-val">'+(isToday?v:'')+'</span></div><div class="bar-lbl">'+days[i]+'</div>';
+  bc.appendChild(col);
+});
+
+// Heatmap
+var hm=document.getElementById('heatmap');
+var hmData=[0,0,0,0,0,1,3,8,12,15,14,10,9,11,13,16,14,12,10,8,6,4,2,1];
+var hmMax=Math.max.apply(null,hmData);
+hmData.forEach(function(v){
+  var cell=document.createElement('div');
+  cell.className='hm-cell';
+  cell.style.setProperty('--op',Math.max(0.05,v/hmMax*0.7));
+  hm.appendChild(cell);
+});
+</script>
+</body>
+</html>

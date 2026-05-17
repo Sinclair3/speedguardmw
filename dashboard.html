@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pansewu M1 — Operations Center</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#04080d;--card:#070d14;--green:#27ae60;--green2:#1a6b3a;--border:rgba(255,255,255,.06);--text:rgba(255,255,255,.8);--dim:rgba(255,255,255,.35);--red:#e74c3c;--yellow:#f39c12;--blue:#2980b9;--purple:#8e44ad;--cyan:#00bcd4}
+html,body{height:100%;overflow:hidden}
+body{font-family:system-ui,-apple-system,'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);display:flex;flex-direction:column}
+body::before{content:'';position:fixed;inset:0;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.07) 3px,rgba(0,0,0,.07) 4px);z-index:9999}
+::-webkit-scrollbar{width:3px;height:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;
+
+/* LOGIN */
+#login-screen{position:fixed;inset:0;z-index:10000;background:linear-gradient(135deg,#04080d,#061208);display:flex;align-items:center;justify-content:center;padding:24px}
+.login-card{background:#070d14;border:1px solid rgba(39,174,96,.25);border-radius:22px;padding:40px 32px;width:100%;max-width:380px;text-align:center}
+.login-logo{font-size:48px;margin-bottom:12px}
+.login-title{font-size:22px;font-weight:800;margin-bottom:4px;color:#fff}
+.login-title span{color:var(--green)}
+.login-sub{font-size:13px;color:rgba(255,255,255,.35);margin-bottom:28px}
+.login-input{width:100%;padding:14px 16px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);color:#fff;font-size:16px;text-align:center;letter-spacing:3px;margin-bottom:12px;outline:none;transition:border-color .2s}
+.login-input:focus{border-color:rgba(39,174,96,.5)}
+.login-input::placeholder{letter-spacing:0;color:rgba(255,255,255,.25);font-size:14px}
+.btn-login{width:100%;padding:15px;border-radius:12px;background:linear-gradient(135deg,#1a6b3a,#27ae60);color:#fff;border:none;font-size:15px;font-weight:800;cursor:pointer;box-shadow:0 4px 20px rgba(39,174,96,.3)}
+.login-err{font-size:12px;color:#e74c3c;margin-top:8px;min-height:18px}
+
+/* TOPBAR */
+#app{display:none;flex-direction:column;height:100%;overflow:hidden}
+.topbar{background:rgba(4,8,13,.97);border-bottom:1px solid var(--border);padding:0 18px;height:52px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;backdrop-filter:blur(12px);z-index:100}
+.tb-left{display:flex;align-items:center;gap:10px}
+.tb-logo{font-size:17px;font-weight:900;color:#fff;letter-spacing:-.02em}
+.tb-logo span{color:var(--green)}
+.tb-tag{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.3);padding:2px 7px;border:1px solid rgba(255,255,255,.1);border-radius:6px}
+.tb-center{display:flex;align-items:center;gap:12px;flex:1;justify-content:center}
+.tb-pill{display:flex;align-items:center;gap:7px;padding:5px 14px;border-radius:20px;background:rgba(39,174,96,.1);border:1px solid rgba(39,174,96,.25);font-size:12px;font-weight:700;color:var(--green)}
+.tb-pill-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(39,174,96,.5)}50%{box-shadow:0 0 0 5px rgba(39,174,96,0)}}
+.tb-route{font-size:11px;color:rgba(255,255,255,.35)}
+.tb-right{display:flex;align-items:center;gap:10px}
+.live-badge{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:#e74c3c;text-transform:uppercase;letter-spacing:.08em}
+.live-dot{width:6px;height:6px;border-radius:50%;background:#e74c3c;animation:pulse-red 1s infinite}
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:.3}}
+#clock{font-size:13px;font-weight:700;color:rgba(255,255,255,.6);font-variant-numeric:tabular-nums;letter-spacing:.03em}
+.admin-link{font-size:11px;color:rgba(255,255,255,.4);text-decoration:none;padding:5px 10px;border:1px solid rgba(255,255,255,.1);border-radius:8px;transition:all .2s}
+.admin-link:hover{color:#fff;border-color:rgba(255,255,255,.3)}
+
+/* HEALTH BAR */
+.health-bar{background:rgba(4,8,13,.9);border-bottom:1px solid var(--border);padding:5px 18px;display:flex;align-items:center;gap:18px;flex-shrink:0;overflow-x:auto;scrollbar-width:none}
+.health-bar::-webkit-scrollbar{display:none}
+.hb-item{display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:10px;color:rgba(255,255,255,.4);font-weight:600;letter-spacing:.04em}
+.hb-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.hb-dot.green{background:var(--green);box-shadow:0 0 5px rgba(39,174,96,.6)}
+.hb-dot.red{background:#e74c3c;box-shadow:0 0 5px rgba(231,76,60,.6)}
+.hb-dot.yellow{background:#f39c12;box-shadow:0 0 5px rgba(243,156,18,.6)}
+.hb-val{color:rgba(255,255,255,.7)}
+
+/* KPI STRIP */
+.kpi-strip{display:flex;gap:8px;padding:10px 18px;flex-shrink:0;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid var(--border)}
+.kpi-strip::-webkit-scrollbar{display:none}
+.kpi{flex:1;min-width:110px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:10px 14px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.k-green::before{background:var(--green)}
+.kpi.k-blue::before{background:var(--blue)}
+.kpi.k-yellow::before{background:var(--yellow)}
+.kpi.k-red::before{background:var(--red)}
+.kpi.k-purple::before{background:var(--purple)}
+.kpi.k-cyan::before{background:var(--cyan)}
+.kpi-lbl{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--dim);margin-bottom:4px}
+.kpi-val{font-size:24px;font-weight:900;line-height:1;margin-bottom:3px}
+.kpi.k-green .kpi-val{color:var(--green)}
+.kpi.k-blue .kpi-val{color:#5dade2}
+.kpi.k-yellow .kpi-val{color:#f7c948}
+.kpi.k-red .kpi-val{color:#ff7675}
+.kpi.k-purple .kpi-val{color:#bb8fce}
+.kpi.k-cyan .kpi-val{color:#76d7ea}
+.kpi-sub{font-size:9px;color:var(--dim)}
+
+/* MAIN GRID */
+.main-grid{display:flex;gap:8px;padding:8px 18px 8px;flex:1;overflow:hidden;min-height:0}
+.col-left{width:272px;flex-shrink:0;display:flex;flex-direction:column;gap:7px;overflow-y:auto}
+.col-center{flex:1;display:flex;flex-direction:column;gap:7px;overflow-y:auto;min-width:0}
+.col-right{width:290px;flex-shrink:0;display:flex;flex-direction:column;gap:7px;overflow-y:auto}
+
+/* PANELS */
+.panel{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px;flex-shrink:0}
+.panel-hdr{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:rgba(255,255,255,.3);margin-bottom:10px}
+
+/* SERVICES */
+.svc-row{display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.svc-row:last-child{border-bottom:none}
+.svc-name{font-size:11px;color:rgba(255,255,255,.6)}
+.svc-val{font-size:11px;font-weight:700;color:var(--green)}
+.svc-val.warn{color:var(--yellow)}
+.svc-val.err{color:var(--red)}
+
+/* ZONE BARS */
+.zone-item{margin-bottom:9px}
+.zone-item:last-child{margin-bottom:0}
+.zone-top{display:flex;justify-content:space-between;margin-bottom:4px}
+.zone-name{font-size:11px;color:rgba(255,255,255,.6)}
+.zone-cnt{font-size:11px;font-weight:700;color:#fff}
+.zone-bar{height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.zone-fill{height:100%;border-radius:2px;transition:width .5s}
+.zone-fill.north{background:var(--blue)}
+.zone-fill.central{background:var(--yellow)}
+.zone-fill.south{background:var(--green)}
+
+/* DONUT */
+.donut-wrap{display:flex;align-items:center;gap:12px}
+.donut-svg{flex-shrink:0}
+.donut-legend{flex:1;display:flex;flex-direction:column;gap:5px}
+.dl-item{display:flex;align-items:center;gap:6px;font-size:10px;color:rgba(255,255,255,.6)}
+.dl-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dl-pct{margin-left:auto;font-weight:700;color:#fff}
+
+/* ALERTS LIST */
+.alert-item{display:flex;align-items:flex-start;gap:7px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.alert-item:last-child{border-bottom:none}
+.alert-icon{font-size:13px;flex-shrink:0;margin-top:1px}
+.alert-msg{font-size:11px;color:rgba(255,255,255,.7);flex:1;line-height:1.4}
+.alert-km{font-size:10px;color:var(--dim);margin-top:2px}
+
+/* SVG MAP */
+.map-panel{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px}
+#road-svg{width:100%;display:block}
+
+/* BOTTOM SPLIT */
+.split-row{display:flex;gap:7px;flex:1;min-height:0}
+.split-half{flex:1;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:13px;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+
+/* BAR CHART */
+.bar-area{display:flex;align-items:flex-end;gap:3px;height:90px;flex:1;margin-top:8px}
+.bc{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;min-width:0;height:100%}
+.bc-fill{width:100%;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--green),var(--green2));transition:height .4s;cursor:default;position:relative}
+.bc-fill:hover::after{content:attr(data-tip);position:absolute;top:-22px;left:50%;transform:translateX(-50%);background:rgba(39,174,96,.9);color:#fff;font-size:9px;font-weight:700;padding:2px 5px;border-radius:4px;white-space:nowrap;pointer-events:none}
+.bc-lbl{font-size:8px;color:var(--dim);text-align:center;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+
+/* ACTIVITY FEED */
+.feed-item{display:flex;align-items:flex-start;gap:7px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.feed-item:last-child{border-bottom:none}
+.feed-icon{font-size:13px;flex-shrink:0}
+.feed-body{flex:1;min-width:0}
+.feed-text{font-size:11px;color:rgba(255,255,255,.75);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.feed-time{font-size:10px;color:var(--dim);margin-top:2px}
+
+/* DRIVER LIST */
+.driver-item{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.driver-item:last-child{border-bottom:none}
+.driver-av{font-size:18px;flex-shrink:0}
+.driver-info{flex:1;min-width:0}
+.driver-name{font-size:12px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.driver-loc{font-size:10px;color:var(--dim)}
+.driver-spd{font-size:13px;font-weight:900;flex-shrink:0}
+.spd-safe{color:var(--green)}
+.spd-warn{color:var(--yellow)}
+.spd-over{color:var(--red)}
+.empty-state{text-align:center;padding:20px 0;font-size:11px;color:var(--dim)}
+
+/* SPEED BOXES */
+.speed-boxes{display:flex;gap:6px;margin-bottom:8px}
+.spd-box{flex:1;border-radius:8px;padding:8px;text-align:center;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+.spd-box-num{font-size:20px;font-weight:900}
+.spd-box-lbl{font-size:9px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em}
+.spd-box.over-box{background:rgba(231,76,60,.08);border-color:rgba(231,76,60,.2)}
+.speeder-warn{background:rgba(231,76,60,.1);border:1px solid rgba(231,76,60,.3);border-radius:7px;padding:7px 9px;margin-top:5px;font-size:11px;color:#ff7675}
+
+/* TABLE STATS */
+.tbl-stat{display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.tbl-stat:last-child{border-bottom:none}
+.tbl-name{font-size:11px;color:rgba(255,255,255,.6);width:80px;flex-shrink:0}
+.tbl-bar-wrap{flex:1;height:4px;background:rgba(255,255,255,.07);border-radius:2px;overflow:hidden}
+.tbl-bar-fill{height:100%;border-radius:2px;background:var(--green);transition:width .5s}
+.tbl-cnt{font-size:11px;font-weight:700;color:#fff;width:36px;text-align:right;flex-shrink:0}
+
+/* TODAY SUMMARY */
+.sum-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid rgba(255,255,255,.04)}
+.sum-item:last-child{border-bottom:none}
+.sum-key{font-size:11px;color:rgba(255,255,255,.5)}
+.sum-val{font-size:12px;font-weight:700;color:#fff}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">🛣️</div>
+    <div class="login-title">Pansewu <span>M1</span></div>
+    <div class="login-sub">Operations Center — Restricted Access</div>
+    <input class="login-input" id="pw-input" type="password" placeholder="Enter admin password" autocomplete="current-password">
+    <button class="btn-login" onclick="doLogin()">Access Dashboard</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="tb-left">
+      <div class="tb-logo">🛣️ Pansewu <span>M1</span></div>
+      <div class="tb-tag">Operations Center</div>
+    </div>
+    <div class="tb-center">
+      <div class="tb-pill"><span class="tb-pill-dot"></span>All Systems Operational</div>
+      <div class="tb-route">Lilongwe ↔ Blantyre M1</div>
+    </div>
+    <div class="tb-right">
+      <div class="live-badge"><span class="live-dot"></span>Live</div>
+      <div id="clock">--:--:--</div>
+      <a href="./admin.html" class="admin-link">← Admin</a>
+    </div>
+  </div>
+
+  <!-- HEALTH BAR -->
+  <div class="health-bar">
+    <div class="hb-item"><span class="hb-dot" id="hb-db"></span>Supabase DB <span class="hb-val" id="hb-db-val">—</span></div>
+    <div class="hb-item"><span class="hb-dot" id="hb-ws"></span>Realtime WS <span class="hb-val" id="hb-ws-val">connecting</span></div>
+    <div class="hb-item"><span class="hb-dot yellow"></span>Push Subs <span class="hb-val" id="hb-push-val">—</span></div>
+    <div class="hb-item"><span class="hb-dot" id="hb-alerts-dot"></span>Road Alerts <span class="hb-val" id="hb-alerts-val">—</span></div>
+    <div class="hb-item"><span class="hb-dot red"></span>Blacklist <span class="hb-val" id="hb-bl-val">—</span></div>
+    <div class="hb-item" style="margin-left:auto"><span style="font-size:9px;color:rgba(255,255,255,.25)">Last refresh: <span id="hb-ts">—</span></span></div>
+  </div>
+
+  <!-- KPI STRIP -->
+  <div class="kpi-strip">
+    <div class="kpi k-green"><div class="kpi-lbl">Live Drivers</div><div class="kpi-val" id="k-live">0</div><div class="kpi-sub">on M1 now</div></div>
+    <div class="kpi k-blue"><div class="kpi-lbl">Sessions Today</div><div class="kpi-val" id="k-sess">—</div><div class="kpi-sub">since midnight</div></div>
+    <div class="kpi k-yellow"><div class="kpi-lbl">Active Traps</div><div class="kpi-val" id="k-traps">—</div><div class="kpi-sub">within 4h</div></div>
+    <div class="kpi k-red"><div class="kpi-lbl">SOS Today</div><div class="kpi-val" id="k-sos">—</div><div class="kpi-sub">emergency alerts</div></div>
+    <div class="kpi k-purple"><div class="kpi-lbl">Chat / hr</div><div class="kpi-val" id="k-chat">—</div><div class="kpi-sub">last 60 min</div></div>
+    <div class="kpi k-cyan"><div class="kpi-lbl">Push Subscribers</div><div class="kpi-val" id="k-push">—</div><div class="kpi-sub">registered devices</div></div>
+  </div>
+
+  <!-- MAIN GRID -->
+  <div class="main-grid">
+
+    <!-- LEFT COLUMN -->
+    <div class="col-left">
+
+      <!-- Services -->
+      <div class="panel">
+        <div class="panel-hdr">System Services</div>
+        <div class="svc-row"><span class="svc-name">Supabase DB</span><span class="svc-val" id="sv-db">—</span></div>
+        <div class="svc-row"><span class="svc-name">Realtime WS</span><span class="svc-val" id="sv-ws">—</span></div>
+        <div class="svc-row"><span class="svc-name">Push Subscribers</span><span class="svc-val" id="sv-push">—</span></div>
+        <div class="svc-row"><span class="svc-name">Active Road Alerts</span><span class="svc-val" id="sv-alerts">—</span></div>
+        <div class="svc-row"><span class="svc-name">Blacklisted Users</span><span class="svc-val" id="sv-bl">—</span></div>
+        <div class="svc-row"><span class="svc-name">Chat Messages (2h)</span><span class="svc-val" id="sv-chat2h">—</span></div>
+      </div>
+
+      <!-- Zone Traffic -->
+      <div class="panel">
+        <div class="panel-hdr">Zone Traffic (Live Drivers)</div>
+        <div class="zone-item">
+          <div class="zone-top"><span class="zone-name">Northern M1 (km 0–400)</span><span class="zone-cnt" id="zn-north">0</span></div>
+          <div class="zone-bar"><div class="zone-fill north" id="zb-north" style="width:0%"></div></div>
+        </div>
+        <div class="zone-item">
+          <div class="zone-top"><span class="zone-name">Central M1 (km 400–700)</span><span class="zone-cnt" id="zn-central">0</span></div>
+          <div class="zone-bar"><div class="zone-fill central" id="zb-central" style="width:0%"></div></div>
+        </div>
+        <div class="zone-item">
+          <div class="zone-top"><span class="zone-name">Southern M1 (km 700+)</span><span class="zone-cnt" id="zn-south">0</span></div>
+          <div class="zone-bar"><div class="zone-fill south" id="zb-south" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <!-- Platform Donut -->
+      <div class="panel">
+        <div class="panel-hdr">Platform Breakdown</div>
+        <div class="donut-wrap">
+          <svg class="donut-svg" id="donut-svg" width="80" height="80" viewBox="0 0 80 80"></svg>
+          <div class="donut-legend" id="donut-legend">
+            <div class="dl-item"><span class="dl-dot" style="background:#27ae60"></span>Android<span class="dl-pct" id="dl-android">—</span></div>
+            <div class="dl-item"><span class="dl-dot" style="background:#2980b9"></span>iOS<span class="dl-pct" id="dl-ios">—</span></div>
+            <div class="dl-item"><span class="dl-dot" style="background:#8e44ad"></span>Windows<span class="dl-pct" id="dl-windows">—</span></div>
+            <div class="dl-item"><span class="dl-dot" style="background:#7f8c8d"></span>Other<span class="dl-pct" id="dl-other">—</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Active Alerts -->
+      <div class="panel">
+        <div class="panel-hdr">Active Road Alerts</div>
+        <div id="alerts-list"><div class="empty-state">No active alerts</div></div>
+      </div>
+
+    </div><!-- /col-left -->
+
+    <!-- CENTER COLUMN -->
+    <div class="col-center">
+
+      <!-- SVG Road Map -->
+      <div class="map-panel">
+        <div class="panel-hdr" style="margin-bottom:6px">M1 Live Road View</div>
+        <svg id="road-svg" height="210" viewBox="0 0 900 210" preserveAspectRatio="xMidYMid meet">
+          <!-- Zone backgrounds -->
+          <rect x="0" y="20" width="315" height="160" rx="6" fill="rgba(41,128,185,.08)" stroke="rgba(41,128,185,.12)" stroke-width="1"/>
+          <rect x="315" y="20" width="243" height="160" rx="6" fill="rgba(243,156,18,.06)" stroke="rgba(243,156,18,.1)" stroke-width="1"/>
+          <rect x="558" y="20" width="342" height="160" rx="6" fill="rgba(39,174,96,.07)" stroke="rgba(39,174,96,.1)" stroke-width="1"/>
+          <!-- Zone labels -->
+          <text x="8" y="35" fill="rgba(41,128,185,.5)" font-size="8" font-weight="700" font-family="system-ui">NORTHERN</text>
+          <text x="323" y="35" fill="rgba(243,156,18,.5)" font-size="8" font-weight="700" font-family="system-ui">CENTRAL</text>
+          <text x="566" y="35" fill="rgba(39,174,96,.5)" font-size="8" font-weight="700" font-family="system-ui">SOUTHERN</text>
+          <!-- Road -->
+          <rect x="0" y="100" width="900" height="18" rx="3" fill="#0e1820"/>
+          <rect x="0" y="107" width="900" height="4" rx="2" fill="#1a2a1a"/>
+          <!-- Road dashes -->
+          <line x1="0" y1="109" x2="900" y2="109" stroke="#27ae60" stroke-width="1" stroke-dasharray="20,15" opacity="0.3"/>
+          <!-- Km markers -->
+          <line x1="158" y1="95" x2="158" y2="125" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+          <text x="158" y="140" fill="rgba(255,255,255,.3)" font-size="8" text-anchor="middle" font-family="system-ui">km 200</text>
+          <line x1="315" y1="95" x2="315" y2="125" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+          <text x="315" y="140" fill="rgba(255,255,255,.3)" font-size="8" text-anchor="middle" font-family="system-ui">km 400</text>
+          <line x1="473" y1="95" x2="473" y2="125" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+          <text x="473" y="140" fill="rgba(255,255,255,.3)" font-size="8" text-anchor="middle" font-family="system-ui">km 600</text>
+          <line x1="631" y1="95" x2="631" y2="125" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+          <text x="631" y="140" fill="rgba(255,255,255,.3)" font-size="8" text-anchor="middle" font-family="system-ui">km 800</text>
+          <line x1="789" y1="95" x2="789" y2="125" stroke="rgba(255,255,255,.15)" stroke-width="1"/>
+          <text x="789" y="140" fill="rgba(255,255,255,.3)" font-size="8" text-anchor="middle" font-family="system-ui">km 1000</text>
+          <!-- City labels -->
+          <text x="10" y="165" fill="rgba(255,255,255,.5)" font-size="9" font-weight="700" font-family="system-ui">Lilongwe</text>
+          <text x="265" y="165" fill="rgba(255,255,255,.4)" font-size="8" font-family="system-ui">Dedza</text>
+          <text x="442" y="165" fill="rgba(255,255,255,.4)" font-size="8" font-family="system-ui">Ntcheu</text>
+          <text x="860" y="165" fill="rgba(255,255,255,.5)" font-size="9" font-weight="700" font-family="system-ui" text-anchor="end">Blantyre</text>
+          <!-- City dots -->
+          <circle cx="10" cy="109" r="5" fill="#27ae60" stroke="#04080d" stroke-width="1.5"/>
+          <circle cx="275" cy="109" r="3" fill="rgba(255,255,255,.4)" stroke="#04080d" stroke-width="1"/>
+          <circle cx="450" cy="109" r="3" fill="rgba(255,255,255,.4)" stroke="#04080d" stroke-width="1"/>
+          <circle cx="890" cy="109" r="5" fill="#e74c3c" stroke="#04080d" stroke-width="1.5"/>
+          <!-- Dynamic layers -->
+          <g id="map-hotspots"></g>
+          <g id="map-traps"></g>
+          <g id="map-drivers"></g>
+          <!-- Legend -->
+          <circle cx="20" cy="195" r="4" fill="#27ae60"/>
+          <text x="28" y="198" fill="rgba(255,255,255,.35)" font-size="8" font-family="system-ui">Safe (&lt;100)</text>
+          <circle cx="90" cy="195" r="4" fill="#f39c12"/>
+          <text x="98" y="198" fill="rgba(255,255,255,.35)" font-size="8" font-family="system-ui">Fast (100-120)</text>
+          <circle cx="175" cy="195" r="4" fill="#e74c3c"/>
+          <text x="183" y="198" fill="rgba(255,255,255,.35)" font-size="8" font-family="system-ui">Over 120</text>
+          <polygon points="245,199 249,191 253,199" fill="#f7c948"/>
+          <text x="257" y="198" fill="rgba(255,255,255,.35)" font-size="8" font-family="system-ui">Speed Trap</text>
+          <rect x="318" y="191" width="12" height="8" fill="rgba(231,76,60,.35)" stroke="rgba(231,76,60,.6)" stroke-width="1"/>
+          <text x="334" y="198" fill="rgba(255,255,255,.35)" font-size="8" font-family="system-ui">Hotspot</text>
+        </svg>
+      </div>
+
+      <!-- Bottom split -->
+      <div class="split-row">
+        <!-- Session chart -->
+        <div class="split-half">
+          <div class="panel-hdr">Sessions — Last 14 Days</div>
+          <div class="bar-area" id="sess-chart"></div>
+        </div>
+        <!-- Activity feed -->
+        <div class="split-half">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <div class="panel-hdr" style="margin-bottom:0">Live Activity Feed</div>
+            <div style="font-size:9px;color:var(--dim)" id="feed-ts">—</div>
+          </div>
+          <div id="activity-feed" style="overflow-y:auto;flex:1"></div>
+        </div>
+      </div>
+
+    </div><!-- /col-center -->
+
+    <!-- RIGHT COLUMN -->
+    <div class="col-right">
+
+      <!-- Connected Drivers -->
+      <div class="panel">
+        <div class="panel-hdr">Connected Drivers</div>
+        <div id="driver-list"><div class="empty-state">No drivers online</div></div>
+      </div>
+
+      <!-- Speed Monitor -->
+      <div class="panel">
+        <div class="panel-hdr">Speed Monitor</div>
+        <div class="speed-boxes">
+          <div class="spd-box"><div class="spd-box-num spd-safe" id="spd-under">0</div><div class="spd-box-lbl">Under 100</div></div>
+          <div class="spd-box"><div class="spd-box-num spd-warn" id="spd-mid">0</div><div class="spd-box-lbl">100–120</div></div>
+          <div class="spd-box over-box"><div class="spd-box-num spd-over" id="spd-over">0</div><div class="spd-box-lbl">Over 120</div></div>
+        </div>
+        <div id="speeder-list"></div>
+      </div>
+
+      <!-- DB Table Stats -->
+      <div class="panel">
+        <div class="panel-hdr">Database Table Stats</div>
+        <div id="db-stats"></div>
+      </div>
+
+      <!-- Today's Summary -->
+      <div class="panel">
+        <div class="panel-hdr">Today's Summary</div>
+        <div id="today-summary">
+          <div class="sum-item"><span class="sum-key">Peak Hour</span><span class="sum-val" id="ts-peak">—</span></div>
+          <div class="sum-item"><span class="sum-key">Most Active Zone</span><span class="sum-val" id="ts-zone">—</span></div>
+          <div class="sum-item"><span class="sum-key">Unique Devices</span><span class="sum-val" id="ts-devices">—</span></div>
+          <div class="sum-item"><span class="sum-key">Avg Session Duration</span><span class="sum-val" id="ts-dur">—</span></div>
+        </div>
+      </div>
+
+    </div><!-- /col-right -->
+
+  </div><!-- /main-grid -->
+</div><!-- /app -->
+
+<script>
+var SUPA_URL = 'https://mgoxhsnmjbzjuevwryxy.supabase.co';
+var SUPA_KEY = 'sb_publishable_6GSg9fQ2tCMJ9vZTaOFcCQ_SYviH_KR';
+var dbLatency = 0;
+var liveDrivers = {};
+var wsStatus = 'disconnected';
+var ws = null;
+var wsReconnectTimer = null;
+var sessChartData = [];
+var platformData = {};
+
+// ─── AUTH ───────────────────────────────────────────────────────────────
+function checkSession() {
+  try {
+    var s = localStorage.getItem('sg_admin_sess');
+    if (!s) return false;
+    var t = parseInt(s, 10);
+    return (Date.now() - t) < 8 * 3600 * 1000;
+  } catch(e) { return false; }
+}
+
+function saveSession() {
+  localStorage.setItem('sg_admin_sess', Date.now().toString());
+}
+
+async function doLogin() {
+  var pw = document.getElementById('pw-input').value.trim();
+  if (!pw) return;
+  document.getElementById('login-err').textContent = '';
+  try {
+    var data = await supa('sg_admin_config?key=eq.admin_password&select=value');
+    var stored = (data && data[0]) ? data[0].value : 'speedguard2025';
+    if (pw === stored) {
+      saveSession();
+      bootApp();
+    } else {
+      document.getElementById('login-err').textContent = 'Incorrect password.';
+    }
+  } catch(e) {
+    // fallback default
+    if (pw === 'speedguard2025') {
+      saveSession();
+      bootApp();
+    } else {
+      document.getElementById('login-err').textContent = 'Login failed. Try again.';
+    }
+  }
+}
+
+document.getElementById('pw-input').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') doLogin();
+});
+
+// ─── SUPA FETCH ──────────────────────────────────────────────────────────
+function supa(path) {
+  var t = Date.now();
+  return fetch(SUPA_URL + '/rest/v1/' + path, {
+    headers: {
+      'apikey': SUPA_KEY,
+      'Authorization': 'Bearer ' + SUPA_KEY
+    }
+  }).then(function(r) {
+    dbLatency = Date.now() - t;
+    return r.json();
+  }).catch(function() {
+    dbLatency = -1;
+    return null;
+  });
+}
+
+// ─── CLOCK ───────────────────────────────────────────────────────────────
+function startClock() {
+  function tick() {
+    var now = new Date();
+    var h = String(now.getHours()).padStart(2,'0');
+    var m = String(now.getMinutes()).padStart(2,'0');
+    var s = String(now.getSeconds()).padStart(2,'0');
+    document.getElementById('clock').textContent = h + ':' + m + ':' + s;
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+// ─── WEBSOCKET ───────────────────────────────────────────────────────────
+function connectWS() {
+  if (ws) { try { ws.close(); } catch(e){} }
+  ws = new WebSocket('wss://mgoxhsnmjbzjuevwryxy.supabase.co/realtime/v1/websocket?apikey=' + SUPA_KEY + '&vsn=1.0.0');
+
+  ws.onopen = function() {
+    wsStatus = 'connected';
+    updateWSStatus();
+    ws.send(JSON.stringify({
+      topic: 'realtime:m1_drivers',
+      event: 'phx_join',
+      payload: { config: { broadcast: { self: false } } },
+      ref: '1'
+    }));
+    // Heartbeat every 25s
+    ws._hb = setInterval(function() {
+      if (ws.readyState === 1) {
+        ws.send(JSON.stringify({ topic: 'phoenix', event: 'heartbeat', payload: {}, ref: 'hb' }));
+      }
+    }, 25000);
+  };
+
+  ws.onmessage = function(evt) {
+    try {
+      var msg = JSON.parse(evt.data);
+      if (msg.event === 'broadcast' && msg.payload && msg.payload.type === 'pos') {
+        var d = msg.payload;
+        liveDrivers[d.id] = {
+          id: d.id,
+          nickname: d.nickname || ('Driver ' + d.id.slice(-4)),
+          lat: d.lat,
+          lng: d.lng,
+          speed: d.speed || 0,
+          progress: d.progress || 0,
+          ts: Date.now()
+        };
+        updateDriverUI();
+      }
+    } catch(e) {}
+  };
+
+  ws.onerror = function() {
+    wsStatus = 'error';
+    updateWSStatus();
+  };
+
+  ws.onclose = function() {
+    wsStatus = 'disconnected';
+    updateWSStatus();
+    if (ws._hb) clearInterval(ws._hb);
+    // Reconnect after 5s
+    clearTimeout(wsReconnectTimer);
+    wsReconnectTimer = setTimeout(connectWS, 5000);
+  };
+}
+
+function updateWSStatus() {
+  var el = document.getElementById('sv-ws');
+  var hbEl = document.getElementById('hb-ws');
+  var hbVal = document.getElementById('hb-ws-val');
+  if (wsStatus === 'connected') {
+    el.textContent = 'Connected';
+    el.className = 'svc-val';
+    hbEl.className = 'hb-dot green';
+    hbVal.textContent = 'connected';
+  } else if (wsStatus === 'error') {
+    el.textContent = 'Error';
+    el.className = 'svc-val err';
+    hbEl.className = 'hb-dot red';
+    hbVal.textContent = 'error';
+  } else {
+    el.textContent = 'Connecting…';
+    el.className = 'svc-val warn';
+    hbEl.className = 'hb-dot yellow';
+    hbVal.textContent = 'connecting…';
+  }
+}
+
+// ─── EXPIRE DRIVERS ───────────────────────────────────────────────────────
+function expireDrivers() {
+  var now = Date.now();
+  var changed = false;
+  Object.keys(liveDrivers).forEach(function(id) {
+    if (now - liveDrivers[id].ts > 35000) {
+      delete liveDrivers[id];
+      changed = true;
+    }
+  });
+  if (changed) updateDriverUI();
+}
+setInterval(expireDrivers, 5000);
+
+// ─── DRIVER UI ────────────────────────────────────────────────────────────
+var DRIVER_AVATARS = ['🚗','🚕','🚙','🛻','🚐','🚌','🚎'];
+function driverAvatar(id) {
+  var idx = 0;
+  for (var i=0;i<id.length;i++) idx = (idx + id.charCodeAt(i)) % DRIVER_AVATARS.length;
+  return DRIVER_AVATARS[idx];
+}
+
+function speedClass(spd) {
+  if (spd > 120) return 'spd-over';
+  if (spd >= 100) return 'spd-warn';
+  return 'spd-safe';
+}
+
+function zoneForProgress(p) {
+  if (p < 35) return 'Northern';
+  if (p < 62) return 'Central';
+  return 'Southern';
+}
+
+function kmForProgress(p) {
+  return Math.round((p / 100) * 1140);
+}
+
+function updateDriverUI() {
+  var drivers = Object.values(liveDrivers);
+  var count = drivers.length;
+
+  // KPI
+  document.getElementById('k-live').textContent = count;
+
+  // Connected drivers panel
+  var dl = document.getElementById('driver-list');
+  if (count === 0) {
+    dl.innerHTML = '<div class="empty-state">No drivers online</div>';
+  } else {
+    dl.innerHTML = drivers.sort(function(a,b){return b.speed-a.speed;}).map(function(d) {
+      var km = kmForProgress(d.progress);
+      var zone = zoneForProgress(d.progress);
+      return '<div class="driver-item">' +
+        '<div class="driver-av">' + driverAvatar(d.id) + '</div>' +
+        '<div class="driver-info">' +
+          '<div class="driver-name">' + esc(d.nickname) + '</div>' +
+          '<div class="driver-loc">km ' + km + ' · ' + zone + '</div>' +
+        '</div>' +
+        '<div class="driver-spd ' + speedClass(d.speed) + '">' + Math.round(d.speed) + '</div>' +
+      '</div>';
+    }).join('');
+  }
+
+  // Speed monitor
+  var under=0, mid=0, over=0, speeders=[];
+  drivers.forEach(function(d) {
+    if (d.speed > 120) { over++; speeders.push(d); }
+    else if (d.speed >= 100) mid++;
+    else under++;
+  });
+  document.getElementById('spd-under').textContent = under;
+  document.getElementById('spd-mid').textContent = mid;
+  document.getElementById('spd-over').textContent = over;
+  var sl = document.getElementById('speeder-list');
+  if (speeders.length > 0) {
+    sl.innerHTML = speeders.map(function(d) {
+      return '<div class="speeder-warn">⚠️ ' + esc(d.nickname) + ' — ' + Math.round(d.speed) + ' km/h at km ' + kmForProgress(d.progress) + '</div>';
+    }).join('');
+  } else {
+    sl.innerHTML = '';
+  }
+
+  // Zone traffic
+  var north=0, central=0, south=0;
+  drivers.forEach(function(d) {
+    if (d.progress < 35) north++;
+    else if (d.progress <= 61) central++;
+    else south++;
+  });
+  var total = Math.max(count, 1);
+  document.getElementById('zn-north').textContent = north;
+  document.getElementById('zn-central').textContent = central;
+  document.getElementById('zn-south').textContent = south;
+  document.getElementById('zb-north').style.width = Math.round(north/total*100) + '%';
+  document.getElementById('zb-central').style.width = Math.round(central/total*100) + '%';
+  document.getElementById('zb-south').style.width = Math.round(south/total*100) + '%';
+
+  // Most active zone for summary
+  var zones = [['Northern', north], ['Central', central], ['Southern', south]];
+  zones.sort(function(a,b){return b[1]-a[1];});
+  document.getElementById('ts-zone').textContent = zones[0][1] > 0 ? zones[0][0] : '—';
+
+  // SVG map drivers
+  renderMapDrivers(drivers);
+}
+
+// ─── SVG MAP ─────────────────────────────────────────────────────────────
+function progressToX(p) {
+  return Math.round((p / 100) * 880) + 10;
+}
+
+function speedColor(spd) {
+  if (spd > 120) return '#e74c3c';
+  if (spd >= 100) return '#f39c12';
+  return '#27ae60';
+}
+
+function renderMapDrivers(drivers) {
+  var g = document.getElementById('map-drivers');
+  if (!drivers.length) { g.innerHTML = ''; return; }
+  var rows = drivers.map(function(d, idx) {
+    var x = progressToX(d.progress);
+    var col = speedColor(d.speed);
+    // Stagger labels to avoid overlap
+    var labelY = (idx % 2 === 0) ? 88 : 78;
+    var name = d.nickname.length > 8 ? d.nickname.slice(0,7)+'…' : d.nickname;
+    return '<circle cx="' + x + '" cy="109" r="6" fill="' + col + '" stroke="#04080d" stroke-width="1.5" opacity="0.9">' +
+             '<animate attributeName="r" values="6;9;6" dur="2s" repeatCount="indefinite"/>' +
+             '<animate attributeName="opacity" values="0.9;0.5;0.9" dur="2s" repeatCount="indefinite"/>' +
+           '</circle>' +
+           '<text x="' + x + '" y="' + (labelY - 2) + '" fill="' + col + '" font-size="8" font-family="system-ui" font-weight="700" text-anchor="middle">' + esc(name) + '</text>' +
+           '<text x="' + x + '" y="' + labelY + '" fill="rgba(255,255,255,.5)" font-size="7" font-family="system-ui" text-anchor="middle">' + Math.round(d.speed) + 'km/h</text>';
+  });
+  g.innerHTML = rows.join('');
+}
+
+function renderMapTraps(traps) {
+  var g = document.getElementById('map-traps');
+  if (!traps || !traps.length) { g.innerHTML = ''; return; }
+  var rows = traps.slice(0,30).map(function(t) {
+    var x = Math.round((t.km / 1140) * 880) + 10;
+    return '<polygon points="' + x + ',95 ' + (x+5) + ',108 ' + (x-5) + ',108" fill="#f7c948" opacity="0.85"/>';
+  });
+  g.innerHTML = rows.join('');
+}
+
+function renderMapHotspots(hotspots) {
+  var g = document.getElementById('map-hotspots');
+  if (!hotspots || !hotspots.length) { g.innerHTML = ''; return; }
+  var rows = hotspots.slice(0,10).map(function(h) {
+    var x1 = Math.round(((h.km_from||0) / 1140) * 880) + 10;
+    var x2 = Math.round(((h.km_to||h.km_from||0) / 1140) * 880) + 10;
+    var w = Math.max(x2 - x1, 8);
+    return '<rect x="' + x1 + '" y="98" width="' + w + '" height="22" fill="rgba(231,76,60,.25)" stroke="rgba(231,76,60,.5)" stroke-width="1" rx="2"/>';
+  });
+  g.innerHTML = rows.join('');
+}
+
+// ─── HEALTH BAR ───────────────────────────────────────────────────────────
+function updateHealthBar(dbOk, pushCount, alertsCount, blCount) {
+  var dbDot = document.getElementById('hb-db');
+  var dbVal = document.getElementById('hb-db-val');
+  if (dbOk && dbLatency >= 0) {
+    dbDot.className = 'hb-dot green';
+    dbVal.textContent = dbLatency + 'ms';
+  } else {
+    dbDot.className = 'hb-dot red';
+    dbVal.textContent = 'error';
+  }
+  document.getElementById('hb-push-val').textContent = pushCount !== null ? pushCount : '—';
+  var alertsDot = document.getElementById('hb-alerts-dot');
+  document.getElementById('hb-alerts-val').textContent = alertsCount !== null ? alertsCount : '—';
+  alertsDot.className = (alertsCount > 0) ? 'hb-dot yellow' : 'hb-dot green';
+  document.getElementById('hb-bl-val').textContent = blCount !== null ? blCount : '—';
+  var now = new Date();
+  document.getElementById('hb-ts').textContent = now.getHours() + ':' + String(now.getMinutes()).padStart(2,'0') + ':' + String(now.getSeconds()).padStart(2,'0');
+}
+
+// ─── MAIN REFRESH ─────────────────────────────────────────────────────────
+async function refresh() {
+  var today = new Date();
+  today.setHours(0,0,0,0);
+  var todayISO = today.toISOString();
+  var oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+  var twoHoursAgo = new Date(Date.now() - 7200000).toISOString();
+  var fourHoursAgo = new Date(Date.now() - 14400000).toISOString();
+
+  // Parallel fetches
+  var [
+    sessToday, trapsActive, sosToday, chatHr, pushSubs,
+    alerts, blacklist, chat2h,
+    platforms, dbStats_sess, dbStats_chat, dbStats_traps, dbStats_sos, dbStats_reviews, dbStats_bl,
+    sessToday_full, hotspots
+  ] = await Promise.all([
+    supa('sg_sessions?created_at=gte.' + todayISO + '&select=id,device_id,lat,lng,duration_min,created_at'),
+    supa('sg_traps?created_at=gte.' + fourHoursAgo + '&select=id,name,km,lat,lng'),
+    supa('sg_sos_log?created_at=gte.' + todayISO + '&select=id,nickname,lat,lng,speed,created_at'),
+    supa('sg_chat?created_at=gte.' + oneHourAgo + '&select=id'),
+    supa('sg_push_subs?select=id'),
+    supa('sg_road_alerts?active=eq.true&select=id,message,type,km_from,km_to'),
+    supa('sg_blacklist?select=id'),
+    supa('sg_chat?created_at=gte.' + twoHoursAgo + '&select=id'),
+    supa('sg_sessions?select=platform'),
+    supa('sg_sessions?select=id&limit=1'),
+    supa('sg_chat?select=id&limit=1'),
+    supa('sg_traps?select=id&limit=1'),
+    supa('sg_sos_log?select=id&limit=1'),
+    supa('sg_reviews?select=id&limit=1'),
+    supa('sg_blacklist?select=id&limit=1'),
+    supa('sg_sessions?created_at=gte.' + todayISO + '&select=device_id,duration_min,created_at,lat,lng'),
+    supa('sg_hotspots?select=id,name,km_from,km_to')
+  ]);
+
+  var dbOk = sessToday !== null;
+
+  // KPIs
+  var sessCount = sessToday ? sessToday.length : 0;
+  var trapsCount = trapsActive ? trapsActive.length : 0;
+  var sosCount = sosToday ? sosToday.length : 0;
+  var chatCount = chatHr ? chatHr.length : 0;
+  var pushCount = pushSubs ? pushSubs.length : 0;
+  var alertsCount = alerts ? alerts.length : 0;
+  var blCount = blacklist ? blacklist.length : 0;
+  var chat2hCount = chat2h ? chat2h.length : 0;
+
+  document.getElementById('k-sess').textContent = sessCount;
+  document.getElementById('k-traps').textContent = trapsCount;
+  document.getElementById('k-sos').textContent = sosCount;
+  document.getElementById('k-chat').textContent = chatCount;
+  document.getElementById('k-push').textContent = pushCount;
+
+  // Health bar & services
+  updateHealthBar(dbOk, pushCount, alertsCount, blCount);
+
+  var svDb = document.getElementById('sv-db');
+  if (dbOk) { svDb.textContent = dbLatency + 'ms'; svDb.className = 'svc-val'; }
+  else { svDb.textContent = 'Error'; svDb.className = 'svc-val err'; }
+
+  document.getElementById('sv-push').textContent = pushCount;
+  document.getElementById('sv-alerts').textContent = alertsCount;
+  var svBl = document.getElementById('sv-bl');
+  svBl.textContent = blCount;
+  svBl.className = blCount > 0 ? 'svc-val warn' : 'svc-val';
+  document.getElementById('sv-chat2h').textContent = chat2hCount;
+
+  // Health bar push
+  document.getElementById('hb-push-val').textContent = pushCount;
+
+  // Road alerts panel
+  var al = document.getElementById('alerts-list');
+  if (!alerts || alerts.length === 0) {
+    al.innerHTML = '<div class="empty-state">No active alerts</div>';
+  } else {
+    var icons = { info:'ℹ️', warning:'⚠️', emergency:'🚨', hazard:'⚠️' };
+    al.innerHTML = alerts.map(function(a) {
+      var icon = icons[a.type] || 'ℹ️';
+      return '<div class="alert-item"><span class="alert-icon">' + icon + '</span>' +
+        '<div><div class="alert-msg">' + esc(a.message) + '</div>' +
+        '<div class="alert-km">km ' + (a.km_from||'?') + ' – ' + (a.km_to||'?') + '</div></div></div>';
+    }).join('');
+  }
+
+  // Platform donut
+  if (platforms && platforms.length > 0) {
+    var pmap = {android:0, ios:0, windows:0, other:0};
+    platforms.forEach(function(s) {
+      var p = (s.platform||'').toLowerCase();
+      if (p.includes('android')) pmap.android++;
+      else if (p.includes('ios') || p.includes('iphone') || p.includes('ipad')) pmap.ios++;
+      else if (p.includes('windows')) pmap.windows++;
+      else pmap.other++;
+    });
+    var total = Math.max(platforms.length, 1);
+    renderDonut([
+      { label:'Android', count:pmap.android, color:'#27ae60', id:'dl-android' },
+      { label:'iOS', count:pmap.ios, color:'#2980b9', id:'dl-ios' },
+      { label:'Windows', count:pmap.windows, color:'#8e44ad', id:'dl-windows' },
+      { label:'Other', count:pmap.other, color:'#7f8c8d', id:'dl-other' }
+    ], total);
+  }
+
+  // DB Table stats
+  renderDBStats([
+    { name:'Sessions', count: dbStats_sess ? sessCount : 0 },
+    { name:'Chat', count: dbStats_chat ? chat2hCount * 6 : 0 },
+    { name:'Traps', count: trapsCount },
+    { name:'SOS', count: sosCount },
+    { name:'Reviews', count: dbStats_reviews ? 0 : 0 },
+    { name:'Blacklist', count: blCount }
+  ]);
+
+  // Fetch counts more accurately
+  var [fullChat, fullReviews] = await Promise.all([
+    supa('sg_chat?select=id'),
+    supa('sg_reviews?select=id')
+  ]);
+  renderDBStats([
+    { name:'Sessions', count: sessCount },
+    { name:'Chat', count: fullChat ? fullChat.length : 0 },
+    { name:'Traps', count: trapsCount },
+    { name:'SOS', count: sosCount },
+    { name:'Reviews', count: fullReviews ? fullReviews.length : 0 },
+    { name:'Blacklist', count: blCount }
+  ]);
+
+  // Today's summary
+  if (sessToday_full && sessToday_full.length > 0) {
+    var devices = new Set(sessToday_full.map(function(s){return s.device_id;}));
+    document.getElementById('ts-devices').textContent = devices.size;
+
+    var durs = sessToday_full.filter(function(s){return s.duration_min > 0;}).map(function(s){return s.duration_min;});
+    var avgDur = durs.length > 0 ? Math.round(durs.reduce(function(a,b){return a+b;},0) / durs.length) : 0;
+    document.getElementById('ts-dur').textContent = avgDur > 0 ? avgDur + ' min' : '—';
+
+    // Peak hour
+    var hourBuckets = {};
+    sessToday_full.forEach(function(s) {
+      var h = new Date(s.created_at).getHours();
+      hourBuckets[h] = (hourBuckets[h]||0) + 1;
+    });
+    var peakHour = Object.entries(hourBuckets).sort(function(a,b){return b[1]-a[1];})[0];
+    if (peakHour) {
+      var h = parseInt(peakHour[0]);
+      var ampm = h >= 12 ? 'PM' : 'AM';
+      var h12 = h % 12 || 12;
+      document.getElementById('ts-peak').textContent = h12 + ':00 ' + ampm + ' (' + peakHour[1] + ')';
+    }
+  } else {
+    document.getElementById('ts-devices').textContent = '0';
+    document.getElementById('ts-dur').textContent = '—';
+    document.getElementById('ts-peak').textContent = '—';
+  }
+
+  // Map traps & hotspots
+  renderMapTraps(trapsActive);
+  renderMapHotspots(hotspots);
+}
+
+// ─── DONUT CHART ─────────────────────────────────────────────────────────
+function renderDonut(segments, total) {
+  var svg = document.getElementById('donut-svg');
+  var cx = 40, cy = 40, r = 30, strokeW = 12;
+  var circumference = 2 * Math.PI * r;
+  var offset = 0;
+  var paths = [];
+  segments.forEach(function(seg) {
+    var frac = total > 0 ? seg.count / total : 0;
+    var dash = frac * circumference;
+    var gap = circumference - dash;
+    var rotation = (offset / circumference) * 360 - 90;
+    paths.push('<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="' + seg.color + '" stroke-width="' + strokeW + '" stroke-dasharray="' + dash + ' ' + gap + '" transform="rotate(' + rotation + ' ' + cx + ' ' + cy + ')" opacity="0.85"/>');
+    offset += dash;
+    // legend
+    var pct = total > 0 ? Math.round(frac * 100) : 0;
+    var el = document.getElementById(seg.id);
+    if (el) el.textContent = pct + '%';
+  });
+  // Background ring
+  paths.unshift('<circle cx="' + cx + '" cy="' + cy + '" r="' + r + '" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="' + strokeW + '"/>');
+  // Center text
+  paths.push('<text x="' + cx + '" y="' + (cy+4) + '" fill="rgba(255,255,255,.7)" font-size="11" font-weight="700" text-anchor="middle" font-family="system-ui">' + total + '</text>');
+  svg.innerHTML = paths.join('');
+}
+
+// ─── DB TABLE STATS ───────────────────────────────────────────────────────
+function renderDBStats(items) {
+  var max = Math.max.apply(null, items.map(function(i){return i.count;}));
+  max = Math.max(max, 1);
+  var el = document.getElementById('db-stats');
+  el.innerHTML = items.map(function(i) {
+    var w = Math.round((i.count / max) * 100);
+    return '<div class="tbl-stat">' +
+      '<div class="tbl-name">' + i.name + '</div>' +
+      '<div class="tbl-bar-wrap"><div class="tbl-bar-fill" style="width:' + w + '%"></div></div>' +
+      '<div class="tbl-cnt">' + i.count + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ─── SESSION BAR CHART ───────────────────────────────────────────────────
+async function refreshChart() {
+  var d14 = new Date(Date.now() - 14 * 86400000).toISOString();
+  var data = await supa('sg_sessions?created_at=gte.' + d14 + '&select=created_at');
+  if (!data) return;
+
+  var buckets = {};
+  for (var i=0; i<14; i++) {
+    var d = new Date();
+    d.setDate(d.getDate() - (13-i));
+    var key = d.toISOString().slice(0,10);
+    buckets[key] = 0;
+  }
+  data.forEach(function(s) {
+    var key = s.created_at.slice(0,10);
+    if (buckets.hasOwnProperty(key)) buckets[key]++;
+  });
+
+  var entries = Object.entries(buckets);
+  var maxVal = Math.max.apply(null, entries.map(function(e){return e[1];}));
+  maxVal = Math.max(maxVal, 1);
+
+  var el = document.getElementById('sess-chart');
+  el.innerHTML = entries.map(function(e) {
+    var pct = Math.round((e[1] / maxVal) * 100);
+    var label = e[0].slice(5); // MM-DD
+    return '<div class="bc" title="' + e[0] + ': ' + e[1] + '">' +
+      '<div class="bc-fill" style="height:' + pct + '%;min-height:2px" data-tip="' + e[1] + '"></div>' +
+      '<div class="bc-lbl">' + label + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// ─── ACTIVITY FEED ────────────────────────────────────────────────────────
+async function refreshFeed() {
+  var since = new Date(Date.now() - 3600000).toISOString();
+  var [sos, chat, traps] = await Promise.all([
+    supa('sg_sos_log?created_at=gte.' + since + '&select=id,nickname,speed,location,created_at&order=created_at.desc&limit=5'),
+    supa('sg_chat?created_at=gte.' + since + '&select=id,nickname,text,zone,created_at&order=created_at.desc&limit=5'),
+    supa('sg_traps?created_at=gte.' + since + '&select=id,name,type,km,created_at&order=created_at.desc&limit=5')
+  ]);
+
+  var events = [];
+  if (sos) sos.forEach(function(e) { events.push({ type:'sos', data:e, ts:e.created_at }); });
+  if (chat) chat.forEach(function(e) { events.push({ type:'chat', data:e, ts:e.created_at }); });
+  if (traps) traps.forEach(function(e) { events.push({ type:'trap', data:e, ts:e.created_at }); });
+
+  events.sort(function(a,b) { return b.ts.localeCompare(a.ts); });
+  events = events.slice(0,10);
+
+  var el = document.getElementById('activity-feed');
+  if (events.length === 0) {
+    el.innerHTML = '<div class="empty-state">No recent activity</div>';
+  } else {
+    el.innerHTML = events.map(function(ev) {
+      var icon, text;
+      if (ev.type === 'sos') {
+        icon = '🆘';
+        text = esc(ev.data.nickname||'Unknown') + ' sent SOS' + (ev.data.speed ? ' @ ' + Math.round(ev.data.speed) + 'km/h' : '') + (ev.data.location ? ' — ' + esc(ev.data.location) : '');
+      } else if (ev.type === 'chat') {
+        icon = '💬';
+        text = esc(ev.data.nickname||'Anon') + ': ' + esc((ev.data.text||'').slice(0,60));
+      } else {
+        icon = '📍';
+        text = 'New ' + (ev.data.type||'trap') + ': ' + esc(ev.data.name||'Unknown') + (ev.data.km ? ' (km ' + ev.data.km + ')' : '');
+      }
+      var ago = timeAgo(ev.ts);
+      return '<div class="feed-item"><span class="feed-icon">' + icon + '</span>' +
+        '<div class="feed-body"><div class="feed-text">' + text + '</div>' +
+        '<div class="feed-time">' + ago + '</div></div></div>';
+    }).join('');
+  }
+  document.getElementById('feed-ts').textContent = 'Updated ' + new Date().toLocaleTimeString();
+}
+
+// ─── HELPERS ──────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function timeAgo(isoStr) {
+  var diff = (Date.now() - new Date(isoStr).getTime()) / 1000;
+  if (diff < 60) return Math.round(diff) + 's ago';
+  if (diff < 3600) return Math.round(diff/60) + 'm ago';
+  if (diff < 86400) return Math.round(diff/3600) + 'h ago';
+  return Math.round(diff/86400) + 'd ago';
+}
+
+// ─── BOOT ─────────────────────────────────────────────────────────────────
+function bootApp() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  startClock();
+  connectWS();
+  refresh();
+  refreshFeed();
+  refreshChart();
+  setInterval(refresh, 30000);
+  setInterval(refreshFeed, 15000);
+  setInterval(refreshChart, 300000);
+}
+
+// Auto-boot if session valid
+if (checkSession()) {
+  bootApp();
+}
+</script>
+</body>
+</html>

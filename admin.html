@@ -278,6 +278,7 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <span id="live-count" style="font-size:12px;color:rgba(255,255,255,.4)">👥 0 online</span>
+      <a href="./dashboard.html" style="padding:7px 14px;border-radius:8px;background:rgba(52,152,219,.15);border:1px solid rgba(52,152,219,.3);color:#5dade2;font-size:12px;font-weight:700;text-decoration:none">📊 Dashboard</a>
       <a href="./index.html" style="padding:7px 14px;border-radius:8px;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.3);color:#5ddb8a;font-size:12px;font-weight:700;text-decoration:none">← App</a>
       <button class="btn-logout" onclick="logout()">Logout</button>
     </div>
@@ -676,6 +677,55 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
       </div>
     </div>
 
+    <!-- WhatsApp Notifications -->
+    <div class="set-card">
+      <div class="set-lbl">📱 WhatsApp Notifications (via CallMeBot)</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.55);margin-bottom:14px;line-height:1.8">
+        <b style="color:#5ddb8a">Setup (free, 2 mins):</b><br>
+        1. Add <b style="color:#fff">+34 644 60 16 21</b> to your WhatsApp contacts<br>
+        2. Send it the message: <b style="color:#fff">I allow callmebot to send me messages</b><br>
+        3. It will reply with your API key — paste it below
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <input id="wa-phone" class="bc-input" placeholder="+265999123456 (your number with country code)" style="flex:2;margin-bottom:0">
+        <input id="wa-key" class="bc-input" placeholder="CallMeBot API key" style="flex:1;margin-bottom:0;min-width:140px">
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button onclick="saveWaConfig()" class="btn-bc" style="padding:10px 20px">💾 Save</button>
+        <button onclick="testWhatsApp()" style="padding:10px 18px;border-radius:11px;background:rgba(39,174,96,.13);border:1px solid rgba(39,174,96,.3);color:#5ddb8a;font-size:13px;font-weight:700;cursor:pointer">📤 Send Test Message</button>
+      </div>
+      <div class="set-lbl" style="margin-bottom:10px">Notify me when:</div>
+      <div class="toggle-row">
+        <div class="toggle-info"><div class="toggle-title">🆘 SOS Button Fired</div><div class="toggle-sub">Instant alert with driver name, location and speed</div></div>
+        <label class="sw"><input type="checkbox" id="wa-sos" checked onchange="saveWaToggles()"><span class="sw-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><div class="toggle-title">✅ New Trap Verified</div><div class="toggle-sub">When a community trap reaches the vote threshold</div></div>
+        <label class="sw"><input type="checkbox" id="wa-trap" checked onchange="saveWaToggles()"><span class="sw-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><div class="toggle-title">⛔ Blacklisted User Tried to Go Live</div><div class="toggle-sub">When a blocked device attempts to enter Live Mode</div></div>
+        <label class="sw"><input type="checkbox" id="wa-blacklist" checked onchange="saveWaToggles()"><span class="sw-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><div class="toggle-title">🚧 Road Alert Posted</div><div class="toggle-sub">When a new road condition alert is published</div></div>
+        <label class="sw"><input type="checkbox" id="wa-alert" checked onchange="saveWaToggles()"><span class="sw-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><div class="toggle-title">🚫 Word Filter Triggered 5+ Times</div><div class="toggle-sub">Alerts when repeated chat abuse is detected in a session</div></div>
+        <label class="sw"><input type="checkbox" id="wa-wordfilter" checked onchange="saveWaToggles()"><span class="sw-slider"></span></label>
+      </div>
+      <div class="toggle-row">
+        <div class="toggle-info"><div class="toggle-title">📊 Daily Digest (8 PM)</div><div class="toggle-sub">Sessions today, peak hour, zone breakdown, total users</div></div>
+        <label class="sw"><input type="checkbox" id="wa-digest" checked onchange="saveWaToggles()"><span class="sw-slider"></span></label>
+      </div>
+      <div class="toggle-row" style="border-bottom:none">
+        <div class="toggle-info"><div class="toggle-title">🔔 Push Failure Rate &gt;20%</div><div class="toggle-sub">When more than 1 in 5 push notifications fail to deliver</div></div>
+        <label class="sw"><input type="checkbox" id="wa-pushfail" checked onchange="saveWaToggles()"><span class="sw-slider"></span></label>
+      </div>
+      <div style="margin-top:12px;font-size:11px;color:rgba(255,255,255,.25)">Watchers run while this admin panel is open. For 24/7 alerts, keep the dashboard tab open on a dedicated device or monitor.</div>
+    </div>
+
     <!-- Admin Password -->
     <div class="set-card">
       <div class="set-lbl">Admin Password</div>
@@ -806,7 +856,30 @@ create table sg_sos_log (
 );
 alter table sg_sos_log enable row level security;
 create policy "Anyone can insert" on sg_sos_log for insert with check (true);
-create policy "Admin can read"    on sg_sos_log for select using (true);</pre>
+create policy "Admin can read"    on sg_sos_log for select using (true);
+
+create table sg_blacklist_attempts (
+  id         bigint generated always as identity primary key,
+  device_id  text,
+  nickname   text,
+  lat        double precision,
+  lng        double precision,
+  created_at timestamptz default now()
+);
+alter table sg_blacklist_attempts enable row level security;
+create policy "Anyone can insert" on sg_blacklist_attempts for insert with check (true);
+create policy "Admin can read"    on sg_blacklist_attempts for select using (true);
+
+create table sg_word_filter_log (
+  id         bigint generated always as identity primary key,
+  device_id  text,
+  nickname   text,
+  message    text,
+  created_at timestamptz default now()
+);
+alter table sg_word_filter_log enable row level security;
+create policy "Anyone can insert" on sg_word_filter_log for insert with check (true);
+create policy "Admin can read"    on sg_word_filter_log for select using (true);</pre>
     </div>
   </div>
 
@@ -2051,6 +2124,7 @@ function loadSettingsConfig(){
       }
     });
     renderVersionTable();
+    loadWaConfig();
   });
 }
 
@@ -2111,6 +2185,220 @@ function exportCSV(type){
     a.download='pansewu_'+type+'_'+new Date().toISOString().slice(0,10)+'.csv';
     a.click();
     showToast('✅ CSV downloaded');
+  });
+}
+
+// ══════════════════════════════════════════════════════
+// WHATSAPP NOTIFICATIONS (CallMeBot)
+// ══════════════════════════════════════════════════════
+var _waPhone='', _waKey='', _waToggles={}, _waWatchers={};
+var _waLastSos=null, _waLastTrap=null, _waLastBlacklist=null, _waLastAlert=null;
+var _waLastDigest='', _waFilterCount=0;
+
+function sendWhatsApp(msg){
+  if(!_waPhone||!_waKey){return;}
+  var url='https://api.callmebot.com/whatsapp.php?phone='+encodeURIComponent(_waPhone)
+         +'&text='+encodeURIComponent(msg)+'&apikey='+encodeURIComponent(_waKey);
+  fetch(url).catch(function(){});
+}
+
+function loadWaConfig(){
+  supa('sg_admin_config?key=eq.wa_config&select=value').then(function(rows){
+    if(!rows||!rows.length)return;
+    try{
+      var cfg=JSON.parse(rows[0].value);
+      _waPhone=cfg.phone||'';
+      _waKey=cfg.apikey||'';
+      _waToggles=cfg.toggles||{};
+      var pi=document.getElementById('wa-phone');
+      var ki=document.getElementById('wa-key');
+      if(pi)pi.value=_waPhone;
+      if(ki)ki.value=_waKey;
+      var ids=['wa-sos','wa-trap','wa-blacklist','wa-alert','wa-wordfilter','wa-digest','wa-pushfail'];
+      ids.forEach(function(id){
+        var el=document.getElementById(id);
+        if(el)el.checked=!!_waToggles[id];
+      });
+      startWaWatchers();
+    }catch(e){}
+  });
+}
+
+function saveWaConfig(){
+  var phone=document.getElementById('wa-phone').value.trim();
+  var key=document.getElementById('wa-key').value.trim();
+  if(!phone||!key){showToast('Enter phone and API key first');return;}
+  _waPhone=phone; _waKey=key;
+  saveWaToggles(true);
+}
+
+function saveWaToggles(quiet){
+  var ids=['wa-sos','wa-trap','wa-blacklist','wa-alert','wa-wordfilter','wa-digest','wa-pushfail'];
+  _waToggles={};
+  ids.forEach(function(id){
+    var el=document.getElementById(id);
+    if(el)_waToggles[id]=el.checked;
+  });
+  var cfg=JSON.stringify({phone:_waPhone,apikey:_waKey,toggles:_waToggles});
+  fetch(SUPA_URL+'/rest/v1/sg_admin_config?key=eq.wa_config',{
+    method:'PATCH',
+    headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+    body:JSON.stringify({value:cfg})
+  }).then(function(r){
+    if(r.status===404||r.status===0){
+      fetch(SUPA_URL+'/rest/v1/sg_admin_config',{
+        method:'POST',
+        headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'return=minimal'},
+        body:JSON.stringify({key:'wa_config',value:cfg})
+      });
+    }
+    if(!quiet)showToast('✅ WhatsApp config saved');
+    else showToast('✅ WhatsApp config saved');
+    startWaWatchers();
+  });
+}
+
+function testWhatsApp(){
+  if(!_waPhone||!_waKey){
+    var p=document.getElementById('wa-phone').value.trim();
+    var k=document.getElementById('wa-key').value.trim();
+    if(!p||!k){showToast('Save config first');return;}
+    _waPhone=p; _waKey=k;
+  }
+  sendWhatsApp('🚦 SpeedGuard MW — Test message sent at '+new Date().toLocaleString());
+  showToast('📲 Test message sent');
+}
+
+function startWaWatchers(){
+  Object.keys(_waWatchers).forEach(function(k){clearInterval(_waWatchers[k]);});
+  _waWatchers={};
+  if(!_waPhone||!_waKey)return;
+  // Poll every 60s
+  _waWatchers.sos=setInterval(checkNewSos,60000);
+  _waWatchers.trap=setInterval(checkVerifiedTraps,60000);
+  _waWatchers.blacklist=setInterval(checkBlacklistAttempts,60000);
+  _waWatchers.alert=setInterval(checkRoadAlertPosted,60000);
+  _waWatchers.wordfilter=setInterval(checkWordFilterCount,300000); // every 5 min
+  _waWatchers.digest=setInterval(sendDailyDigest,60000);
+  _waWatchers.pushfail=setInterval(checkPushFailureRate,300000);
+  // Run immediately
+  checkNewSos(); checkVerifiedTraps(); checkBlacklistAttempts();
+  checkRoadAlertPosted(); checkWordFilterCount(); checkPushFailureRate();
+}
+
+function checkNewSos(){
+  if(!_waToggles['wa-sos'])return;
+  var since=_waLastSos||(new Date(Date.now()-70000).toISOString());
+  supa('sg_sos_log?select=*&created_at=gt.'+since+'&order=created_at.desc&limit=5').then(function(rows){
+    if(!rows||!rows.length)return;
+    _waLastSos=rows[0].created_at;
+    rows.forEach(function(r){
+      sendWhatsApp('🆘 SOS ALERT!\nDriver: '+(r.nickname||'Unknown')+'\nLocation: '+(r.location||'Unknown')+'\nSpeed: '+(r.speed||0)+' km/h\nTime: '+new Date(r.created_at).toLocaleString());
+    });
+  });
+}
+
+function checkVerifiedTraps(){
+  if(!_waToggles['wa-trap'])return;
+  var since=_waLastTrap||(new Date(Date.now()-70000).toISOString());
+  supa('sg_traps?select=*&votes=gte.3&updated_at=gt.'+since+'&order=updated_at.desc&limit=5').then(function(rows){
+    if(!rows||!rows.length)return;
+    _waLastTrap=rows[0].updated_at||rows[0].created_at;
+    rows.forEach(function(r){
+      sendWhatsApp('🚨 New Trap Verified (3 votes)!\nType: '+(r.type||'Speed trap')+'\nLocation: km '+(r.km||'?')+'\nTime: '+new Date(r.created_at).toLocaleString());
+    });
+  });
+}
+
+function checkBlacklistAttempts(){
+  if(!_waToggles['wa-blacklist'])return;
+  var since=_waLastBlacklist||(new Date(Date.now()-70000).toISOString());
+  supa('sg_blacklist_attempts?select=*&created_at=gt.'+since+'&order=created_at.desc&limit=5').then(function(rows){
+    if(!rows||!rows.length)return;
+    _waLastBlacklist=rows[0].created_at;
+    rows.forEach(function(r){
+      sendWhatsApp('🚫 Blacklisted User Tried to Go Live!\nUser: '+(r.nickname||'Unknown')+'\nDevice: '+(r.device_id||'?')+'\nTime: '+new Date(r.created_at).toLocaleString());
+    });
+  });
+}
+
+function checkRoadAlertPosted(){
+  if(!_waToggles['wa-alert'])return;
+  var since=_waLastAlert||(new Date(Date.now()-70000).toISOString());
+  supa('sg_road_alerts?select=*&created_at=gt.'+since+'&order=created_at.desc&limit=5').then(function(rows){
+    if(!rows||!rows.length)return;
+    _waLastAlert=rows[0].created_at;
+    rows.forEach(function(r){
+      sendWhatsApp('🚧 New Road Alert Posted!\nTitle: '+(r.title||'Alert')+'\nMessage: '+(r.message||'')+'\nTime: '+new Date(r.created_at).toLocaleString());
+    });
+  });
+}
+
+function checkWordFilterCount(){
+  if(!_waToggles['wa-wordfilter'])return;
+  var since=new Date(Date.now()-3600000).toISOString(); // last 1 hour
+  supa('sg_word_filter_log?select=id&created_at=gt.'+since).then(function(rows){
+    if(!rows)return;
+    var count=rows.length;
+    if(count>=5){
+      sendWhatsApp('⚠️ Word Filter Alert!\n'+count+' blocked chat messages in the last hour.\nCheck admin moderation panel.');
+    }
+  });
+}
+
+function sendDailyDigest(){
+  if(!_waToggles['wa-digest'])return;
+  var now=new Date();
+  var todayKey=now.toISOString().slice(0,10);
+  var hour=now.getHours();
+  if(hour!==20||_waLastDigest===todayKey)return; // only at 8PM, once
+  _waLastDigest=todayKey;
+  var todayStart=todayKey+'T00:00:00.000Z';
+  Promise.all([
+    supa('sg_sessions?select=id,location,created_at&created_at=gte.'+todayStart),
+    supa('sg_sessions?select=device_id&created_at=gte.'+todayStart)
+  ]).then(function(results){
+    var sessions=results[0]||[];
+    var count=sessions.length;
+    // Peak hour
+    var hourMap={};
+    sessions.forEach(function(s){
+      var h=new Date(s.created_at).getHours();
+      hourMap[h]=(hourMap[h]||0)+1;
+    });
+    var peakH=Object.keys(hourMap).sort(function(a,b){return hourMap[b]-hourMap[a];})[0];
+    var peakLabel=peakH!==undefined?(peakH+':00–'+peakH+':59'):'N/A';
+    // Zone breakdown (Lilongwe vs Blantyre vs Other)
+    var zones={Lilongwe:0,Blantyre:0,Other:0};
+    sessions.forEach(function(s){
+      var loc=(s.location||'').toLowerCase();
+      if(loc.indexOf('lilongwe')>=0)zones.Lilongwe++;
+      else if(loc.indexOf('blantyre')>=0)zones.Blantyre++;
+      else zones.Other++;
+    });
+    // Unique users
+    var unique=new Set((results[1]||[]).map(function(s){return s.device_id;})).size;
+    sendWhatsApp(
+      '📊 SpeedGuard MW Daily Digest – '+todayKey+'\n'+
+      '━━━━━━━━━━━━━━━━━━━━\n'+
+      '🚗 Sessions today: '+count+'\n'+
+      '👥 Unique users: '+unique+'\n'+
+      '⏰ Peak time: '+peakLabel+'\n'+
+      '📍 Lilongwe: '+zones.Lilongwe+' | Blantyre: '+zones.Blantyre+' | Other: '+zones.Other
+    );
+  });
+}
+
+function checkPushFailureRate(){
+  if(!_waToggles['wa-pushfail'])return;
+  supa('sg_push_subs?select=active').then(function(rows){
+    if(!rows||!rows.length)return;
+    var total=rows.length;
+    var failed=rows.filter(function(r){return r.active===false;}).length;
+    var rate=Math.round((failed/total)*100);
+    if(rate>=20){
+      sendWhatsApp('📵 Push Notification Alert!\n'+rate+'% failure rate ('+failed+'/'+total+' subscribers inactive).\nCheck push subscription status in admin.');
+    }
   });
 }
 
