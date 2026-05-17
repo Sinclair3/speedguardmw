@@ -132,6 +132,10 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;co
 .users-table tr:last-child td{border-bottom:none}
 .users-table tr:hover td{background:rgba(255,255,255,.03)}
 .first-seen{font-size:11px;color:rgba(255,255,255,.3)}
+.sort-th{cursor:pointer;user-select:none;white-space:nowrap}
+.sort-th:hover{color:rgba(255,255,255,.7)}
+.sort-th.sort-active{color:#27ae60}
+.sort-arr{font-size:9px;margin-left:3px;opacity:.7}
 
 /* SETTINGS */
 .set-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:20px;margin-bottom:14px}
@@ -333,7 +337,11 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
     <!-- Recent users table -->
     <div class="section-hdr" style="margin-top:8px">
       <div><div class="section-title">Recent Driver Sessions</div>
-        <div class="section-sub">Most recent app opens — one row per device per day</div>
+        <div class="section-sub">Click any column header to sort · showing last 100 sessions</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <input id="sessions-search" placeholder="🔍 Search name / location…" oninput="renderUsersTable(allSessions)"
+          style="padding:7px 12px;border-radius:9px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:12px;outline:none;width:200px">
       </div>
     </div>
     <div style="overflow-x:auto">
@@ -341,11 +349,11 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
         <thead>
           <tr>
             <th>#</th>
-            <th>Nickname</th>
-            <th>Platform</th>
-            <th>Location</th>
-            <th>Duration</th>
-            <th>When</th>
+            <th class="sort-th" onclick="sortSessions('nickname')" id="sth-nickname">Nickname <span class="sort-arr"></span></th>
+            <th class="sort-th" onclick="sortSessions('platform')" id="sth-platform">Platform <span class="sort-arr"></span></th>
+            <th class="sort-th" onclick="sortSessions('location')" id="sth-location">Location <span class="sort-arr"></span></th>
+            <th class="sort-th" onclick="sortSessions('duration_min')" id="sth-duration_min">Duration <span class="sort-arr"></span></th>
+            <th class="sort-th" onclick="sortSessions('created_at')" id="sth-created_at">When <span class="sort-arr">▼</span></th>
           </tr>
         </thead>
         <tbody id="users-tbody">
@@ -1058,17 +1066,48 @@ function renderPlatforms(rows){
   document.getElementById('pl-other').textContent  =counts.Other;
 }
 
+var _sessionSort = {col:'created_at', asc:false};
+
+function sortSessions(col){
+  if(_sessionSort.col===col) _sessionSort.asc=!_sessionSort.asc;
+  else { _sessionSort.col=col; _sessionSort.asc=col==='nickname'||col==='platform'||col==='location'; }
+  renderUsersTable(allSessions);
+}
+
 function renderUsersTable(rows){
   var tbody=document.getElementById('users-tbody');
   tbody.innerHTML='';
 
-  var recent=rows.slice(0,50);
-  if(recent.length===0){
-    tbody.innerHTML='<tr><td colspan="6" class="empty">No sessions yet. Make sure the sg_sessions table exists in Supabase.</td></tr>';
+  // Search filter
+  var q=(document.getElementById('sessions-search')||{}).value||'';
+  q=q.toLowerCase().trim();
+  var filtered=q ? rows.filter(function(r){
+    return (r.nickname||'').toLowerCase().includes(q)||(r.location||'').toLowerCase().includes(q)||(r.platform||'').toLowerCase().includes(q);
+  }) : rows;
+
+  // Sort
+  var col=_sessionSort.col, asc=_sessionSort.asc;
+  filtered=filtered.slice().sort(function(a,b){
+    var av=a[col]||'', bv=b[col]||'';
+    if(col==='duration_min'){ av=a[col]||0; bv=b[col]||0; return asc?av-bv:bv-av; }
+    return asc?av.toString().localeCompare(bv.toString()):bv.toString().localeCompare(av.toString());
+  });
+
+  // Update header arrows
+  ['nickname','platform','location','duration_min','created_at'].forEach(function(c){
+    var th=document.getElementById('sth-'+c);
+    if(!th) return;
+    th.classList.toggle('sort-active', c===col);
+    th.querySelector('.sort-arr').textContent = c===col ? (asc?'▲':'▼') : '';
+  });
+
+  var page=filtered.slice(0,100);
+  if(page.length===0){
+    tbody.innerHTML='<tr><td colspan="6" class="empty">'+(q?'No sessions match your search.':'No sessions yet.')+'</td></tr>';
     return;
   }
 
-  recent.forEach(function(r,i){
+  page.forEach(function(r,i){
     var tr=document.createElement('tr');
     var platEmoji=r.platform==='iOS'?'📱':r.platform==='Android'?'🤖':r.platform==='Windows'?'💻':'🔲';
     var locHtml=r.location
@@ -1076,7 +1115,7 @@ function renderUsersTable(rows){
       : '<span style="color:rgba(255,255,255,.25)">GPS not shared</span>';
     var durHtml=r.duration_min
       ? (r.duration_min>=60
-          ? '<span style="color:#5ddb8a;font-weight:700">'+Math.floor(r.duration_min/60)+'h '+( r.duration_min%60)+'m</span>'
+          ? '<span style="color:#5ddb8a;font-weight:700">'+Math.floor(r.duration_min/60)+'h '+(r.duration_min%60)+'m</span>'
           : '<span style="color:#5ddb8a;font-weight:700">'+r.duration_min+' min</span>')
       : '<span style="color:rgba(255,255,255,.25)">—</span>';
     tr.innerHTML=
