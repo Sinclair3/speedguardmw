@@ -160,6 +160,19 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;co
 ::-webkit-scrollbar{width:4px;height:4px}
 ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
 
+/* LIVE DRIVERS MAP */
+#live-drivers-map{height:320px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.1);margin-bottom:16px}
+.ld-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px;margin-top:4px}
+.ld-card{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+.ld-av{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1a6b3a,#27ae60);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0}
+.ld-info{flex:1;min-width:0}
+.ld-name{font-size:14px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ld-detail{font-size:11px;color:rgba(255,255,255,.45);margin-top:2px}
+.ld-spd{font-size:12px;font-weight:700;color:#5ddb8a;flex-shrink:0}
+.ld-empty{text-align:center;padding:40px 20px;color:rgba(255,255,255,.3);font-size:14px}
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#27ae60;margin-right:6px;animation:pulse-dot 1.5s ease infinite}
+@keyframes pulse-dot{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.7)}}
+
 /* SIMULATOR */
 #sim-map{height:260px;border-radius:14px;overflow:hidden;border:1px solid rgba(255,255,255,.1);margin-bottom:14px}
 .sim-ctrl{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:14px;padding:16px;margin-bottom:12px}
@@ -227,12 +240,28 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
   <!-- TABS -->
   <div class="tab-bar">
     <div class="tab active" onclick="switchTab('usage',this)">📈 Usage</div>
+    <div class="tab" onclick="switchTab('live',this)">🟢 Live Drivers</div>
     <div class="tab" onclick="switchTab('traps',this)">🚔 Trap Reports</div>
     <div class="tab" onclick="switchTab('reviews',this)">⭐ Reviews</div>
     <div class="tab" onclick="switchTab('locations',this)">📍 Locations</div>
     <div class="tab" onclick="switchTab('broadcast',this)">📢 Broadcast</div>
     <div class="tab" onclick="switchTab('simulator',this)">🎮 Simulator</div>
     <div class="tab" onclick="switchTab('settings',this)">⚙️ Settings</div>
+  </div>
+
+  <!-- ══ TAB: LIVE DRIVERS ══ -->
+  <div id="tab-live" class="content" style="display:none">
+    <div class="section-hdr">
+      <div>
+        <div class="section-title"><span class="live-dot"></span>Live Drivers on M1</div>
+        <div class="section-sub">Real-time positions of drivers currently in Live Mode · updates every 5 s</div>
+      </div>
+      <span id="ld-count" style="font-size:13px;font-weight:700;color:#27ae60">0 online</span>
+    </div>
+    <div id="live-drivers-map"></div>
+    <div id="ld-cards" class="ld-grid">
+      <div class="ld-empty">No drivers online right now</div>
+    </div>
   </div>
 
   <!-- ══ TAB: USAGE ══ -->
@@ -772,8 +801,10 @@ function supa(path, method, body) {
     .catch(function(){ return null; });
 }
 
-// ── REALTIME (live count) ──
+// ── REALTIME (live drivers) ──
 var liveDrivers = {};
+var _ldMap = null, _ldMarkers = {};
+
 function initRealtime() {
   try {
     var ws = new WebSocket(SUPA_URL.replace('https','wss')+
@@ -783,9 +814,13 @@ function initRealtime() {
         payload:{config:{broadcast:{self:false}}},ref:'1'}));
     };
     ws.onmessage = function(e){
-      try{ var m=JSON.parse(e.data);
-        if(m.event==='broadcast'&&m.payload&&m.payload.type==='pos')
-          liveDrivers[m.payload.id]={ts:Date.now()};
+      try{
+        var m=JSON.parse(e.data);
+        if(m.event==='broadcast'&&m.payload&&m.payload.type==='pos'){
+          var p=m.payload;
+          liveDrivers[p.id]={ts:Date.now(),nickname:p.nickname||'Driver',lat:p.lat,lng:p.lng,speed:p.speed||0,progress:p.progress||0};
+          if(document.getElementById('tab-live').style.display!=='none') renderLiveDrivers();
+        }
       }catch(err){}
     };
     ws.onclose = function(){ setTimeout(initRealtime,5000); };
@@ -799,7 +834,72 @@ function initRealtime() {
     var n=Object.keys(liveDrivers).length;
     document.getElementById('live-count').textContent='👥 '+n+' online';
     document.getElementById('st-live').textContent=n;
+    if(document.getElementById('tab-live').style.display!=='none') renderLiveDrivers();
   }, 5000);
+}
+
+function initLiveMap() {
+  if(_ldMap) return;
+  _ldMap = L.map('live-drivers-map',{zoomControl:true}).setView([-14.0,34.0],7);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{
+    attribution:'© OpenStreetMap',maxZoom:18
+  }).addTo(_ldMap);
+}
+
+function renderLiveDrivers() {
+  initLiveMap();
+  var now=Date.now();
+  // purge stale
+  Object.keys(liveDrivers).forEach(function(id){
+    if(now-liveDrivers[id].ts>35000) delete liveDrivers[id];
+  });
+
+  var drivers=Object.keys(liveDrivers).map(function(id){return Object.assign({id:id},liveDrivers[id]);});
+  var n=drivers.length;
+  document.getElementById('ld-count').textContent=n+' online';
+
+  // update map markers
+  var seen={};
+  drivers.forEach(function(d){
+    seen[d.id]=true;
+    if(!d.lat||!d.lng) return;
+    var icon=L.divIcon({className:'',html:
+      '<div style="background:#27ae60;color:#fff;font-size:11px;font-weight:700;padding:3px 7px;border-radius:20px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.5);border:2px solid #fff">'+
+      '🚗 '+(d.nickname||'Driver')+'</div>',iconAnchor:[0,0]});
+    if(_ldMarkers[d.id]){
+      _ldMarkers[d.id].setLatLng([d.lat,d.lng]).setIcon(icon);
+    } else {
+      _ldMarkers[d.id]=L.marker([d.lat,d.lng],{icon:icon}).addTo(_ldMap)
+        .bindPopup('<b>'+(d.nickname||'Driver')+'</b><br>'+d.speed+' km/h · km '+d.progress);
+    }
+  });
+  // remove gone markers
+  Object.keys(_ldMarkers).forEach(function(id){
+    if(!seen[id]){ _ldMap.removeLayer(_ldMarkers[id]); delete _ldMarkers[id]; }
+  });
+  // fit map if drivers present
+  if(drivers.filter(function(d){return d.lat&&d.lng;}).length>0){
+    var pts=drivers.filter(function(d){return d.lat&&d.lng;}).map(function(d){return[d.lat,d.lng];});
+    if(pts.length===1) _ldMap.setView(pts[0],12);
+    else _ldMap.fitBounds(pts,{padding:[30,30]});
+  }
+
+  // render cards
+  var c=document.getElementById('ld-cards');
+  if(n===0){ c.innerHTML='<div class="ld-empty">No drivers online right now</div>'; return; }
+  c.innerHTML=drivers.map(function(d){
+    var km=d.progress||'?';
+    var region=d.progress<38?'Northern M1':d.progress<67?'Central M1':'Southern M1';
+    var spdColor=d.speed>100?'#ff8a7a':d.speed>80?'#f8c060':'#5ddb8a';
+    return '<div class="ld-card">'+
+      '<div class="ld-av">🚗</div>'+
+      '<div class="ld-info">'+
+        '<div class="ld-name">'+(d.nickname||'Driver')+'</div>'+
+        '<div class="ld-detail">km '+km+' · '+region+(d.lat?'':' · no GPS')+'</div>'+
+      '</div>'+
+      '<div class="ld-spd" style="color:'+spdColor+'">'+d.speed+' km/h</div>'+
+    '</div>';
+  }).join('');
 }
 
 var wsAdmin=null;
@@ -829,9 +929,10 @@ function initApp(){
 function switchTab(tab, el){
   document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
   el.classList.add('active');
-  ['usage','traps','reviews','locations','broadcast','simulator','settings'].forEach(function(t){
+  ['usage','live','traps','reviews','locations','broadcast','simulator','settings'].forEach(function(t){
     document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
   });
+  if(tab==='live')      renderLiveDrivers();
   if(tab==='traps')     loadTraps();
   if(tab==='reviews')   loadReviews();
   if(tab==='locations') loadLocations();
