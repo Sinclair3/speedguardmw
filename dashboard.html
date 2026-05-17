@@ -188,6 +188,47 @@ scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;
 .sum-item:last-child{border-bottom:none}
 .sum-key{font-size:11px;color:rgba(255,255,255,.5)}
 .sum-val{font-size:12px;font-weight:700;color:#fff}
+
+/* ── MOBILE RESPONSIVE ── */
+@media (max-width:768px){
+  html,body{height:auto !important;overflow-y:auto !important;overflow-x:hidden !important}
+  body{min-height:100vh;display:block !important}
+  #app{height:auto !important;overflow:visible !important;display:block !important}
+
+  /* Topbar — stack on two lines */
+  .topbar{height:auto;min-height:48px;flex-wrap:wrap;gap:6px;padding:10px 12px}
+  .tb-left{flex:1;min-width:0}
+  .tb-logo{font-size:15px}
+  .tb-tag{display:none}
+  .tb-center{order:3;flex-basis:100%;justify-content:flex-start;gap:8px;padding-top:4px}
+  .tb-pill{font-size:11px;padding:4px 10px}
+  .tb-route{display:none}
+  .tb-right{gap:8px}
+  #clock{font-size:12px}
+  .admin-link{font-size:11px;padding:4px 8px}
+
+  /* Health bar wraps */
+  .health-bar{flex-wrap:wrap;gap:5px 14px;height:auto;padding:6px 12px}
+
+  /* KPI strip — 2 per row */
+  .kpi-strip{flex-wrap:wrap;padding:8px 12px;gap:7px}
+  .kpi{min-width:calc(50% - 4px);flex:none}
+  .kpi-val{font-size:22px}
+
+  /* Main grid — single column */
+  .main-grid{flex-direction:column;overflow:visible !important;min-height:0 !important;flex:none;padding:8px 12px 32px}
+  .col-left,.col-center,.col-right{width:100% !important;overflow-y:visible !important;flex-shrink:0}
+
+  /* Split row stacks */
+  .split-row{flex-direction:column}
+  .split-half{min-width:0}
+
+  /* Bar chart shorter on mobile */
+  .bar-area{height:70px}
+}
+@media (max-width:400px){
+  .kpi{min-width:100%;flex:none}
+}
 </style>
 </head>
 <body>
@@ -215,7 +256,7 @@ scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.1) transparent;
     </div>
     <div class="tb-center">
       <div class="tb-pill"><span class="tb-pill-dot"></span>All Systems Operational</div>
-      <div class="tb-route">Lilongwe ↔ Blantyre M1</div>
+      <div class="tb-route">Karonga ↔ Chikwawa · M1</div>
     </div>
     <div class="tb-right">
       <div class="live-badge"><span class="live-dot"></span>Live</div>
