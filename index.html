@@ -2044,6 +2044,41 @@ var SUPA_URL = 'https://mgoxhsnmjbzjuevwryxy.supabase.co';
 var SUPA_KEY = 'sb_publishable_6GSg9fQ2tCMJ9vZTaOFcCQ_SYviH_KR';
 
 // ═══════════════════════════════════════════════════════
+// INDEXEDDB OFFLINE CACHE
+// ═══════════════════════════════════════════════════════
+var _idb = null;
+function initIDB() {
+  if (!window.indexedDB) return;
+  var req = indexedDB.open('speedguardmw_cache', 1);
+  req.onupgradeneeded = function(e) {
+    var db = e.target.result;
+    if (!db.objectStoreNames.contains('traps'))       db.createObjectStore('traps',       {keyPath:'id'});
+    if (!db.objectStoreNames.contains('road_alerts')) db.createObjectStore('road_alerts', {keyPath:'id'});
+    if (!db.objectStoreNames.contains('hotspots'))    db.createObjectStore('hotspots',    {keyPath:'id'});
+  };
+  req.onsuccess = function(e) { _idb = e.target.result; };
+  req.onerror   = function()  { };
+}
+function idbPut(store, rows) {
+  if (!_idb || !rows || !rows.length) return;
+  try {
+    var tx = _idb.transaction(store, 'readwrite');
+    var s  = tx.objectStore(store);
+    rows.forEach(function(r) { s.put(r); });
+  } catch(e) {}
+}
+function idbGetAll(store, cb) {
+  if (!_idb) { cb([]); return; }
+  try {
+    var tx  = _idb.transaction(store, 'readonly');
+    var req = tx.objectStore(store).getAll();
+    req.onsuccess = function() { cb(req.result || []); };
+    req.onerror   = function() { cb([]); };
+  } catch(e) { cb([]); }
+}
+initIDB();
+
+// ═══════════════════════════════════════════════════════
 // TRAP VERIFICATION CONSTANTS
 //
 // How democracy works in SpeedGuard:
@@ -2149,42 +2184,47 @@ function loadAdminLocations(){
 var _wordFilter = null; // null = not loaded yet
 var _hotspotLayers = [];
 
+function _applyHotspotRows(rows) {
+  if (!rows || !rows.length) return;
+  _hotspotLayers.forEach(function(l) { map.removeLayer(l); });
+  _hotspotLayers = [];
+  rows.forEach(function(z) {
+    var latFrom = -13.5 - (z.km_from / 1140) * 3.3;
+    var latTo   = -13.5 - (z.km_to   / 1140) * 3.3;
+    var layer = L.rectangle([[latFrom, 33.6],[latTo, 35.4]], {
+      color: '#e74c3c', weight: 0, fillColor: '#e74c3c', fillOpacity: 0.18
+    }).addTo(map).bindTooltip('🔴 ' + z.name + (z.reason ? ' — ' + z.reason : ''), {sticky: true});
+    _hotspotLayers.push(layer);
+  });
+}
 function loadAppConfig() {
-  if (!navigator.onLine) return;
+  if (!navigator.onLine) {
+    idbGetAll('road_alerts', function(rows) { if (rows && rows.length) renderRoadAlerts(rows); });
+    idbGetAll('hotspots',    function(rows) { _applyHotspotRows(rows); });
+    return;
+  }
 
   // Admin config keys
   supaFetch('sg_admin_config?select=*').then(function(rows) {
     if (!rows) return;
     rows.forEach(function(r) {
-      if (r.key === 'maintenance_mode' && r.value === '1') {
-        showMaintenanceBanner();
-      }
-      if (r.key === 'force_update_msg' && r.value && r.value.trim()) {
-        showForceUpdateBanner(r.value.trim());
-      }
+      if (r.key === 'maintenance_mode' && r.value === '1') showMaintenanceBanner();
+      if (r.key === 'force_update_msg' && r.value && r.value.trim()) showForceUpdateBanner(r.value.trim());
     });
   });
 
   // Road alerts
   supaFetch('sg_road_alerts?select=*&active=eq.true').then(function(rows) {
     if (!rows || !rows.length) return;
+    idbPut('road_alerts', rows);
     renderRoadAlerts(rows);
   });
 
   // Hotspot zones
   supaFetch('sg_hotspots?select=*').then(function(rows) {
     if (!rows || !rows.length) return;
-    _hotspotLayers.forEach(function(l) { map.removeLayer(l); });
-    _hotspotLayers = [];
-    rows.forEach(function(z) {
-      // Approximate lat range for km on M1 (M1 is ~1140km, lat goes from ~-13.5 to ~-16.8)
-      var latFrom = -13.5 - (z.km_from / 1140) * 3.3;
-      var latTo   = -13.5 - (z.km_to   / 1140) * 3.3;
-      var layer = L.rectangle([[latFrom, 33.6],[latTo, 35.4]], {
-        color: '#e74c3c', weight: 0, fillColor: '#e74c3c', fillOpacity: 0.18
-      }).addTo(map).bindTooltip('🔴 ' + z.name + (z.reason ? ' — ' + z.reason : ''), {sticky: true});
-      _hotspotLayers.push(layer);
-    });
+    idbPut('hotspots', rows);
+    _applyHotspotRows(rows);
   });
 }
 
@@ -2226,20 +2266,26 @@ function renderRoadAlerts(rows) {
   document.body.appendChild(bar);
 }
 
+function _applyTrapRows(rows){
+  if(!rows||!Array.isArray(rows))return;
+  rows.forEach(function(row){
+    if(traps.find(function(t){return t.supaId===row.id;}))return;
+    var trap={id:nextTrapId++,supaId:row.id,name:row.name,lat:row.lat,lng:row.lng,limit:row.limit_kmh,type:row.type,km:row.km,community:true,yes_votes:row.yes_votes||0,no_votes:row.no_votes||0,created_at:new Date(row.created_at).getTime(),verified:(row.yes_votes||0)>=VOTES_TO_VERIFY};
+    if(!isExpired(trap)&&(row.no_votes||0)<VOTES_TO_REMOVE){
+      traps.push(trap);renderTrapMarker(trap);
+    } else if(navigator.onLine){
+      supaFetch('sg_traps?id=eq.'+row.id,'DELETE');
+    }
+  });
+}
 function loadCommunityTraps(){
-  if (!navigator.onLine) { console.log('[App] Offline — skipping community trap load'); return; }
+  if (!navigator.onLine) {
+    idbGetAll('traps', function(rows){ _applyTrapRows(rows); });
+    return;
+  }
   supaFetch('sg_traps?select=*&order=created_at.desc').then(function(rows){
-    if(!rows||!Array.isArray(rows))return;
-    rows.forEach(function(row){
-      if(traps.find(function(t){return t.supaId===row.id;}))return;
-      var trap={id:nextTrapId++,supaId:row.id,name:row.name,lat:row.lat,lng:row.lng,limit:row.limit_kmh,type:row.type,km:row.km,community:true,yes_votes:row.yes_votes||0,no_votes:row.no_votes||0,created_at:new Date(row.created_at).getTime(),verified:(row.yes_votes||0)>=VOTES_TO_VERIFY};
-      if(!isExpired(trap)&&(row.no_votes||0)<VOTES_TO_REMOVE){
-        traps.push(trap);renderTrapMarker(trap);
-      } else {
-        // Already expired or rejected — clean up from DB silently
-        supaFetch('sg_traps?id=eq.'+row.id,'DELETE');
-      }
-    });
+    idbPut('traps', rows);
+    _applyTrapRows(rows);
   });
 }
 function saveTrapToSupabase(trap){

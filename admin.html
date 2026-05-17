@@ -657,6 +657,27 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
       </div>
     </div>
 
+    <!-- Local Backup -->
+    <div class="set-card">
+      <div class="set-lbl">💾 Local Backup</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.4);margin-bottom:14px">Download a full JSON snapshot of all app data. Restore it to Supabase anytime.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <button class="btn-export" onclick="downloadFullBackup()">⬇ Download Full Backup (JSON)</button>
+        <label class="btn-export" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">📁 Restore from File<input type="file" accept=".json" style="display:none" onchange="restoreFromBackup(this)"></label>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;margin-bottom:10px;flex-wrap:wrap">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+          <input type="checkbox" id="auto-backup-enabled" onchange="saveAutoBackupConfig()" style="width:16px;height:16px;accent-color:#27ae60">
+          <span style="font-size:13px;color:rgba(255,255,255,.7)">Auto-backup</span>
+        </label>
+        <select id="auto-backup-freq" onchange="saveAutoBackupConfig()" style="background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:#fff;border-radius:8px;padding:5px 10px;font-size:12px">
+          <option value="daily">Daily</option>
+          <option value="weekly">Weekly</option>
+        </select>
+      </div>
+      <div id="last-backup-lbl" style="font-size:11px;color:rgba(255,255,255,.3)">Last backup: never</div>
+    </div>
+
     <!-- App Version Breakdown -->
     <div class="set-card">
       <div class="set-lbl">App Version Tracker</div>
@@ -2125,6 +2146,7 @@ function loadSettingsConfig(){
     });
     renderVersionTable();
     loadWaConfig();
+    initAutoBackup();
   });
 }
 
@@ -2186,6 +2208,97 @@ function exportCSV(type){
     a.click();
     showToast('✅ CSV downloaded');
   });
+}
+
+// ══════════════════════════════════════════════════════
+// LOCAL BACKUP
+// ══════════════════════════════════════════════════════
+var BACKUP_TABLES=[
+  'sg_sessions','sg_traps','sg_reviews','sg_chat','sg_sos_log',
+  'sg_road_alerts','sg_hotspots','sg_word_filter','sg_blacklist',
+  'sg_blacklist_attempts','sg_word_filter_log','sg_admin_config'
+];
+
+function downloadFullBackup(){
+  showToast('⏳ Fetching all data…');
+  var backup={version:1,exported_at:new Date().toISOString(),tables:{}};
+  var promises=BACKUP_TABLES.map(function(t){
+    var q=t+'?select=*&limit=10000';
+    if(t!=='sg_admin_config') q+='&order=created_at.desc';
+    return supa(q).then(function(rows){backup.tables[t]=rows||[];}).catch(function(){backup.tables[t]=[];});
+  });
+  Promise.all(promises).then(function(){
+    var json=JSON.stringify(backup,null,2);
+    var a=document.createElement('a');
+    a.href='data:application/json;charset=utf-8,'+encodeURIComponent(json);
+    a.download='speedguardmw_backup_'+new Date().toISOString().slice(0,10)+'.json';
+    a.click();
+    var ts=new Date().toLocaleString();
+    localStorage.setItem('sg_last_backup',ts);
+    var lbl=document.getElementById('last-backup-lbl');
+    if(lbl)lbl.textContent='Last backup: '+ts;
+    showToast('✅ Backup downloaded');
+  });
+}
+
+function restoreFromBackup(input){
+  var file=input.files[0];
+  if(!file)return;
+  if(!confirm('⚠️ This will upsert data from the backup into Supabase. Existing records with the same ID will be overwritten. Continue?')){input.value='';return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var backup=JSON.parse(e.target.result);
+      if(!backup.tables){showToast('❌ Invalid backup file');return;}
+      showToast('⏳ Restoring…');
+      var tables=Object.keys(backup.tables);
+      var done=0;
+      function onDone(){done++;if(done===tables.length)showToast('✅ Restore complete');}
+      tables.forEach(function(t){
+        var rows=backup.tables[t];
+        if(!rows||!rows.length){onDone();return;}
+        fetch(SUPA_URL+'/rest/v1/'+t,{
+          method:'POST',
+          headers:{'apikey':SUPA_KEY,'Authorization':'Bearer '+SUPA_KEY,'Content-Type':'application/json','Prefer':'resolution=merge-duplicates,return=minimal'},
+          body:JSON.stringify(rows)
+        }).then(onDone).catch(onDone);
+      });
+    }catch(err){showToast('❌ Failed to parse backup file');}
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+function saveAutoBackupConfig(){
+  var enabled=document.getElementById('auto-backup-enabled').checked;
+  var freq=document.getElementById('auto-backup-freq').value;
+  localStorage.setItem('sg_auto_backup',JSON.stringify({enabled:enabled,freq:freq}));
+  showToast(enabled?'✅ Auto-backup '+freq+' enabled':'Auto-backup disabled');
+  if(enabled)checkAndAutoBackup({enabled:enabled,freq:freq});
+}
+
+function initAutoBackup(){
+  var last=localStorage.getItem('sg_last_backup');
+  var lbl=document.getElementById('last-backup-lbl');
+  if(lbl&&last)lbl.textContent='Last backup: '+last;
+  try{
+    var cfg=JSON.parse(localStorage.getItem('sg_auto_backup')||'{}');
+    var el=document.getElementById('auto-backup-enabled');
+    var fe=document.getElementById('auto-backup-freq');
+    if(el)el.checked=!!cfg.enabled;
+    if(fe&&cfg.freq)fe.value=cfg.freq;
+    if(cfg.enabled)checkAndAutoBackup(cfg);
+  }catch(e){}
+}
+
+function checkAndAutoBackup(cfg){
+  var last=localStorage.getItem('sg_last_backup');
+  var thresholdMs=cfg.freq==='weekly'?7*24*3600000:24*3600000;
+  var needsBackup=!last||(Date.now()-new Date(last).getTime()>=thresholdMs);
+  if(needsBackup)downloadFullBackup();
+  setTimeout(function(){
+    try{var c=JSON.parse(localStorage.getItem('sg_auto_backup')||'{}');if(c.enabled)checkAndAutoBackup(c);}catch(e){}
+  },3600000);
 }
 
 // ══════════════════════════════════════════════════════
