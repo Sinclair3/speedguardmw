@@ -1445,6 +1445,13 @@ function initApp(){
   loadUsage();
   loadStrip();
   startUptimeBar();
+  // Deep-link via URL hash (e.g. admin.html#live from dashboard KPI tiles)
+  var hash = location.hash.replace('#','');
+  var validTabs = ['usage','live','traps','reviews','locations','broadcast','moderation','alerts','soslog','simulator','settings'];
+  if(hash && validTabs.indexOf(hash) !== -1){
+    var tabEl = document.querySelector('.tab[onclick*="\''+hash+'\'"]');
+    if(tabEl) switchTab(hash, tabEl);
+  }
 }
 
 // ══════════════════════════════════════════════════════
