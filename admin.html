@@ -1154,6 +1154,21 @@ create policy "Admin can read"    on sg_word_filter_log for select using (true);
     </div>
   </div>
 </div>
+
+<!-- APP UPTIME FOOTER -->
+<div id="app-uptime-bar" style="display:none;position:fixed;bottom:0;left:0;right:0;z-index:50;background:rgba(3,6,10,.92);border-top:1px solid rgba(0,255,100,.1);backdrop-filter:blur(8px);padding:7px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;font-family:'Courier New',monospace">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <span style="font-size:9px;letter-spacing:.15em;color:rgba(0,255,100,.45);text-transform:uppercase">Session Uptime</span>
+    <span id="uptime-val" style="font-size:12px;color:rgba(0,255,100,.85);letter-spacing:.08em">00:00:00</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <span style="font-size:9px;letter-spacing:.15em;color:rgba(255,255,255,.25);text-transform:uppercase">Session started</span>
+    <span id="uptime-started" style="font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.04em">—</span>
+    <span style="font-size:9px;letter-spacing:.15em;color:rgba(255,255,255,.25);text-transform:uppercase">M1 · Karonga → Chikwawa</span>
+    <span style="font-size:10px;color:rgba(0,255,100,.35);letter-spacing:.06em">● PANSEWU CONTROL CENTER</span>
+  </div>
+</div>
+
 <div id="toast"></div>
 
 <script>
@@ -1172,7 +1187,11 @@ var DEFAULT_PW     = 'speedguard2025';
   // Live clock
   function tickClock(){
     var el=document.getElementById('cc-clock');
-    if(el) el.textContent=new Date().toLocaleTimeString('en-GB');
+    if(!el)return;
+    var now=new Date();
+    var date=now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
+    var time=now.toLocaleTimeString('en-GB');
+    el.innerHTML=date+'<br>'+time;
   }
   tickClock(); setInterval(tickClock,1000);
 
@@ -1401,11 +1420,31 @@ function initBroadcast(){
 }
 
 // ── INIT ──
+var _appStartTime = null;
+function startUptimeBar(){
+  _appStartTime = Date.now();
+  var bar = document.getElementById('app-uptime-bar');
+  if(bar) bar.style.display='flex';
+  var started = document.getElementById('uptime-started');
+  if(started) started.textContent = new Date(_appStartTime).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}) + ' · ' + new Date(_appStartTime).toLocaleDateString('en-GB',{day:'2-digit',month:'short'});
+  function tick(){
+    var el = document.getElementById('uptime-val');
+    if(!el) return;
+    var s = Math.floor((Date.now()-_appStartTime)/1000);
+    var h = String(Math.floor(s/3600)).padStart(2,'0');
+    var m = String(Math.floor((s%3600)/60)).padStart(2,'0');
+    var sc= String(s%60).padStart(2,'0');
+    el.textContent = h+':'+m+':'+sc;
+  }
+  tick(); setInterval(tick,1000);
+}
+
 function initApp(){
   initRealtime();
   initBroadcast();
   loadUsage();
   loadStrip();
+  startUptimeBar();
 }
 
 // ══════════════════════════════════════════════════════
