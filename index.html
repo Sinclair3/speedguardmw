@@ -2495,7 +2495,12 @@ function initRealtime(){
     };
 
     ws.onerror=function(){ clearTimeout(_rtJoinTimer); realtimeConnected=false; updateChatStatus(); };
-    ws.onclose=function(){ clearTimeout(_rtJoinTimer); realtimeConnected=false; updateChatStatus(); setTimeout(initRealtime,3000); };
+    ws.onclose=function(){
+      clearTimeout(_rtJoinTimer); realtimeConnected=false; updateChatStatus();
+      // Don't reconnect when page is hidden AND user is not live — saves Supabase realtime quota
+      var delay = isLive() ? 3000 : 15000;
+      if(!document.hidden || isLive()) setTimeout(initRealtime, delay);
+    };
     channel=ws;
   }catch(e){ console.warn('Realtime failed:',e.message); setTimeout(initRealtime,5000); }
 }
@@ -6389,8 +6394,15 @@ function syncWakeLockDot() {
 // Re-acquire wake lock when tab becomes visible again
 // (Wake Lock API releases automatically when tab is hidden)
 document.addEventListener('visibilitychange', function() {
-  if (document.visibilityState === 'visible' && isTracking && !wakeLockActive) {
-    requestWakeLock();
+  if (document.visibilityState === 'visible') {
+    if (isTracking && !wakeLockActive) requestWakeLock();
+    // Reconnect WebSocket when app comes back to foreground
+    if (!realtimeConnected && isOnline) initRealtime();
+  } else {
+    // App backgrounded — close WS if user is not live (saves Supabase realtime quota)
+    if (!isLive() && channel && (channel.readyState === 0 || channel.readyState === 1)) {
+      channel.close();
+    }
   }
 });
 

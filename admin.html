@@ -1327,7 +1327,7 @@ function initRealtime() {
         }
       }catch(err){}
     };
-    ws.onclose = function(){ setTimeout(initRealtime,5000); };
+    ws.onclose = function(){ if(!document.hidden) setTimeout(initRealtime,5000); };
     wsAdmin = ws;
   } catch(e) {}
   setInterval(function(){
@@ -1415,9 +1415,21 @@ function initBroadcast(){
       wsAdmin.send(JSON.stringify({topic:'realtime:m1_drivers',event:'phx_join',
         payload:{config:{broadcast:{self:true}}},ref:'admin1'}));
     };
-    wsAdmin.onclose=function(){setTimeout(initBroadcast,5000);};
+    wsAdmin.onclose=function(){if(!document.hidden) setTimeout(initBroadcast,5000);};
   }catch(e){}
 }
+document.addEventListener('visibilitychange',function(){
+  var hidden=document.hidden;
+  // Close both sockets when admin tabs away; reconnect on return
+  if(hidden){
+    if(wsAdmin&&wsAdmin.readyState<=1) wsAdmin.close();
+    var wr=document.getElementById('tab-live')?window._adminWs:null;
+    if(wr&&wr.readyState<=1) wr.close();
+  } else {
+    if(!wsAdmin||wsAdmin.readyState>1) initBroadcast();
+    if(!window._adminWs||window._adminWs.readyState>1) initRealtime();
+  }
+});
 
 // ── INIT ──
 var _appStartTime = null;

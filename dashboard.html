@@ -594,9 +594,9 @@ function connectWS() {
     wsStatus = 'disconnected';
     updateWSStatus();
     if (ws._hb) clearInterval(ws._hb);
-    // Reconnect after 5s
     clearTimeout(wsReconnectTimer);
-    wsReconnectTimer = setTimeout(connectWS, 5000);
+    // Don't reconnect while dashboard is backgrounded
+    if (!document.hidden) wsReconnectTimer = setTimeout(connectWS, 5000);
   };
 }
 
@@ -1108,6 +1108,16 @@ function bootApp() {
 if (checkSession()) {
   bootApp();
 }
+
+document.addEventListener('visibilitychange', function() {
+  if (document.hidden) {
+    // Disconnect when dashboard is backgrounded
+    if (ws && ws.readyState <= 1) ws.close();
+  } else {
+    // Reconnect when dashboard comes back to foreground
+    if (!ws || ws.readyState > 1) connectWS();
+  }
+});
 </script>
 </body>
 </html>
