@@ -171,6 +171,20 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;co
 .spinner{display:inline-block;width:18px;height:18px;border-radius:50%;border:2px solid rgba(255,255,255,.1);border-top-color:#27ae60;animation:spin .7s linear infinite;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
 
+/* CONNECTION MONITOR */
+.conn-monitor{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:14px;padding:16px;margin-bottom:14px}
+.conn-monitor-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;gap:12px;flex-wrap:wrap}
+.conn-monitor-title{font-size:13px;font-weight:700;color:rgba(255,255,255,.7);margin-bottom:3px}
+.conn-monitor-sub{font-size:10px;color:rgba(255,255,255,.25)}
+.conn-kpis{display:flex;gap:14px;flex-shrink:0}
+.conn-kpi{text-align:center}
+.conn-kpi-val{font-size:22px;font-weight:900;line-height:1}
+.conn-kpi-lbl{font-size:9px;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.conn-chart-wrap{width:100%;height:90px;position:relative}
+.conn-chart-wrap svg{width:100%;height:100%;display:block}
+.conn-time-row{display:flex;justify-content:space-between;margin-top:4px}
+.conn-time-lbl{font-size:9px;color:rgba(255,255,255,.2)}
+
 /* CONFIRM */
 #confirm-overlay{display:none;position:fixed;inset:0;z-index:5000;background:rgba(0,0,0,.8);align-items:center;justify-content:center;padding:24px}
 #confirm-overlay.show{display:flex}
@@ -424,6 +438,28 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
       <div class="an-card">
         <div class="an-num" id="an-avg" style="color:#d2a8f5">--</div>
         <div class="an-lbl">Daily Average<br>(selected period)</div>
+      </div>
+    </div>
+
+    <!-- Realtime Connection Monitor -->
+    <div class="conn-monitor">
+      <div class="conn-monitor-hdr">
+        <div>
+          <div class="conn-monitor-title">📡 Realtime Connections</div>
+          <div class="conn-monitor-sub">Live broadcasters · sampled every 30s · red line = Supabase free limit (220)</div>
+        </div>
+        <div class="conn-kpis">
+          <div class="conn-kpi"><div class="conn-kpi-val" id="cn-now">0</div><div class="conn-kpi-lbl">Now</div></div>
+          <div class="conn-kpi"><div class="conn-kpi-val" id="cn-peak" style="color:#f39c12">0</div><div class="conn-kpi-lbl">Peak</div></div>
+          <div class="conn-kpi"><div class="conn-kpi-val" id="cn-avg" style="color:#7fb3d3">0</div><div class="conn-kpi-lbl">Avg</div></div>
+        </div>
+      </div>
+      <div class="conn-chart-wrap">
+        <svg id="conn-svg" viewBox="0 0 400 90" preserveAspectRatio="none"></svg>
+      </div>
+      <div class="conn-time-row">
+        <span class="conn-time-lbl" id="cn-time-start">—</span>
+        <span class="conn-time-lbl">now</span>
       </div>
     </div>
 
@@ -1457,6 +1493,8 @@ function initApp(){
   loadUsage();
   loadStrip();
   startUptimeBar();
+  sampleConnections();
+  setInterval(sampleConnections, 30000);
   // Deep-link via URL hash (e.g. admin.html#live from dashboard KPI tiles)
   var hash = location.hash.replace('#','');
   var validTabs = ['usage','live','traps','reviews','locations','broadcast','moderation','alerts','soslog','simulator','settings'];
@@ -2361,6 +2399,81 @@ function exportCSV(type){
     a.click();
     showToast('✅ CSV downloaded');
   });
+}
+
+// ══════════════════════════════════════════════════════
+// REALTIME CONNECTION MONITOR
+// ══════════════════════════════════════════════════════
+var _connSamples=[], _connMaxSamples=40, CONN_LIMIT=220;
+
+function sampleConnections(){
+  var count=Object.keys(liveDrivers).length;
+  _connSamples.push({ts:Date.now(),count:count});
+  if(_connSamples.length>_connMaxSamples) _connSamples.shift();
+  renderConnChart();
+}
+
+function renderConnChart(){
+  var svg=document.getElementById('conn-svg');
+  var nowEl=document.getElementById('cn-now');
+  var peakEl=document.getElementById('cn-peak');
+  var avgEl=document.getElementById('cn-avg');
+  var startEl=document.getElementById('cn-time-start');
+  if(!svg||!_connSamples.length) return;
+
+  var counts=_connSamples.map(function(s){return s.count;});
+  var cur=counts[counts.length-1];
+  var peakVal=Math.max.apply(null,counts);
+  var avgVal=Math.round(counts.reduce(function(a,b){return a+b;},0)/counts.length);
+  var maxY=Math.max(CONN_LIMIT+40, peakVal+10, 10);
+
+  var color=cur>200?'#e74c3c':cur>150?'#f39c12':'#27ae60';
+  if(nowEl){nowEl.textContent=cur;nowEl.style.color=color;}
+  if(peakEl) peakEl.textContent=peakVal;
+  if(avgEl) avgEl.textContent=avgVal;
+
+  var W=400,H=90,pL=4,pR=4,pT=6,pB=6;
+  var cW=W-pL-pR, cH=H-pT-pB;
+
+  function xOf(i){ return pL+(i/Math.max(_connSamples.length-1,1))*cW; }
+  function yOf(v){ return pT+cH-(v/maxY)*cH; }
+
+  // Limit line Y
+  var limY=yOf(CONN_LIMIT);
+
+  // Polyline points
+  var pts=_connSamples.map(function(s,i){ return [xOf(i),yOf(s.count)]; });
+  var lineD='M '+pts.map(function(p){return p[0]+','+p[1];}).join(' L ');
+  var areaD=lineD+' L '+pts[pts.length-1][0]+','+(pT+cH)+' L '+pL+','+(pT+cH)+' Z';
+
+  // Avg line
+  var avgY=yOf(avgVal);
+
+  svg.innerHTML=
+    // Background grid
+    [.25,.5,.75].map(function(f){
+      var y=pT+cH*f;
+      return '<line x1="'+pL+'" y1="'+y+'" x2="'+(W-pR)+'" y2="'+y+'" stroke="rgba(255,255,255,.05)" stroke-width="1"/>';
+    }).join('')+
+    // Avg line
+    '<line x1="'+pL+'" y1="'+avgY+'" x2="'+(W-pR)+'" y2="'+avgY+'" stroke="rgba(125,179,211,.35)" stroke-width="1" stroke-dasharray="3,4"/>'+
+    // Danger limit line
+    '<line x1="'+pL+'" y1="'+limY+'" x2="'+(W-pR)+'" y2="'+limY+'" stroke="#e74c3c" stroke-width="1.2" stroke-dasharray="5,3" opacity=".75"/>'+
+    '<text x="'+(W-pR-2)+'" y="'+(limY-3)+'" fill="#e74c3c" font-size="7" text-anchor="end" opacity=".75">220 limit</text>'+
+    // Area fill
+    '<path d="'+areaD+'" fill="'+color+'" opacity=".1"/>'+
+    // Line
+    '<path d="'+lineD+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+
+    // Dots — only current sample is large
+    pts.map(function(p,i){
+      var isLast=i===pts.length-1;
+      return '<circle cx="'+p[0]+'" cy="'+p[1]+'" r="'+(isLast?3.5:1.5)+'" fill="'+color+'" opacity="'+(isLast?1:.45)+'"/>';
+    }).join('');
+
+  if(startEl&&_connSamples.length>1){
+    var diffMin=Math.round((Date.now()-_connSamples[0].ts)/60000);
+    startEl.textContent=diffMin>0?diffMin+' min ago':'just now';
+  }
 }
 
 // ══════════════════════════════════════════════════════
