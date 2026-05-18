@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pansewu — QA Test Sheet</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap');
+
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0a0f14;--surface:#111820;--card:#161e28;--border:rgba(255,255,255,.07);
+    --green:#27ae60;--green-dim:rgba(39,174,96,.15);--green-border:rgba(39,174,96,.3);
+    --red:#e74c3c;--red-dim:rgba(231,76,60,.12);--red-border:rgba(231,76,60,.3);
+    --orange:#f39c12;--orange-dim:rgba(243,156,18,.12);--orange-border:rgba(243,156,18,.3);
+    --blue:#3498db;--blue-dim:rgba(52,152,219,.12);--blue-border:rgba(52,152,219,.3);
+    --purple:#9b59b6;--text:#e8edf2;--text-dim:rgba(232,237,242,.45);
+  }
+  body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;min-height:100vh}
+
+  /* ── HEADER ── */
+  .header{background:linear-gradient(135deg,#0d1821 0%,#111f2e 50%,#0a1520 100%);border-bottom:1px solid var(--border);padding:28px 32px 24px;position:relative;overflow:hidden}
+  .header::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 40px,rgba(39,174,96,.02) 40px,rgba(39,174,96,.02) 41px),repeating-linear-gradient(90deg,transparent,transparent 40px,rgba(39,174,96,.02) 40px,rgba(39,174,96,.02) 41px)}
+  .header-inner{position:relative;z-index:1}
+  .header-top{display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px}
+  .brand{display:flex;align-items:center;gap:14px}
+  .brand-icon{width:48px;height:48px;background:var(--green-dim);border:1px solid var(--green-border);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px}
+  .brand-text h1{font-size:22px;font-weight:800;letter-spacing:-.3px}
+  .brand-text h1 span{color:var(--green)}
+  .brand-text p{font-size:11px;color:var(--text-dim);margin-top:2px;font-family:'JetBrains Mono',monospace}
+  .header-meta{display:flex;gap:10px;flex-wrap:wrap}
+  .meta-pill{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;font-family:'JetBrains Mono',monospace}
+  .pill-green{background:var(--green-dim);border:1px solid var(--green-border);color:var(--green)}
+  .pill-blue{background:var(--blue-dim);border:1px solid var(--blue-border);color:var(--blue)}
+  .pill-orange{background:var(--orange-dim);border:1px solid var(--orange-border);color:var(--orange)}
+  .route-strip{margin-top:18px;display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text-dim);font-family:'JetBrains Mono',monospace}
+  .route-line{flex:1;height:2px;background:linear-gradient(90deg,transparent,var(--green),var(--green),transparent);opacity:.4}
+
+  /* ── KPI CARDS ── */
+  .kpi-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;padding:20px 32px}
+  .kpi-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;transition:transform .15s,border-color .15s;cursor:default}
+  .kpi-card:hover{transform:translateY(-2px)}
+  .kpi-num{font-size:32px;font-weight:800;line-height:1;margin-bottom:4px;font-family:'JetBrains Mono',monospace}
+  .kpi-lbl{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-dim)}
+  .kpi-card.k-total{border-color:rgba(255,255,255,.12)} .kpi-card.k-total .kpi-num{color:var(--text)}
+  .kpi-card.k-pass{border-color:var(--green-border);background:var(--green-dim)} .kpi-card.k-pass .kpi-num{color:var(--green)}
+  .kpi-card.k-fail{border-color:var(--red-border);background:var(--red-dim)} .kpi-card.k-fail .kpi-num{color:var(--red)}
+  .kpi-card.k-blocked{border-color:var(--orange-border);background:var(--orange-dim)} .kpi-card.k-blocked .kpi-num{color:var(--orange)}
+  .kpi-card.k-na{border-color:rgba(255,255,255,.1)} .kpi-card.k-na .kpi-num{color:var(--text-dim)}
+  .kpi-card.k-progress .kpi-num{color:var(--blue)}
+
+  /* ── CHARTS ROW ── */
+  .charts-row{display:grid;grid-template-columns:240px 1fr;gap:16px;padding:0 32px 20px}
+  .chart-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px}
+  .chart-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);margin-bottom:16px}
+
+  /* Donut */
+  .donut-wrap{display:flex;align-items:center;gap:20px}
+  .donut-svg{flex-shrink:0}
+  .donut-legend{display:flex;flex-direction:column;gap:8px}
+  .leg-item{display:flex;align-items:center;gap:8px;font-size:12px}
+  .leg-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+  .leg-val{margin-left:auto;font-weight:700;font-family:'JetBrains Mono',monospace;min-width:28px;text-align:right}
+
+  /* Module bars */
+  .mod-bars{display:flex;flex-direction:column;gap:10px}
+  .mod-row{display:grid;grid-template-columns:130px 1fr 48px;align-items:center;gap:10px}
+  .mod-name{font-size:11px;font-weight:600;color:var(--text-dim);white-space:nowrap}
+  .mod-track{height:8px;background:rgba(255,255,255,.06);border-radius:4px;overflow:hidden}
+  .mod-fill{height:100%;border-radius:4px;transition:width .6s cubic-bezier(.4,0,.2,1)}
+  .mod-pct{font-size:11px;font-weight:700;text-align:right;font-family:'JetBrains Mono',monospace;color:var(--text-dim)}
+
+  /* ── CONTROLS ── */
+  .controls{display:flex;align-items:center;gap:10px;padding:0 32px 16px;flex-wrap:wrap}
+  .filter-btn{padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text-dim);transition:all .15s;text-transform:uppercase;letter-spacing:.06em}
+  .filter-btn:hover{background:rgba(255,255,255,.08);color:var(--text)}
+  .filter-btn.active{background:var(--green-dim);border-color:var(--green-border);color:var(--green)}
+  .filter-btn.fb-fail.active{background:var(--red-dim);border-color:var(--red-border);color:var(--red)}
+  .filter-btn.fb-blocked.active{background:var(--orange-dim);border-color:var(--orange-border);color:var(--orange)}
+  .filter-btn.fb-na.active{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.15);color:var(--text)}
+  .search-box{margin-left:auto;padding:6px 12px;background:rgba(255,255,255,.05);border:1px solid var(--border);border-radius:20px;color:var(--text);font-size:12px;outline:none;width:200px;font-family:'Inter',sans-serif}
+  .search-box:focus{border-color:rgba(39,174,96,.4);background:rgba(255,255,255,.07)}
+  .btn-export{padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--blue-border);background:var(--blue-dim);color:var(--blue);transition:all .15s;text-transform:uppercase;letter-spacing:.06em}
+  .btn-export:hover{background:rgba(52,152,219,.25)}
+  .btn-print{padding:6px 16px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer;border:1px solid var(--border);background:rgba(255,255,255,.04);color:var(--text-dim);transition:all .15s;text-transform:uppercase;letter-spacing:.06em}
+  .btn-print:hover{background:rgba(255,255,255,.08)}
+
+  /* ── TABLE ── */
+  .table-wrap{padding:0 32px 40px;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  thead th{background:rgba(255,255,255,.03);border-bottom:2px solid var(--border);padding:10px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--text-dim);white-space:nowrap;position:sticky;top:0;z-index:5}
+  tbody tr{border-bottom:1px solid var(--border);transition:background .12s}
+  tbody tr:hover{background:rgba(255,255,255,.025)}
+  td{padding:10px 12px;vertical-align:top}
+  .td-id{font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--text-dim);white-space:nowrap}
+  .td-module{white-space:nowrap}
+  .mod-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em}
+  .mod-driver{background:rgba(52,152,219,.15);color:#5dade2;border:1px solid rgba(52,152,219,.25)}
+  .mod-dashboard{background:rgba(155,89,182,.15);color:#b97fdc;border:1px solid rgba(155,89,182,.25)}
+  .mod-adminlogin{background:rgba(243,156,18,.12);color:#f0b429;border:1px solid rgba(243,156,18,.25)}
+  .mod-admintab{background:rgba(39,174,96,.12);color:#5ddb8a;border:1px solid rgba(39,174,96,.25)}
+  .mod-perf{background:rgba(231,76,60,.12);color:#e87c74;border:1px solid rgba(231,76,60,.25)}
+  .td-feature{font-weight:600;color:var(--text)}
+  .td-steps{color:var(--text-dim);line-height:1.6;white-space:pre-line;font-size:11px;max-width:200px}
+  .td-expected{color:var(--text-dim);line-height:1.5;max-width:180px}
+  .pri-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase}
+  .pri-high{background:rgba(231,76,60,.15);color:var(--red);border:1px solid rgba(231,76,60,.2)}
+  .pri-medium{background:rgba(243,156,18,.12);color:var(--orange);border:1px solid rgba(243,156,18,.2)}
+  .pri-low{background:rgba(255,255,255,.05);color:var(--text-dim);border:1px solid var(--border)}
+
+  /* Status dropdown */
+  .status-sel{padding:5px 8px;border-radius:8px;font-size:11px;font-weight:700;border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;outline:none;min-width:120px;font-family:'Inter',sans-serif}
+  .status-sel.s-pass{background:var(--green-dim);border-color:var(--green-border);color:var(--green)}
+  .status-sel.s-fail{background:var(--red-dim);border-color:var(--red-border);color:var(--red)}
+  .status-sel.s-blocked{background:var(--orange-dim);border-color:var(--orange-border);color:var(--orange)}
+  .status-sel.s-na{background:rgba(255,255,255,.04);border-color:var(--border);color:var(--text-dim)}
+
+  /* Row state highlights */
+  tr.row-pass td:first-child{border-left:3px solid var(--green)}
+  tr.row-fail td:first-child{border-left:3px solid var(--red)}
+  tr.row-fail{background:rgba(231,76,60,.04)}
+  tr.row-blocked td:first-child{border-left:3px solid var(--orange)}
+  tr.row-blocked{background:rgba(243,156,18,.04)}
+  tr.row-pass{background:rgba(39,174,96,.03)}
+
+  .td-input{width:100%;background:rgba(255,255,255,.04);border:1px solid transparent;border-radius:6px;padding:4px 7px;color:var(--text);font-size:11px;outline:none;font-family:'Inter',sans-serif;resize:none;min-width:100px}
+  .td-input:focus{border-color:rgba(39,174,96,.35);background:rgba(255,255,255,.06)}
+
+  /* Row hidden by filter */
+  tr.hidden-row{display:none}
+
+  /* ── FOOTER ── */
+  .footer{text-align:center;padding:20px;color:var(--text-dim);font-size:11px;font-family:'JetBrains Mono',monospace;border-top:1px solid var(--border)}
+
+  /* ── PRINT ── */
+  @media print{
+    body{background:#fff;color:#000}
+    .controls,.btn-export,.btn-print{display:none}
+    .header{background:#f5f5f5;color:#000;border:none}
+    .brand-text h1,.brand-text h1 span,.kpi-num{color:#000}
+    .chart-card,.kpi-card{border:1px solid #ccc;background:#fff}
+    table{font-size:10px}
+    .status-sel,.td-input{border:1px solid #ccc}
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div class="header-top">
+      <div class="brand">
+        <div class="brand-icon">🛡️</div>
+        <div class="brand-text">
+          <h1>Pansewu <span>QA Test Sheet</span></h1>
+          <p>M1 Highway · Karonga → Chikwawa · v2.0 · Malawi Road Safety PWA</p>
+        </div>
+      </div>
+      <div class="header-meta">
+        <span class="meta-pill pill-green">75 Test Cases</span>
+        <span class="meta-pill pill-blue">10 Modules</span>
+        <span class="meta-pill pill-orange" id="hdr-progress">0% Complete</span>
+      </div>
+    </div>
+    <div class="route-strip">
+      <span>KARONGA</span>
+      <div class="route-line"></div>
+      <span>🛣️ M1 · 1,140 KM</span>
+      <div class="route-line"></div>
+      <span>CHIKWAWA</span>
+    </div>
+  </div>
+</div>
+
+<!-- KPI CARDS -->
+<div class="kpi-row">
+  <div class="kpi-card k-total"><div class="kpi-num" id="kpi-total">75</div><div class="kpi-lbl">Total Tests</div></div>
+  <div class="kpi-card k-pass"><div class="kpi-num" id="kpi-pass">0</div><div class="kpi-lbl">✅ Passed</div></div>
+  <div class="kpi-card k-fail"><div class="kpi-num" id="kpi-fail">0</div><div class="kpi-lbl">❌ Failed</div></div>
+  <div class="kpi-card k-blocked"><div class="kpi-num" id="kpi-blocked">0</div><div class="kpi-lbl">⚠️ Blocked</div></div>
+  <div class="kpi-card k-na"><div class="kpi-num" id="kpi-na">75</div><div class="kpi-lbl">⬜ Not Tested</div></div>
+  <div class="kpi-card k-progress"><div class="kpi-num" id="kpi-pct">0%</div><div class="kpi-lbl">📊 Pass Rate</div></div>
+</div>
+
+<!-- CHARTS ROW -->
+<div class="charts-row">
+
+  <!-- Donut chart -->
+  <div class="chart-card">
+    <div class="chart-title">Overall Status</div>
+    <div class="donut-wrap">
+      <svg class="donut-svg" width="110" height="110" viewBox="0 0 110 110" id="donut-svg">
+        <circle cx="55" cy="55" r="40" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="14"/>
+        <circle id="arc-pass" cx="55" cy="55" r="40" fill="none" stroke="#27ae60" stroke-width="14" stroke-dasharray="0 251.2" stroke-linecap="round" transform="rotate(-90 55 55)" style="transition:stroke-dasharray .6s"/>
+        <circle id="arc-fail" cx="55" cy="55" r="40" fill="none" stroke="#e74c3c" stroke-width="14" stroke-dasharray="0 251.2" stroke-linecap="round" transform="rotate(-90 55 55)" style="transition:stroke-dasharray .6s"/>
+        <circle id="arc-blocked" cx="55" cy="55" r="40" fill="none" stroke="#f39c12" stroke-width="14" stroke-dasharray="0 251.2" stroke-linecap="round" transform="rotate(-90 55 55)" style="transition:stroke-dasharray .6s"/>
+        <text x="55" y="51" text-anchor="middle" font-size="14" font-weight="800" fill="#e8edf2" font-family="JetBrains Mono,monospace" id="donut-pct">0%</text>
+        <text x="55" y="64" text-anchor="middle" font-size="8" fill="rgba(232,237,242,.4)" font-family="Inter,sans-serif">pass rate</text>
+      </svg>
+      <div class="donut-legend">
+        <div class="leg-item"><div class="leg-dot" style="background:#27ae60"></div><span>Passed</span><span class="leg-val" id="leg-pass" style="color:#27ae60">0</span></div>
+        <div class="leg-item"><div class="leg-dot" style="background:#e74c3c"></div><span>Failed</span><span class="leg-val" id="leg-fail" style="color:#e74c3c">0</span></div>
+        <div class="leg-item"><div class="leg-dot" style="background:#f39c12"></div><span>Blocked</span><span class="leg-val" id="leg-blocked" style="color:#f39c12">0</span></div>
+        <div class="leg-item"><div class="leg-dot" style="background:rgba(255,255,255,.2)"></div><span>Not Tested</span><span class="leg-val" id="leg-na" style="color:rgba(232,237,242,.4)">75</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Module progress bars -->
+  <div class="chart-card">
+    <div class="chart-title">Progress by Module</div>
+    <div class="mod-bars" id="mod-bars"></div>
+  </div>
+
+</div>
+
+<!-- CONTROLS -->
+<div class="controls">
+  <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+  <button class="filter-btn" onclick="setFilter('pass',this)">✅ Passed</button>
+  <button class="filter-btn fb-fail" onclick="setFilter('fail',this)">❌ Failed</button>
+  <button class="filter-btn fb-blocked" onclick="setFilter('blocked',this)">⚠️ Blocked</button>
+  <button class="filter-btn fb-na" onclick="setFilter('na',this)">⬜ Not Tested</button>
+  <input class="search-box" id="search-box" placeholder="🔍 Search tests…" oninput="applyFilter()">
+  <button class="btn-export" onclick="exportCSV()">⬇ Export CSV</button>
+  <button class="btn-print" onclick="window.print()">🖨 Print</button>
+</div>
+
+<!-- TABLE -->
+<div class="table-wrap">
+  <table id="test-table">
+    <thead>
+      <tr>
+        <th>Test ID</th>
+        <th>Module</th>
+        <th>Feature</th>
+        <th>Test Steps</th>
+        <th>Expected Result</th>
+        <th>Priority</th>
+        <th>Status</th>
+        <th>Tester</th>
+        <th>Date</th>
+        <th>Device / Browser</th>
+        <th>Feedback / Notes</th>
+      </tr>
+    </thead>
+    <tbody id="test-tbody"></tbody>
+  </table>
+</div>
+
+<div class="footer">Pansewu QA Test Sheet · Auto-saves to browser · Built with ❤️ for Malawi Road Safety</div>
+
+<script>
+var TESTS=[
+  // TC-001 to TC-018 Driver App
+  {id:'TC-001',mod:'Driver App',feat:'Map Loads',steps:'1. Open app URL on browser\n2. Wait for page to load',exp:'Leaflet map appears centred on Malawi M1 route within 5 seconds',pri:'High'},
+  {id:'TC-002',mod:'Driver App',feat:'M1 Route Line',steps:'1. Open app\n2. Look at map',exp:'Green M1 route line visible from Karonga to Chikwawa',pri:'High'},
+  {id:'TC-003',mod:'Driver App',feat:'Hotspots Load',steps:'1. Open app\n2. Zoom into M1 route',exp:'Coloured hotspot markers visible on known accident zones',pri:'Medium'},
+  {id:'TC-004',mod:'Driver App',feat:'Road Alerts Load',steps:'1. Open app\n2. Check map markers',exp:'Alert markers appear on map from database',pri:'High'},
+  {id:'TC-005',mod:'Driver App',feat:'Speed Traps Load',steps:'1. Open app\n2. Check map for trap pins',exp:'Community trap pins visible on map',pri:'High'},
+  {id:'TC-006',mod:'Driver App',feat:'Go Live — Prompt',steps:'1. Tap Go Live button',exp:'Nickname input prompt appears',pri:'High'},
+  {id:'TC-007',mod:'Driver App',feat:'Go Live — Broadcasts',steps:'1. Tap Go Live + enter nickname\n2. Open admin in another tab\n3. Check Live Drivers tab',exp:'Driver marker appears on admin Live Drivers map',pri:'High'},
+  {id:'TC-008',mod:'Driver App',feat:'Go Live — Progress Bar',steps:'1. Tap Go Live\n2. Allow GPS',exp:'km counter and progress bar update as location changes',pri:'Medium'},
+  {id:'TC-009',mod:'Driver App',feat:'Stop Live',steps:'1. Tap Go Live then Stop\n2. Check admin Live Drivers tab',exp:'Marker disappears from admin within 10 seconds',pri:'High'},
+  {id:'TC-010',mod:'Driver App',feat:'Report Speed Trap',steps:'1. Tap report button\n2. Fill in form\n3. Submit',exp:'Appears in admin Trap Reports as pending',pri:'High'},
+  {id:'TC-011',mod:'Driver App',feat:'Report Road Hazard',steps:'1. Tap hazard button\n2. Fill form\n3. Submit',exp:'Appears in admin Road Alerts tab',pri:'High'},
+  {id:'TC-012',mod:'Driver App',feat:'Word Filter — Block',steps:'1. Open community chat\n2. Type a blocked word\n3. Send',exp:'Message rejected. Logged to sg_word_filter_log',pri:'Medium'},
+  {id:'TC-013',mod:'Driver App',feat:'Blacklist Block',steps:'1. Use a blacklisted device ID\n2. Try to go live',exp:'Blocked. Logged to sg_blacklist_attempts',pri:'Medium'},
+  {id:'TC-014',mod:'Driver App',feat:'SOS Button Visible',steps:'1. Open app',exp:'Red SOS button visible on main screen',pri:'High'},
+  {id:'TC-015',mod:'Driver App',feat:'SOS Submission',steps:'1. Tap SOS\n2. Confirm dialog\n3. Submit',exp:'SOS logged in admin SOS Log with location + timestamp',pri:'High'},
+  {id:'TC-016',mod:'Driver App',feat:'Offline — Cache',steps:'1. Load app online\n2. Turn off Wi-Fi / data\n3. Reload map',exp:'Cached traps and alerts still visible without internet',pri:'High'},
+  {id:'TC-017',mod:'Driver App',feat:'Offline — Reconnect',steps:'1. Go offline\n2. Turn Wi-Fi back on',exp:'Data refreshes automatically on reconnect',pri:'Medium'},
+  {id:'TC-018',mod:'Driver App',feat:'PWA Install',steps:'1. Open on Android Chrome\n2. Browser menu → Add to Home Screen',exp:'App installs and opens without browser chrome',pri:'Medium'},
+  // TC-019 to TC-023 Dashboard
+  {id:'TC-019',mod:'Dashboard',feat:'KPI Tiles Load',steps:'1. Open dashboard.html',exp:'Live Drivers / Sessions Today / Active Traps / SOS Count all show numbers',pri:'High'},
+  {id:'TC-020',mod:'Dashboard',feat:'KPI Tiles Clickable',steps:'1. Open dashboard.html\n2. Click each KPI tile',exp:'Each tile redirects to correct admin tab',pri:'Medium'},
+  {id:'TC-021',mod:'Dashboard',feat:'Bar Chart Renders',steps:'1. Open dashboard.html\n2. View sessions chart',exp:'Bar chart visible with bars hanging from top (inverted)',pri:'High'},
+  {id:'TC-022',mod:'Dashboard',feat:'Route Label',steps:'1. Open dashboard.html',exp:'Shows: Karonga ↔ Chikwawa · M1',pri:'Low'},
+  {id:'TC-023',mod:'Dashboard',feat:'Mobile Layout',steps:'1. Open dashboard on phone or narrow browser',exp:'KPI tiles stack 2-column. No horizontal scroll',pri:'High'},
+  // TC-024 to TC-031 Admin Login
+  {id:'TC-024',mod:'Admin Login',feat:'Login Screen Loads',steps:'1. Open admin.html',exp:'Grid background, road SVG icon, monospace font visible',pri:'Medium'},
+  {id:'TC-025',mod:'Admin Login',feat:'Footer — Clock',steps:'1. Open admin.html login screen',exp:'Live clock with current date and time visible in footer',pri:'Low'},
+  {id:'TC-026',mod:'Admin Login',feat:'Footer — Last Session',steps:'1. Open admin.html (not first login)',exp:'Previous login timestamp visible in footer',pri:'Low'},
+  {id:'TC-027',mod:'Admin Login',feat:'Footer — IP Location',steps:'1. Open admin.html login screen',exp:'City and country detected from IP in footer',pri:'Low'},
+  {id:'TC-028',mod:'Admin Login',feat:'Wrong Password',steps:'1. Enter incorrect password\n2. Click Login',exp:'Error shown. Does not log in.',pri:'High'},
+  {id:'TC-029',mod:'Admin Login',feat:'Correct Password',steps:'1. Enter correct password\n2. Click Login',exp:'Logs in. Admin dashboard appears.',pri:'High'},
+  {id:'TC-030',mod:'Admin Login',feat:'Auto-Login',steps:'1. Log in\n2. Close tab\n3. Reopen within 8 hours',exp:'Skips login and goes straight to dashboard',pri:'Medium'},
+  {id:'TC-031',mod:'Admin Login',feat:'Logout',steps:'1. While logged in\n2. Click Logout',exp:'Session cleared. Returns to login screen.',pri:'High'},
+  // TC-032 to TC-035 Admin Top Bar
+  {id:'TC-032',mod:'Admin Top Bar',feat:'Title Centred',steps:'1. Log in to admin',exp:'"Pansewu Control Center" centred in top bar',pri:'Low'},
+  {id:'TC-033',mod:'Admin Top Bar',feat:'Dashboard Link',steps:'1. Click 📊 Dashboard in top bar',exp:'Opens dashboard.html',pri:'Low'},
+  {id:'TC-034',mod:'Admin Top Bar',feat:'App Link',steps:'1. Click ← App in top bar',exp:'Opens index.html',pri:'Low'},
+  {id:'TC-035',mod:'Admin Top Bar',feat:'Live Count',steps:'1. Have a driver go live\n2. Check top bar',exp:'👥 X online updates in real time',pri:'Medium'},
+  // TC-036 to TC-037 Stats Strip
+  {id:'TC-036',mod:'Admin Stats Strip',feat:'All Stats Show',steps:'1. Log in to admin\n2. View stats strip',exp:'Users Today / Week / Month / All Time / Active Traps / Live Now all show numbers',pri:'High'},
+  {id:'TC-037',mod:'Admin Stats Strip',feat:'Strip Centred',steps:'1. Log in to admin',exp:'Stats strip cards are centred on screen',pri:'Low'},
+  // TC-038 to TC-050 Usage Tab
+  {id:'TC-038',mod:'Admin Usage Tab',feat:'Sessions Stats',steps:'1. Click Usage tab',exp:'Sessions Today / Yesterday / Week / Month / All Time show correct numbers',pri:'High'},
+  {id:'TC-039',mod:'Admin Usage Tab',feat:'Daily Average',steps:'1. Click Usage tab',exp:'Daily Average shows calculated number (not 0)',pri:'High'},
+  {id:'TC-040',mod:'Admin Usage Tab',feat:'Chart Title Correct',steps:'1. Click Usage tab',exp:'Shows "Daily Sessions — Last 7 Days" (not "Last undefined Days")',pri:'High'},
+  {id:'TC-041',mod:'Admin Usage Tab',feat:'Bar Chart Renders',steps:'1. Click Usage tab',exp:'Bar chart renders with bars for each day',pri:'High'},
+  {id:'TC-042',mod:'Admin Usage Tab',feat:'Period Buttons',steps:'1. Click 2 Weeks / 30 Days / 3 Months',exp:'Chart updates to show correct time period',pri:'Medium'},
+  {id:'TC-043',mod:'Admin Usage Tab',feat:'Tab Bar Centred',steps:'1. Log in to admin',exp:'Tab navigation bar centred on screen',pri:'Low'},
+  {id:'TC-044',mod:'Admin Usage Tab',feat:'Platform Breakdown',steps:'1. Run ALTER TABLE SQL\n2. Click Usage tab',exp:'iOS / Android / Windows / Other show counts (not --)',pri:'Medium'},
+  {id:'TC-045',mod:'Admin Usage Tab',feat:'Recent Sessions Table',steps:'1. Click Usage tab\n2. Scroll down',exp:'Recent Driver Sessions table shows rows',pri:'High'},
+  {id:'TC-046',mod:'Admin Usage Tab',feat:'Table Sort',steps:'1. Click column headers in sessions table',exp:'Rows re-sort. Arrow indicator changes.',pri:'Medium'},
+  {id:'TC-047',mod:'Admin Usage Tab',feat:'Table Search',steps:'1. Type name in search box',exp:'Table filters live to matching rows',pri:'Medium'},
+  {id:'TC-048',mod:'Admin Usage Tab',feat:'Connection Monitor Chart',steps:'1. Click Usage tab\n2. Scroll to Realtime Connections card',exp:'Sparkline line chart renders inside card',pri:'Medium'},
+  {id:'TC-049',mod:'Admin Usage Tab',feat:'Connection Stats Update',steps:'1. View connection monitor\n2. Wait 30 seconds',exp:'NOW / PEAK / AVG values update after 30s',pri:'Medium'},
+  {id:'TC-050',mod:'Admin Usage Tab',feat:'Connection Danger Line',steps:'1. View connection monitor chart',exp:'Horizontal danger line visible at 220 threshold',pri:'Low'},
+  // TC-051 to TC-053 Live Drivers
+  {id:'TC-051',mod:'Admin Live Drivers',feat:'Map Loads',steps:'1. Click Live Drivers tab',exp:'Leaflet map appears inside tab',pri:'High'},
+  {id:'TC-052',mod:'Admin Live Drivers',feat:'Driver Appears',steps:'1. Open app and tap Go Live\n2. Check Live Drivers tab',exp:'Driver marker appears on map with nickname',pri:'High'},
+  {id:'TC-053',mod:'Admin Live Drivers',feat:'Driver Removes',steps:'1. Driver taps Stop\n2. Check Live Drivers tab',exp:'Marker disappears within seconds',pri:'High'},
+  // TC-054 to TC-056 Trap Reports
+  {id:'TC-054',mod:'Admin Trap Reports',feat:'Pending List',steps:'1. Submit trap from app\n2. Click Trap Reports in admin',exp:'Report appears in pending list',pri:'High'},
+  {id:'TC-055',mod:'Admin Trap Reports',feat:'Approve Report',steps:'1. Click Approve on a pending report',exp:'Appears on public driver map',pri:'High'},
+  {id:'TC-056',mod:'Admin Trap Reports',feat:'Reject Report',steps:'1. Click Reject on a pending report',exp:'Removed from pending list',pri:'High'},
+  // TC-057 Broadcast
+  {id:'TC-057',mod:'Admin Broadcast',feat:'Send Message',steps:'1. Click Broadcast tab\n2. Type a message\n3. Click Send',exp:'Message delivered to all connected driver apps in real time',pri:'High'},
+  // TC-058 to TC-060 Road Alerts
+  {id:'TC-058',mod:'Admin Road Alerts',feat:'View Alerts',steps:'1. Click Road Alerts tab',exp:'List of active road alerts visible',pri:'High'},
+  {id:'TC-059',mod:'Admin Road Alerts',feat:'Add Alert',steps:'1. Fill in new alert form\n2. Submit',exp:'New alert in list and on driver map',pri:'High'},
+  {id:'TC-060',mod:'Admin Road Alerts',feat:'Delete Alert',steps:'1. Click delete on an alert',exp:'Removed from list and driver map',pri:'High'},
+  // TC-061 to TC-063 Moderation
+  {id:'TC-061',mod:'Admin Moderation',feat:'Word Filter Log',steps:'1. Trigger blocked word in chat\n2. Click Moderation tab',exp:'Blocked message entry in word filter log',pri:'Medium'},
+  {id:'TC-062',mod:'Admin Moderation',feat:'Blacklist Log',steps:'1. Trigger blacklisted attempt\n2. Click Moderation tab',exp:'Blocked attempt in blacklist log',pri:'Medium'},
+  {id:'TC-063',mod:'Admin Moderation',feat:'Add to Blacklist',steps:'1. Add a device ID to blacklist',exp:'Device blocked from going live',pri:'Medium'},
+  // TC-064 SOS Log
+  {id:'TC-064',mod:'Admin SOS Log',feat:'View SOS',steps:'1. Submit SOS from app\n2. Click SOS Log tab',exp:'SOS entry with location and timestamp',pri:'High'},
+  // TC-065 to TC-067 Settings
+  {id:'TC-065',mod:'Admin Settings',feat:'Change Password',steps:'1. Click Settings\n2. Enter new password\n3. Save',exp:'Password updated. Old one no longer works.',pri:'High'},
+  {id:'TC-066',mod:'Admin Settings',feat:'WhatsApp Config',steps:'1. Click Settings tab',exp:'Phone number and API key fields visible',pri:'Medium'},
+  {id:'TC-067',mod:'Admin Settings',feat:'WhatsApp Toggles',steps:'1. Click Settings tab',exp:'7 event toggle switches visible',pri:'Medium'},
+  // TC-068 to TC-070 Backup
+  {id:'TC-068',mod:'Admin Backup',feat:'Download Backup',steps:'1. Click Settings\n2. Click Download Backup',exp:'JSON file downloaded with all data',pri:'High'},
+  {id:'TC-069',mod:'Admin Backup',feat:'Restore from File',steps:'1. Click Settings\n2. Upload a backup JSON',exp:'Data restored successfully',pri:'High'},
+  {id:'TC-070',mod:'Admin Backup',feat:'Auto-Backup Config',steps:'1. Set auto-backup to Daily or Weekly',exp:'Schedule saved. Backup triggers automatically',pri:'Medium'},
+  // TC-071 to TC-072 Uptime Bar
+  {id:'TC-071',mod:'Admin Uptime Bar',feat:'Bar Visible',steps:'1. Log in to admin',exp:'Green uptime bar fixed at bottom of screen',pri:'Low'},
+  {id:'TC-072',mod:'Admin Uptime Bar',feat:'Timer Counts',steps:'1. Log in\n2. Wait and observe',exp:'HH:MM:SS timer counting up from login',pri:'Low'},
+  // TC-073 to TC-075 Performance
+  {id:'TC-073',mod:'Performance',feat:'WebSocket Disconnect',steps:'1. Log in to admin\n2. Switch / minimise tab\n3. Check DevTools → Network → WS',exp:'WebSocket closes when page is backgrounded',pri:'Medium'},
+  {id:'TC-074',mod:'Performance',feat:'WebSocket Reconnect',steps:'1. Background tab (TC-073)\n2. Return to admin tab',exp:'WebSocket reconnects automatically',pri:'Medium'},
+  {id:'TC-075',mod:'Performance',feat:'Mobile Admin Layout',steps:'1. Open admin.html on phone',exp:'Scrolls single column. No content cut off.',pri:'High'}
+];
+
+var MOD_COLORS={
+  'Driver App':'mod-driver','Dashboard':'mod-dashboard',
+  'Admin Login':'mod-adminlogin','Admin Top Bar':'mod-admintab',
+  'Admin Stats Strip':'mod-admintab','Admin Usage Tab':'mod-admintab',
+  'Admin Live Drivers':'mod-admintab','Admin Trap Reports':'mod-admintab',
+  'Admin Broadcast':'mod-admintab','Admin Road Alerts':'mod-admintab',
+  'Admin Moderation':'mod-admintab','Admin SOS Log':'mod-admintab',
+  'Admin Settings':'mod-adminlogin','Admin Backup':'mod-adminlogin',
+  'Admin Uptime Bar':'mod-admintab','Performance':'mod-perf'
+};
+
+var BAR_COLORS=['#27ae60','#3498db','#9b59b6','#f39c12','#e74c3c','#1abc9c','#e67e22','#2ecc71','#8e44ad','#16a085'];
+
+var state = {};
+var currentFilter = 'all';
+
+function loadState(){
+  try{ state = JSON.parse(localStorage.getItem('pansewu_qa')||'{}'); }catch(e){ state={}; }
+}
+function saveState(){ localStorage.setItem('pansewu_qa', JSON.stringify(state)); }
+
+function buildTable(){
+  var tbody = document.getElementById('test-tbody');
+  tbody.innerHTML = '';
+  TESTS.forEach(function(t){
+    var s = state[t.id] || {status:'',tester:'',date:'',device:'',notes:''};
+    var tr = document.createElement('tr');
+    tr.id = 'row-'+t.id;
+    tr.dataset.mod = t.mod;
+    tr.dataset.status = s.status||'na';
+    if(s.status==='Pass') tr.className='row-pass';
+    else if(s.status==='Fail') tr.className='row-fail';
+    else if(s.status==='Blocked') tr.className='row-blocked';
+
+    var modCls = MOD_COLORS[t.mod]||'mod-admintab';
+    var priCls = t.pri==='High'?'pri-high':t.pri==='Medium'?'pri-medium':'pri-low';
+    var selCls = s.status==='Pass'?'s-pass':s.status==='Fail'?'s-fail':s.status==='Blocked'?'s-blocked':'s-na';
+
+    tr.innerHTML =
+      '<td class="td-id">'+t.id+'</td>'+
+      '<td class="td-module"><span class="mod-badge '+modCls+'">'+t.mod+'</span></td>'+
+      '<td class="td-feature">'+t.feat+'</td>'+
+      '<td class="td-steps">'+t.steps+'</td>'+
+      '<td class="td-expected">'+t.exp+'</td>'+
+      '<td><span class="pri-badge '+priCls+'">'+t.pri+'</span></td>'+
+      '<td><select class="status-sel '+selCls+'" onchange="onStatus(\''+t.id+'\',this)">'+
+        '<option value="">— Not Tested</option>'+
+        '<option value="Pass"'+(s.status==='Pass'?' selected':'')+'>✅ Pass</option>'+
+        '<option value="Fail"'+(s.status==='Fail'?' selected':'')+'>❌ Fail</option>'+
+        '<option value="Blocked"'+(s.status==='Blocked'?' selected':'')+'>⚠️ Blocked</option>'+
+      '</select></td>'+
+      '<td><input class="td-input" placeholder="Tester name" value="'+esc(s.tester)+'" oninput="onField(\''+t.id+'\',\'tester\',this.value)"></td>'+
+      '<td><input class="td-input" type="date" value="'+esc(s.date)+'" oninput="onField(\''+t.id+'\',\'date\',this.value)"></td>'+
+      '<td><input class="td-input" placeholder="Device / Browser" value="'+esc(s.device)+'" oninput="onField(\''+t.id+'\',\'device\',this.value)"></td>'+
+      '<td><textarea class="td-input" rows="2" placeholder="Notes / feedback" oninput="onField(\''+t.id+'\',\'notes\',this.value)">'+esc(s.notes)+'</textarea></td>';
+    tbody.appendChild(tr);
+  });
+}
+
+function esc(v){ return (v||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+
+function onStatus(id, sel){
+  var val = sel.value;
+  sel.className = 'status-sel '+(val==='Pass'?'s-pass':val==='Fail'?'s-fail':val==='Blocked'?'s-blocked':'s-na');
+  var tr = document.getElementById('row-'+id);
+  tr.className = val==='Pass'?'row-pass':val==='Fail'?'row-fail':val==='Blocked'?'row-blocked':'';
+  tr.dataset.status = val||'na';
+  if(!state[id]) state[id]={};
+  state[id].status = val;
+  saveState(); updateStats(); applyFilter();
+}
+
+function onField(id,field,val){
+  if(!state[id]) state[id]={};
+  state[id][field]=val;
+  saveState();
+}
+
+function updateStats(){
+  var counts={pass:0,fail:0,blocked:0,na:0};
+  TESTS.forEach(function(t){
+    var s=(state[t.id]||{}).status||'';
+    if(s==='Pass') counts.pass++;
+    else if(s==='Fail') counts.fail++;
+    else if(s==='Blocked') counts.blocked++;
+    else counts.na++;
+  });
+  var total=TESTS.length;
+  var pct=total?Math.round(counts.pass/total*100):0;
+  document.getElementById('kpi-pass').textContent=counts.pass;
+  document.getElementById('kpi-fail').textContent=counts.fail;
+  document.getElementById('kpi-blocked').textContent=counts.blocked;
+  document.getElementById('kpi-na').textContent=counts.na;
+  document.getElementById('kpi-pct').textContent=pct+'%';
+  document.getElementById('hdr-progress').textContent=pct+'% Complete';
+  document.getElementById('leg-pass').textContent=counts.pass;
+  document.getElementById('leg-fail').textContent=counts.fail;
+  document.getElementById('leg-blocked').textContent=counts.blocked;
+  document.getElementById('leg-na').textContent=counts.na;
+  document.getElementById('donut-pct').textContent=pct+'%';
+  updateDonut(counts,total);
+  updateModBars();
+}
+
+function updateDonut(counts,total){
+  var circ=251.2;
+  var passArc=total?counts.pass/total*circ:0;
+  var failArc=total?counts.fail/total*circ:0;
+  var blockedArc=total?counts.blocked/total*circ:0;
+  var arcPass=document.getElementById('arc-pass');
+  var arcFail=document.getElementById('arc-fail');
+  var arcBlocked=document.getElementById('arc-blocked');
+  arcPass.setAttribute('stroke-dasharray',passArc+' '+circ);
+  var failOffset=-(passArc);
+  arcFail.setAttribute('stroke-dasharray',failArc+' '+circ);
+  arcFail.setAttribute('transform','rotate('+((-90)+(passArc/circ*360))+' 55 55)');
+  arcBlocked.setAttribute('stroke-dasharray',blockedArc+' '+circ);
+  arcBlocked.setAttribute('transform','rotate('+((-90)+((passArc+failArc)/circ*360))+' 55 55)');
+}
+
+function updateModBars(){
+  var mods={};
+  TESTS.forEach(function(t){
+    if(!mods[t.mod]) mods[t.mod]={total:0,pass:0,tested:0};
+    mods[t.mod].total++;
+    var s=(state[t.id]||{}).status||'';
+    if(s==='Pass') mods[t.mod].pass++;
+    if(s) mods[t.mod].tested++;
+  });
+  var container=document.getElementById('mod-bars');
+  container.innerHTML='';
+  var keys=Object.keys(mods);
+  keys.forEach(function(mod,i){
+    var d=mods[mod];
+    var pct=d.total?Math.round(d.pass/d.total*100):0;
+    var testPct=d.total?Math.round(d.tested/d.total*100):0;
+    var color=BAR_COLORS[i%BAR_COLORS.length];
+    var row=document.createElement('div');
+    row.className='mod-row';
+    row.innerHTML=
+      '<div class="mod-name">'+mod+'</div>'+
+      '<div class="mod-track"><div class="mod-fill" style="width:'+pct+'%;background:'+color+'"></div></div>'+
+      '<div class="mod-pct" style="color:'+color+'">'+pct+'%</div>';
+    container.appendChild(row);
+  });
+}
+
+var activeFilterBtn=null;
+function setFilter(f,btn){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active')});
+  btn.classList.add('active');
+  applyFilter();
+}
+
+function applyFilter(){
+  var q=(document.getElementById('search-box').value||'').toLowerCase().trim();
+  var rows=document.querySelectorAll('#test-tbody tr');
+  rows.forEach(function(tr){
+    var status=tr.dataset.status||'na';
+    var matchFilter=currentFilter==='all'||status===currentFilter||(currentFilter==='na'&&!tr.dataset.status);
+    var text=tr.textContent.toLowerCase();
+    var matchSearch=!q||text.includes(q);
+    tr.classList.toggle('hidden-row',!(matchFilter&&matchSearch));
+  });
+}
+
+function exportCSV(){
+  var cols=['Test ID','Module','Feature','Test Steps','Expected Result','Priority','Status','Tester','Date','Device/Browser','Notes'];
+  var rows=[cols.join(',')];
+  TESTS.forEach(function(t){
+    var s=state[t.id]||{};
+    var vals=[t.id,t.mod,t.feat,t.steps.replace(/\n/g,' '),t.exp,t.pri,s.status||'Not Tested',s.tester||'',s.date||'',s.device||'',s.notes||''];
+    rows.push(vals.map(function(v){return '"'+(v||'').replace(/"/g,'""')+'"';}).join(','));
+  });
+  var blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='Pansewu_Test_Results_'+new Date().toISOString().substring(0,10)+'.csv';
+  a.click();
+}
+
+loadState();
+buildTable();
+updateStats();
+</script>
+</body>
+</html>
