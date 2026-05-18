@@ -50,8 +50,10 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;co
 
 /* LAYOUT */
 #app{display:none}
-.top-bar{background:rgba(10,15,20,.98);border-bottom:1px solid rgba(255,255,255,.08);padding:14px 20px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
-.top-bar-left{display:flex;align-items:center;gap:12px}
+.top-bar{background:rgba(10,15,20,.98);border-bottom:1px solid rgba(255,255,255,.08);padding:14px 20px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;position:sticky;top:0;z-index:100;backdrop-filter:blur(12px)}
+.top-bar-left{display:flex;align-items:center;gap:12px;justify-self:start}
+.top-bar-center{justify-self:center;text-align:center}
+.top-bar > div:last-child{justify-self:end}
 .tb-logo{font-size:20px;font-weight:800}
 .tb-logo span{color:#27ae60}
 .tb-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:8px;background:rgba(231,76,60,.2);border:1px solid rgba(231,76,60,.4);color:#e74c3c;text-transform:uppercase;letter-spacing:.08em}
@@ -59,14 +61,14 @@ body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;co
 .btn-logout:hover{background:rgba(255,255,255,.1);color:#fff}
 
 /* SUMMARY STRIP */
-.stats-strip{display:flex;gap:10px;padding:14px 20px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid rgba(255,255,255,.06)}
+.stats-strip{display:flex;gap:10px;padding:14px 20px;overflow-x:auto;scrollbar-width:none;border-bottom:1px solid rgba(255,255,255,.06);justify-content:center}
 .stats-strip::-webkit-scrollbar{display:none}
 .strip-card{flex-shrink:0;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:13px;padding:12px 16px;min-width:120px;text-align:center}
 .strip-num{font-size:26px;font-weight:800;margin-bottom:2px}
 .strip-lbl{font-size:10px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.05em}
 
 /* TABS */
-.tab-bar{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);padding:0 20px;overflow-x:auto;scrollbar-width:none}
+.tab-bar{display:flex;gap:0;border-bottom:1px solid rgba(255,255,255,.08);padding:0 20px;overflow-x:auto;scrollbar-width:none;justify-content:center}
 .tab-bar::-webkit-scrollbar{display:none}
 .tab{flex-shrink:0;padding:12px 16px;font-size:13px;font-weight:600;color:rgba(255,255,255,.4);cursor:pointer;border-bottom:2px solid transparent;transition:all .2s;white-space:nowrap}
 .tab.active{color:#27ae60;border-bottom-color:#27ae60}
@@ -345,10 +347,12 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
 
   <div class="top-bar">
     <div class="top-bar-left">
-      <div class="tb-logo">Pansewu <span>Control Center</span></div>
       <div class="tb-badge">Ops</div>
     </div>
-    <div style="display:flex;align-items:center;gap:10px">
+    <div class="top-bar-center">
+      <div class="tb-logo">Pansewu <span>Control Center</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;justify-self:end">
       <span id="live-count" style="font-size:12px;color:rgba(255,255,255,.4)">👥 0 online</span>
       <a href="./dashboard.html" style="padding:7px 14px;border-radius:8px;background:rgba(52,152,219,.15);border:1px solid rgba(52,152,219,.3);color:#5dade2;font-size:12px;font-weight:700;text-decoration:none">📊 Dashboard</a>
       <a href="./index.html" style="padding:7px 14px;border-radius:8px;background:rgba(39,174,96,.15);border:1px solid rgba(39,174,96,.3);color:#5ddb8a;font-size:12px;font-weight:700;text-decoration:none">← App</a>
@@ -1320,6 +1324,8 @@ function changePw() {
     showToast('⚠️ Saved locally only — check sg_admin_config table');
   });
 }
+var allSessions=[];
+var currentPeriod=7;
 (function(){
   var sess = parseInt(localStorage.getItem('sg_admin_sess')||'0');
   if (Date.now()-sess < 8*3600000){
@@ -1550,8 +1556,6 @@ function loadStrip(){
 // ══════════════════════════════════════════════════════
 // USAGE ANALYTICS
 // ══════════════════════════════════════════════════════
-var allSessions=[];
-var currentPeriod=7;
 
 function setPeriod(days, el){
   document.querySelectorAll('.ptab').forEach(function(t){t.classList.remove('active');});
@@ -1571,6 +1575,7 @@ function loadUsage(){
 }
 
 function renderUsage(rows){
+  var period = currentPeriod || 7;
   var now=new Date();
   var today=now.toISOString().substring(0,10);
   var yesterday=new Date(now-86400000).toISOString().substring(0,10);
@@ -1585,8 +1590,8 @@ function renderUsage(rows){
 
   // Build daily buckets for the selected period
   var buckets={};
-  var cutoff=new Date(now - currentPeriod*86400000);
-  for(var i=0;i<currentPeriod;i++){
+  var cutoff=new Date(now - period*86400000);
+  for(var i=0;i<period;i++){
     var d=new Date(cutoff.getTime()+(i+1)*86400000);
     buckets[d.toISOString().substring(0,10)]=0;
   }
@@ -1600,7 +1605,7 @@ function renderUsage(rows){
   var total=vals.reduce(function(a,b){return a+b;},0);
   var avg=days.length?Math.round(total/days.length*10)/10:0;
   document.getElementById('an-avg').textContent=avg;
-  document.getElementById('chart-title').textContent='Daily Sessions — Last '+currentPeriod+' Days';
+  document.getElementById('chart-title').textContent='Daily Sessions — Last '+period+' Days';
 
   // Draw bar chart
   var maxVal=Math.max.apply(null,vals)||1;
