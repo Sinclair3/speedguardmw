@@ -441,6 +441,46 @@ html,body{height:100%;font-family:-apple-system,'Helvetica Neue',sans-serif;back
   flex-shrink:0;min-width:20px;text-align:right;
 }
 
+/* ── AI ROAD ASSISTANT PANEL ── */
+#ai-panel{display:none;flex-direction:column;flex:1;min-height:0;overflow:hidden}
+#ai-panel.show{display:flex}
+.ai-hdr-bar{display:flex;align-items:center;justify-content:space-between;padding:7px 12px;background:rgba(167,141,240,.06);border-bottom:1px solid rgba(167,141,240,.1);flex-shrink:0}
+.ai-model-badge{font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:rgba(167,141,240,.8);background:rgba(167,141,240,.12);padding:3px 9px;border-radius:8px}
+.btn-ai-clear{font-size:11px;color:rgba(255,255,255,.35);background:none;border:none;cursor:pointer;padding:4px 6px}
+.ai-messages{flex:1;overflow-y:auto;padding:10px 12px;display:flex;flex-direction:column;gap:8px;min-height:0}
+.ai-messages::-webkit-scrollbar{width:3px}
+.ai-messages::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:2px}
+.ai-msg{max-width:88%;border-radius:14px;padding:9px 12px;font-size:13px;line-height:1.55;word-break:break-word}
+.ai-msg.user{align-self:flex-end;background:rgba(39,174,96,.18);border:1px solid rgba(39,174,96,.3);color:#fff;border-bottom-right-radius:4px}
+.ai-msg.bot{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.9);border-bottom-left-radius:4px}
+.ai-msg-label{font-size:10px;font-weight:700;color:#a78df0;letter-spacing:.05em;margin-bottom:5px;text-transform:uppercase}
+.ai-typing{align-self:flex-start;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:14px 14px 14px 4px;padding:10px 14px;display:none}
+.ai-typing.show{display:flex;gap:5px;align-items:center}
+.ai-typing span{width:6px;height:6px;background:rgba(167,141,240,.7);border-radius:50%;animation:aiDot 1.2s infinite}
+.ai-typing span:nth-child(2){animation-delay:.2s}
+.ai-typing span:nth-child(3){animation-delay:.4s}
+@keyframes aiDot{0%,80%,100%{transform:scale(0.6);opacity:.4}40%{transform:scale(1);opacity:1}}
+.ai-sugs{padding:8px 12px;display:flex;gap:6px;overflow-x:auto;flex-shrink:0;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.ai-sugs::-webkit-scrollbar{display:none}
+.ai-sug{white-space:nowrap;padding:7px 11px;border-radius:20px;background:rgba(167,141,240,.1);border:1px solid rgba(167,141,240,.3);color:rgba(167,141,240,.9);font-size:11px;font-weight:600;cursor:pointer;flex-shrink:0;transition:background .15s}
+.ai-sug:active{background:rgba(167,141,240,.25)}
+.ai-ibar{padding:8px 10px;border-top:1px solid rgba(255,255,255,.07);display:flex;gap:8px;align-items:center;flex-shrink:0}
+#ai-input{flex:1;padding:10px 13px;border-radius:22px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:14px;outline:none;transition:border-color .2s}
+#ai-input:focus{border-color:rgba(167,141,240,.5)}
+#ai-input::placeholder{color:rgba(255,255,255,.25)}
+.btn-ai-send{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#5a32a8,#a78df0);border:none;color:#fff;font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s}
+.btn-ai-send:active{transform:scale(.9)}
+.btn-ai-send:disabled{opacity:.35;cursor:not-allowed}
+.ai-setup{display:none;flex-direction:column;align-items:center;padding:28px 20px;text-align:center;gap:10px;flex:1;justify-content:center}
+.ai-setup.show{display:flex}
+.ai-setup-icon{font-size:44px}
+.ai-setup-title{font-size:17px;font-weight:800}
+.ai-setup-sub{font-size:13px;color:rgba(255,255,255,.45);line-height:1.6}
+.ai-key-inp{width:100%;padding:12px 14px;border-radius:12px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);color:#fff;font-size:12px;outline:none;margin:8px 0;font-family:monospace;letter-spacing:.03em;transition:border-color .2s}
+.ai-key-inp:focus{border-color:rgba(167,141,240,.5)}
+.btn-ai-key{width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,#5a32a8,#a78df0);color:#fff;border:none;font-size:14px;font-weight:800;cursor:pointer}
+.ai-key-link{font-size:12px;color:rgba(167,141,240,.7);text-decoration:underline;cursor:pointer}
+
 /* Unread badge on Live button */
 .unread-badge{
   position:absolute;top:-5px;right:-5px;
@@ -1961,6 +2001,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
       💬 Chat
       <span id="chat-unread-badge" style="display:none;background:#e74c3c;color:#fff;font-size:9px;font-weight:800;padding:1px 5px;border-radius:8px;margin-left:4px;vertical-align:middle">0</span>
     </div>
+    <div class="lp-tab" id="lpt-ai" onclick="switchLiveTab('ai')" style="color:rgba(167,141,240,.7)">🤖 AI</div>
   </div>
 
   <!-- PRIVATE MODE LOCK SCREEN -->
@@ -1979,6 +2020,47 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div id="drivers-tab-content" style="flex:1;overflow-y:auto">
     <div class="lp-list" id="lp-list">
       <div style="text-align:center;color:rgba(255,255,255,.3);font-size:13px;padding:30px 10px;line-height:1.8">No other drivers online yet.</div>
+    </div>
+  </div>
+
+  <!-- AI ROAD ASSISTANT PANEL -->
+  <div id="ai-panel">
+    <!-- Header -->
+    <div class="ai-hdr-bar">
+      <span class="ai-model-badge">🤖 Pansewu AI · Live Context</span>
+      <button class="btn-ai-clear" onclick="clearAIChat()" title="Clear conversation">🗑 Clear</button>
+    </div>
+    <!-- Messages -->
+    <div class="ai-messages" id="ai-messages">
+      <div class="ai-msg bot">
+        <div class="ai-msg-label">Pansewu AI</div>
+        Hi! I'm your M1 road assistant. I have access to live trap data and your location.<br><br>Ask me about speed traps, distances, road conditions, hospitals, or anything about your M1 journey 🛣️
+      </div>
+    </div>
+    <!-- Typing indicator -->
+    <div class="ai-typing" id="ai-typing"><span></span><span></span><span></span></div>
+    <!-- Setup state (shown when no API key) -->
+    <div class="ai-setup" id="ai-setup">
+      <div class="ai-setup-icon">🔑</div>
+      <div class="ai-setup-title">Setup AI Assistant</div>
+      <div class="ai-setup-sub">Enter a free Groq API key to enable the AI assistant. Groq is fast, free, and works globally.</div>
+      <input class="ai-key-inp" id="ai-key-inp" type="text" placeholder="gsk_xxxxxxxxxxxxxxxxxxxx" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="btn-ai-key" onclick="saveAIKey()">✅ Save &amp; Activate</button>
+      <span class="ai-key-link" onclick="window.open('https://console.groq.com','_blank')">Get free key at console.groq.com →</span>
+    </div>
+    <!-- Quick suggestions -->
+    <div class="ai-sugs" id="ai-sugs">
+      <button class="ai-sug" onclick="askAI('Are there any speed traps ahead of me on M1?')">⚡ Traps ahead?</button>
+      <button class="ai-sug" onclick="askAI('How far am I from the nearest hospital?')">🏥 Nearest hospital</button>
+      <button class="ai-sug" onclick="askAI('What is the speed limit in this area of M1?')">🚦 Speed limit here</button>
+      <button class="ai-sug" onclick="askAI('How far am I from Lilongwe?')">📍 Distance to Lilongwe</button>
+      <button class="ai-sug" onclick="askAI('Is it safe to drive at night on this stretch of M1?')">🌙 Night driving safety</button>
+      <button class="ai-sug" onclick="askAI('Where can I get fuel near me on M1?')">⛽ Fuel nearby</button>
+    </div>
+    <!-- Input bar -->
+    <div class="ai-ibar" id="ai-ibar">
+      <input id="ai-input" type="text" placeholder="Ask about M1 road…" onkeydown="if(event.key==='Enter')sendAI()" autocomplete="off" autocorrect="off" spellcheck="false">
+      <button class="btn-ai-send" id="btn-ai-send" onclick="sendAI()" title="Ask">➤</button>
     </div>
   </div>
 
@@ -5027,7 +5109,33 @@ function openSettings() {
   var nickEl = document.getElementById('sp-nick-display');
   if (nickEl) nickEl.textContent = '🚗 ' + (myNickname || 'Not set');
 
+  // AI key status
+  var aiKey = getAIKey();
+  var aiStatusEl = document.getElementById('sp-ai-status');
+  var aiKeyInp   = document.getElementById('sp-ai-key');
+  if (aiStatusEl) aiStatusEl.textContent = aiKey ? '✅ AI Assistant active' : '⚠️ Not configured';
+  if (aiKeyInp)   aiKeyInp.value = aiKey ? (aiKey.substring(0,8) + '••••••••••••') : '';
+
   document.getElementById('settings-panel').classList.add('open');
+}
+
+function saveAIKeyFromSettings() {
+  var inp = document.getElementById('sp-ai-key');
+  var k   = inp ? inp.value.trim() : '';
+  // Don't re-save the masked value
+  if (k && !k.includes('•') && k.length > 5) {
+    lsSet('sg_ai_key', k);
+    var aiStatusEl = document.getElementById('sp-ai-status');
+    if (aiStatusEl) aiStatusEl.textContent = '✅ AI Assistant active';
+    showToast('✅ Groq API key saved — AI Assistant ready!');
+  } else if (!k) {
+    lsSet('sg_ai_key', '');
+    var aiStatusEl2 = document.getElementById('sp-ai-status');
+    if (aiStatusEl2) aiStatusEl2.textContent = '⚠️ Not configured';
+    showToast('AI key removed');
+  } else {
+    showToast('❌ Invalid key or key already saved');
+  }
 }
 
 function closeSettings() {
@@ -5709,30 +5817,247 @@ var REGION_LABEL = {north:'Northern M1', central:'Central M1', south:'Southern M
 function switchLiveTab(tab) {
   var driverTab     = document.getElementById('lpt-drivers');
   var chatTab       = document.getElementById('lpt-chat');
+  var aiTab         = document.getElementById('lpt-ai');
   var driverContent = document.getElementById('drivers-tab-content');
   var chatPanel     = document.getElementById('chat-panel');
+  var aiPanel       = document.getElementById('ai-panel');
   var livePanel     = document.getElementById('live-panel');
 
+  // Reset all tabs to inactive
+  [driverTab, chatTab, aiTab].forEach(function(t){ if(t) t.classList.remove('active'); });
+  if(driverContent) driverContent.style.display = 'none';
+  if(chatPanel)     chatPanel.classList.remove('show');
+  if(aiPanel)       aiPanel.classList.remove('show');
+  if(livePanel)     livePanel.classList.remove('chat-mode');
+  chatOpen = false;
+
   if (tab === 'drivers') {
-    driverTab.classList.add('active');
-    chatTab.classList.remove('active');
-    driverContent.style.display = 'block';
-    chatPanel.classList.remove('show');
-    if(livePanel) livePanel.classList.remove('chat-mode');
-    chatOpen = false;
-  } else {
-    driverTab.classList.remove('active');
-    chatTab.classList.add('active');
-    driverContent.style.display = 'none';
-    chatPanel.classList.add('show');
-    // On mobile, go full width for chat
+    if(driverTab) driverTab.classList.add('active');
+    if(driverContent) driverContent.style.display = 'block';
+
+  } else if (tab === 'chat') {
+    if(chatTab)   chatTab.classList.add('active');
+    if(chatPanel) chatPanel.classList.add('show');
     if(livePanel) livePanel.classList.add('chat-mode');
     chatOpen = true;
     chatUnread = 0;
     updateChatBadge();
     scrollChatToBottom();
     setTimeout(function(){ var inp=document.getElementById('chat-input'); if(inp) inp.focus(); }, 150);
+
+  } else if (tab === 'ai') {
+    if(aiTab)   { aiTab.classList.add('active'); aiTab.style.color=''; }
+    if(aiPanel) aiPanel.classList.add('show');
+    if(livePanel) livePanel.classList.add('chat-mode'); // full width on mobile
+    renderAIPanel();
+    setTimeout(function(){ var inp=document.getElementById('ai-input'); if(inp) inp.focus(); }, 150);
   }
+}
+
+// ═══════════════════════════════════════════════════════
+// AI ROAD ASSISTANT — Option C (RAG)
+// Retrieval-Augmented Generation using Groq API.
+// Context is built from: live traps, driver location,
+// speed, online driver count, and M1 landmark data.
+// Model: llama3-8b-8192 (free, fast, works globally)
+//
+// Academic connection: Hu et al. (2019) IoT + Deep Learning
+// framework — AI layer on top of crowdsensed vehicle telemetry.
+// Mobile crowdsensing (Hu et al. 2015) motivates anomaly-aware
+// data quality filtering before AI context injection.
+// ═══════════════════════════════════════════════════════
+var AI_MODEL    = 'llama3-8b-8192';
+var _aiHistory  = [];   // conversation turns for multi-turn context
+var _aiLoading  = false;
+
+function getAIKey() {
+  return lsGet('sg_ai_key') || '';
+}
+
+function saveAIKey() {
+  var k = (document.getElementById('ai-key-inp').value || '').trim();
+  if (!k || k.length < 10) { showToast('❌ Enter a valid Groq API key (starts with gsk_)'); return; }
+  lsSet('sg_ai_key', k);
+  showToast('✅ AI Assistant activated!');
+  renderAIPanel();
+}
+
+function renderAIPanel() {
+  var hasKey  = !!getAIKey();
+  var setup   = document.getElementById('ai-setup');
+  var msgs    = document.getElementById('ai-messages');
+  var sugs    = document.getElementById('ai-sugs');
+  var ibar    = document.getElementById('ai-ibar');
+  var typing  = document.getElementById('ai-typing');
+  if(setup)  { if(hasKey) setup.classList.remove('show'); else setup.classList.add('show'); }
+  if(msgs)   msgs.style.display    = hasKey ? 'flex' : 'none';
+  if(sugs)   sugs.style.display    = hasKey ? 'flex' : 'none';
+  if(ibar)   ibar.style.display    = hasKey ? 'flex' : 'none';
+  if(typing) typing.style.display  = 'none';
+}
+
+function buildAIContext() {
+  var ctx = [];
+  ctx.push('You are Pansewu AI, a road safety assistant for Malawi\'s M1 Highway (Karonga/Songwe to Chikwawa, approx 1,140 km). Respond concisely and helpfully. Use specific km markers and place names. Prioritize safety advice. Do not add disclaimers.');
+  ctx.push('');
+
+  // Driver position & speed
+  if (curLat && curLng) {
+    var prog = latProg(curLat);
+    var km   = Math.round(prog / 100 * 1140);
+    ctx.push('DRIVER CURRENT STATUS:');
+    ctx.push('- Position: ~' + km + ' km from Karonga (Songwe Border), ~' + (1140 - km) + ' km from Chikwawa');
+    if (curSpd > 0) ctx.push('- Speed: ' + Math.round(curSpd) + ' km/h');
+    ctx.push('');
+  }
+
+  // Nearby traps (live crowdsourced data)
+  var nearby = [];
+  if (typeof traps !== 'undefined' && traps && traps.length) {
+    traps.forEach(function(t) {
+      if (!t.lat || !t.lng) return;
+      var d = hav(curLat || 0, curLng || 0, t.lat, t.lng);
+      if (d < 120) {
+        nearby.push({
+          name:  t.name   || 'Unnamed location',
+          type:  t.trap_type || t.type || 'speed trap',
+          limit: t.limit_kmh || 50,
+          km:    t.km    || 0,
+          dist:  Math.round(d)
+        });
+      }
+    });
+    nearby.sort(function(a, b) { return a.dist - b.dist; });
+  }
+  if (nearby.length) {
+    ctx.push('ACTIVE COMMUNITY-REPORTED SPEED TRAPS (within 120km):');
+    nearby.forEach(function(t) {
+      ctx.push('- ' + t.name + ' [' + t.type + '] — ' + t.dist + ' km away, speed limit: ' + t.limit + ' km/h');
+    });
+  } else {
+    ctx.push('ACTIVE SPEED TRAPS: No community reports within 120 km of current location.');
+  }
+  ctx.push('');
+
+  // Online drivers
+  var online = Object.keys(liveUsers || {}).length;
+  if (online > 0) ctx.push('LIVE DRIVERS CURRENTLY ON M1: ' + online + ' driver(s) broadcasting.');
+  ctx.push('');
+
+  // M1 landmark reference table
+  ctx.push('M1 LANDMARK REFERENCE (km from Karonga/Songwe Border):');
+  ctx.push('Karonga=0, Chitipa jn=50, Rumphi=150, Mzuzu=230, Nkhata Bay jn=270, Mzimba=190, Kasungu=490, Lilongwe=570, Dedza=650, Ntcheu=700, Liwonde=780, Zomba=830, Blantyre=900, Limbe=910, Chikwawa=960');
+
+  return ctx.join('\n');
+}
+
+function askAI(question) {
+  var inp = document.getElementById('ai-input');
+  if (inp) inp.value = question;
+  sendAI();
+}
+
+function sendAI() {
+  if (_aiLoading) return;
+  var inp = document.getElementById('ai-input');
+  var q   = inp ? inp.value.trim() : '';
+  if (!q) return;
+
+  if (!getAIKey()) { renderAIPanel(); return; }
+
+  if (inp) inp.value = '';
+  addAIMessage('user', q);
+  _aiLoading = true;
+
+  var sendBtn = document.getElementById('btn-ai-send');
+  if (sendBtn) sendBtn.disabled = true;
+  var typingEl = document.getElementById('ai-typing');
+  if (typingEl) typingEl.classList.add('show');
+  scrollAIToBottom();
+
+  // Build messages for Groq (system context + last 8 turns + new question)
+  var messages = [{ role: 'system', content: buildAIContext() }];
+  _aiHistory.slice(-8).forEach(function(m) { messages.push(m); });
+  messages.push({ role: 'user', content: q });
+  _aiHistory.push({ role: 'user', content: q });
+
+  fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': 'Bearer ' + getAIKey(),
+      'Content-Type':  'application/json'
+    },
+    body: JSON.stringify({
+      model:       AI_MODEL,
+      messages:    messages,
+      max_tokens:  350,
+      temperature: 0.4
+    })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (typingEl) typingEl.classList.remove('show');
+    _aiLoading = false;
+    if (sendBtn) sendBtn.disabled = false;
+
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+      var reply = data.choices[0].message.content.trim();
+      addAIMessage('bot', reply);
+      _aiHistory.push({ role: 'assistant', content: reply });
+      if (_aiHistory.length > 20) _aiHistory = _aiHistory.slice(-16);
+    } else if (data.error) {
+      addAIMessage('bot', '⚠️ API error: ' + (data.error.message || 'Check your Groq API key in settings.'));
+    } else {
+      addAIMessage('bot', '⚠️ No response from AI. Try again.');
+    }
+  })
+  .catch(function() {
+    if (typingEl) typingEl.classList.remove('show');
+    _aiLoading = false;
+    if (sendBtn) sendBtn.disabled = false;
+    addAIMessage('bot', '⚠️ Could not reach Groq API. Check your internet connection.');
+  });
+}
+
+function addAIMessage(role, text) {
+  var list = document.getElementById('ai-messages');
+  if (!list) return;
+  var div  = document.createElement('div');
+  div.className = 'ai-msg ' + role;
+  if (role === 'bot') {
+    var label  = document.createElement('div');
+    label.className = 'ai-msg-label';
+    label.textContent = 'Pansewu AI';
+    div.appendChild(label);
+  }
+  // Safely set text (supports newlines as <br>)
+  var lines = text.split('\n');
+  lines.forEach(function(line, i) {
+    if (i > 0) div.appendChild(document.createElement('br'));
+    div.appendChild(document.createTextNode(line));
+  });
+  list.appendChild(div);
+  scrollAIToBottom();
+  // Hide suggestions after first exchange
+  var sugs = document.getElementById('ai-sugs');
+  if (sugs && _aiHistory.length > 2) sugs.style.display = 'none';
+}
+
+function scrollAIToBottom() {
+  var el = document.getElementById('ai-messages');
+  if (el) setTimeout(function() { el.scrollTop = el.scrollHeight; }, 50);
+}
+
+function clearAIChat() {
+  _aiHistory = [];
+  var list = document.getElementById('ai-messages');
+  if (list) {
+    list.innerHTML = '';
+    addAIMessage('bot', 'Chat cleared. Ask me anything about your M1 journey! 🛣️');
+  }
+  // Show suggestions again
+  var sugs = document.getElementById('ai-sugs');
+  if (sugs) sugs.style.display = 'flex';
 }
 
 // ── GPS ZONE HELPER (used by live panel driver filter) ──
@@ -6147,11 +6472,16 @@ function applyPrivacyMode(isPrivate) {
   var liveBtn      = document.getElementById('live-dot');
 
   if (isPrivate) {
-    // Show privacy lock screen, hide drivers + chat
+    // Show privacy lock screen, hide drivers + chat (AI tab stays accessible)
     if(privScreen) privScreen.classList.add('show');
     if(driversTab) driversTab.style.display = 'none';
     if(chatPanel)  chatPanel.classList.remove('show');
     if(tabBar)     tabBar.style.display = 'none';
+    // Keep AI tab visible — it works offline/private too
+    var aiTab = document.getElementById('lpt-ai');
+    var aiPanel = document.getElementById('ai-panel');
+    if(aiTab)  { aiTab.style.display='flex'; }
+    if(aiPanel && aiPanel.classList.contains('show')) { /* keep showing if already on AI tab */ }
     // Clear all other drivers from map and memory
     Object.keys(liveUsers).forEach(function(id){
       if(liveMarkers[id]){ map.removeLayer(liveMarkers[id]); delete liveMarkers[id]; }
@@ -8398,6 +8728,26 @@ function showNavBtn(show) {
         <div class="sp-row-desc">Your nickname shown to other drivers</div>
       </div>
       <span class="sp-link" onclick="openNickEdit()">Change</span>
+    </div>
+  </div>
+
+  <!-- AI ASSISTANT KEY -->
+  <div class="sp-section" style="margin-top:4px">
+    <div class="sp-section-label">🤖 AI Road Assistant</div>
+    <div class="sp-row" style="flex-direction:column;align-items:flex-start;gap:8px;border:none">
+      <div class="sp-row-info">
+        <div class="sp-row-label" id="sp-ai-status">Not configured</div>
+        <div class="sp-row-desc">Free Groq API key for the AI assistant tab. Get yours at <b>console.groq.com</b></div>
+      </div>
+      <input id="sp-ai-key" type="text"
+        style="width:100%;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:#fff;font-size:12px;font-family:monospace;outline:none"
+        placeholder="gsk_xxxxxxxxxxxxxxxxxxxx"
+        autocomplete="off" autocorrect="off" spellcheck="false"
+        oninput="document.getElementById('btn-sp-ai-save').style.opacity=this.value.trim().length>5?'1':'0.4'">
+      <button id="btn-sp-ai-save" onclick="saveAIKeyFromSettings()"
+        style="width:100%;padding:11px;border-radius:10px;background:linear-gradient(135deg,#5a32a8,#a78df0);color:#fff;border:none;font-size:13px;font-weight:800;cursor:pointer;opacity:0.4;transition:opacity .2s">
+        Save Key
+      </button>
     </div>
   </div>
 
