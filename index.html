@@ -875,6 +875,71 @@ body.driving-lock #hdr .hdr-btn:not(#btn-audio){ opacity:.3; pointer-events:none
 }
 body.driving-lock .driving-lock-badge{display:flex}
 
+/* ── ROLE SELECTOR MODAL ── */
+#role-modal{
+  position:fixed;inset:0;z-index:3100;
+  background:rgba(0,0,0,.8);
+  display:none;align-items:flex-end;justify-content:center;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+#role-modal.show{display:flex}
+.role-sheet{
+  background:#0d1117;border-radius:22px 22px 0 0;
+  padding:10px 24px 44px;width:100%;max-width:480px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.role-handle{width:36px;height:4px;background:rgba(255,255,255,.15);border-radius:2px;margin:10px auto 20px}
+.role-title{font-size:18px;font-weight:800;text-align:center;margin-bottom:6px}
+.role-sub{font-size:12px;color:rgba(255,255,255,.4);text-align:center;margin-bottom:24px;line-height:1.6}
+.role-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.role-btn{
+  padding:20px 12px;border-radius:14px;
+  border:2px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.04);
+  color:#fff;cursor:pointer;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:all .15s;-webkit-tap-highlight-color:transparent;
+}
+.role-btn:active{transform:scale(.97)}
+.role-btn.driver{border-color:rgba(39,174,96,.4);background:rgba(39,174,96,.08)}
+.role-btn.driver:active{background:rgba(39,174,96,.18)}
+.role-btn.passenger{border-color:rgba(52,152,219,.4);background:rgba(52,152,219,.08)}
+.role-btn.passenger:active{background:rgba(52,152,219,.18)}
+.role-btn-icon{font-size:38px;line-height:1}
+.role-btn-label{font-size:15px;font-weight:800}
+.role-btn-desc{font-size:11px;color:rgba(255,255,255,.4);text-align:center;line-height:1.5}
+.role-copilot-hint{text-align:center;font-size:11px;color:rgba(255,255,255,.28);line-height:1.6}
+.role-copilot-hint span{color:#5ddb8a;cursor:pointer;text-decoration:underline;font-weight:600}
+
+/* ── DRIVING LOCK BYPASS BUTTON ── */
+#drive-lock-bypass{
+  position:fixed;bottom:130px;left:50%;transform:translateX(-50%);
+  z-index:2050;display:none;
+  background:rgba(10,15,20,.95);
+  border:1px solid rgba(231,76,60,.3);
+  border-radius:14px;padding:12px 16px;
+  width:calc(100% - 48px);max-width:340px;
+  box-shadow:0 4px 24px rgba(0,0,0,.6);
+}
+#drive-lock-bypass.show{display:block}
+.dlb-title{font-size:11px;color:rgba(255,255,255,.4);margin-bottom:10px;display:flex;align-items:center;gap:5px;letter-spacing:.03em}
+.dlb-btn{
+  width:100%;padding:13px 12px;border-radius:10px;
+  background:rgba(52,152,219,.12);
+  border:1px solid rgba(52,152,219,.3);
+  color:#5dade2;font-size:13px;font-weight:700;
+  cursor:pointer;position:relative;overflow:hidden;
+  -webkit-user-select:none;user-select:none;
+  -webkit-tap-highlight-color:transparent;
+  text-align:center;
+}
+.dlb-progress{
+  position:absolute;left:0;top:0;height:100%;width:0%;
+  background:rgba(52,152,219,.22);border-radius:10px;
+  pointer-events:none;
+}
+.dlb-progress.filling{transition:width 3s linear}
+
 
 /* Reply bar above input */
 #chat-reply-bar{
@@ -3144,8 +3209,8 @@ function updateUI(lat,lng,spd){
 // ═══════════════════════════════════════════════════════
 function toggleGPS(){
   if(isTracking){ stopGPS(); return; }
-  // Show destination picker before starting GPS
-  openDestPicker();
+  // Show role selector first, then destination picker
+  showRoleModal();
 }
 var _simMode = false;
 function actuallyStartGPS(){
@@ -4914,6 +4979,7 @@ var sgSettings = {
   weather:  lsGet('sg_set_weather')  !== '0',
   night:    lsGet('sg_night') === 'on',
   muteChat: lsGet('sg_mute_chat')    === '1',
+  copilot:  lsGet('sg_copilot')      === '1', // permanent passenger / co-pilot mode
 };
 // isLive = true means visible to others, can see others and use chat
 function isLive(){ return sgSettings.live; }
@@ -4931,6 +4997,7 @@ function openSettings() {
   document.getElementById('tog-weather').checked  = sgSettings.weather;
   document.getElementById('tog-night').checked    = nightModeOn;
   document.getElementById('tog-mute-chat').checked= sgSettings.muteChat;
+  document.getElementById('tog-copilot').checked  = sgSettings.copilot;
   updatePrivacySettingsRow();
   syncToneSettings();
 
@@ -5029,6 +5096,23 @@ function settingChanged(key, val) {
     lsSet('sg_mute_chat', val ? '1' : '0');
     syncChatMuteState();
     showToast(val ? '🔕 Chat notifications muted' : '🔔 Chat notifications on');
+  }
+
+  if (key === 'copilot') {
+    sgSettings.copilot = val;
+    lsSet('sg_copilot', val ? '1' : '0');
+    if (val) {
+      userRole = 'passenger';
+      // Clear any active lock immediately
+      drivingLockActive = false;
+      document.body.classList.remove('driving-lock');
+      var bypass = document.getElementById('drive-lock-bypass');
+      if (bypass) bypass.classList.remove('show');
+      showToast('👥 Co-pilot Mode on — driving lock disabled permanently');
+    } else {
+      userRole = null; // will ask again next GPS start
+      showToast('🚗 Co-pilot Mode off — role selector on next trip');
+    }
   }
   if (key === 'vibration') {
     vibrationOn = val;
@@ -6287,13 +6371,116 @@ setInterval(updateClock, 1000);
 // DISTRACTED DRIVING LOCK — activates at 50 km/h
 // Hides non-essential buttons to reduce screen interaction
 // while driving. GPS and audio alerts remain fully active.
+//
+// ROLE SYSTEM:
+//   userRole = 'driver'    → lock activates normally
+//   userRole = 'passenger' → lock never activates
+//   lsGet('sg_copilot')=1  → permanent passenger mode
+//   null (no GPS yet)      → role picker shown on GPS start
 // ═══════════════════════════════════════════════════════
 var drivingLockActive = false;
-var DRIVING_LOCK_SPEED = 50; // km/h threshold
-var DRIVING_UNLOCK_SPEED = 30; // km/h to unlock (hysteresis)
+var DRIVING_LOCK_SPEED = 50;   // km/h — lock engages above this
+var DRIVING_UNLOCK_SPEED = 30; // km/h — lock releases below this (hysteresis)
+var userRole = null;           // 'driver' | 'passenger' | null — session only
 
 function updateDrivingLock(spd) {
-  return; // distraction lock disabled
+  // Passengers and permanent co-pilot mode bypass the lock entirely
+  if (userRole === 'passenger' || lsGet('sg_copilot') === '1') {
+    if (drivingLockActive) {
+      drivingLockActive = false;
+      document.body.classList.remove('driving-lock');
+      var bypass = document.getElementById('drive-lock-bypass');
+      if (bypass) bypass.classList.remove('show');
+    }
+    return;
+  }
+  // Engage lock
+  if (!drivingLockActive && spd >= DRIVING_LOCK_SPEED) {
+    drivingLockActive = true;
+    document.body.classList.add('driving-lock');
+    var bypass = document.getElementById('drive-lock-bypass');
+    if (bypass) bypass.classList.add('show');
+  }
+  // Release lock (hysteresis prevents rapid toggling)
+  else if (drivingLockActive && spd < DRIVING_UNLOCK_SPEED) {
+    drivingLockActive = false;
+    document.body.classList.remove('driving-lock');
+    var bypass = document.getElementById('drive-lock-bypass');
+    if (bypass) bypass.classList.remove('show');
+  }
+}
+
+// ── ROLE SELECTOR ──
+function showRoleModal() {
+  // Skip modal if permanent co-pilot mode is already on
+  if (lsGet('sg_copilot') === '1') {
+    userRole = 'passenger';
+    openDestPicker();
+    return;
+  }
+  // Skip modal if role already chosen this session
+  if (userRole !== null) {
+    openDestPicker();
+    return;
+  }
+  document.getElementById('role-modal').classList.add('show');
+}
+
+function selectRole(role) {
+  userRole = role;
+  document.getElementById('role-modal').classList.remove('show');
+  if (role === 'passenger') {
+    showToast('👥 Co-pilot mode — all features unlocked');
+  } else {
+    showToast('🚗 Driver mode — safety lock active above 50 km/h');
+  }
+  openDestPicker();
+}
+
+function enablePermanentCopilot() {
+  lsSet('sg_copilot', '1');
+  sgSettings.copilot = true;
+  var tog = document.getElementById('tog-copilot');
+  if (tog) tog.checked = true;
+  userRole = 'passenger';
+  document.getElementById('role-modal').classList.remove('show');
+  showToast('👥 Co-pilot Mode always on — change in ⚙️ Settings');
+  openDestPicker();
+}
+
+// ── HOLD-TO-UNLOCK BYPASS ──
+var _bypassTimer = null;
+
+function startBypassHold(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  var prog = document.getElementById('dlb-progress');
+  var lbl  = document.getElementById('dlb-label');
+  // Reset then animate
+  prog.classList.remove('filling');
+  prog.style.width = '0%';
+  prog.offsetWidth; // force reflow
+  prog.classList.add('filling');
+  prog.style.width = '100%';
+  lbl.textContent = 'Keep holding…';
+  _bypassTimer = setTimeout(function() {
+    // 3s hold complete — unlock as passenger for this session
+    userRole = 'passenger';
+    drivingLockActive = false;
+    document.body.classList.remove('driving-lock');
+    document.getElementById('drive-lock-bypass').classList.remove('show');
+    prog.classList.remove('filling');
+    prog.style.width = '0%';
+    showToast('👥 Co-pilot mode — safety lock removed for this trip');
+  }, 3000);
+}
+
+function cancelBypassHold() {
+  if (_bypassTimer) { clearTimeout(_bypassTimer); _bypassTimer = null; }
+  var prog = document.getElementById('dlb-progress');
+  var lbl  = document.getElementById('dlb-label');
+  prog.classList.remove('filling');
+  prog.style.width = '0%';
+  lbl.textContent  = '👥 I\'m a passenger — hold to unlock';
 }
 
 
@@ -8083,6 +8270,17 @@ function showNavBtn(show) {
         <span class="sg-slider"></span>
       </label>
     </div>
+
+    <div class="sp-row">
+      <div class="sp-row-info">
+        <div class="sp-row-label">👥 Always Co-pilot Mode</div>
+        <div class="sp-row-desc">Permanently disables the driving safety lock — for passengers who always use the app</div>
+      </div>
+      <label class="sg-toggle">
+        <input type="checkbox" id="tog-copilot" onchange="settingChanged('copilot',this.checked)">
+        <span class="sg-slider"></span>
+      </label>
+    </div>
   </div>
 
   <!-- ALERT TONES & VIBRATION -->
@@ -8440,6 +8638,39 @@ function showNavBtn(show) {
     <div class="arrival-sub" id="arrival-sub">Destination reached</div>
   </div>
   <button class="btn-arrival-close" onclick="closeArrivalBanner()">✕</button>
+</div>
+
+<!-- ROLE SELECTOR MODAL -->
+<div id="role-modal">
+  <div class="role-sheet">
+    <div class="role-handle"></div>
+    <div class="role-title">Who's holding the phone? 📱</div>
+    <div class="role-sub">This helps us keep drivers focused on the road.<br>You can change this anytime in ⚙️ Settings.</div>
+    <div class="role-btns">
+      <button class="role-btn driver" onclick="selectRole('driver')">
+        <div class="role-btn-icon">🚗</div>
+        <div class="role-btn-label">I'm the Driver</div>
+        <div class="role-btn-desc">Safety lock on<br>at 50 km/h</div>
+      </button>
+      <button class="role-btn passenger" onclick="selectRole('passenger')">
+        <div class="role-btn-icon">👥</div>
+        <div class="role-btn-label">I'm a Passenger</div>
+        <div class="role-btn-desc">All features available<br>while moving</div>
+      </button>
+    </div>
+    <div class="role-copilot-hint">Always a passenger? <span onclick="enablePermanentCopilot()">Enable permanent Co-pilot Mode</span></div>
+  </div>
+</div>
+
+<!-- DRIVING LOCK BYPASS BUTTON -->
+<div id="drive-lock-bypass">
+  <div class="dlb-title">🔒 Driving safety lock is active</div>
+  <button class="dlb-btn" id="dlb-btn"
+    ontouchstart="startBypassHold(event)" ontouchend="cancelBypassHold()"
+    onmousedown="startBypassHold(event)" onmouseup="cancelBypassHold()" onmouseleave="cancelBypassHold()">
+    <div class="dlb-progress" id="dlb-progress"></div>
+    <span id="dlb-label">👥 I'm a passenger — hold to unlock</span>
+  </button>
 </div>
 
 <!-- PRIVACY MODE EXPLAINER SHEET -->
