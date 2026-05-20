@@ -1930,19 +1930,25 @@ function placeAdminTrap(){
   else { msg.style.color='rgba(255,255,255,.4)'; msg.textContent='Saving…'; }
 
   var payload={
-    name:     name,
-    type:     type,
-    lat:      lat,
-    lng:      lng,
+    name:      name,
+    type:      type,
+    lat:       lat,
+    lng:       lng,
     limit_kmh: limit,
-    km:       km?parseInt(km):null,
-    yes_votes: VOTES_TO_VERIFY,  // instantly verified
-    no_votes:  0,
-    source:   'admin'
+    km:        km ? parseInt(km) : null,
+    yes_votes: VOTES_TO_VERIFY,  // instantly verified — skips community queue
+    no_votes:  0
   };
 
   supa('sg_traps','POST',payload).then(function(res){
-    if(!res){ msg.style.color='#ff8a7a'; msg.textContent='❌ Failed — check Supabase logs'; return; }
+    // Supabase error responses have a `code` or `message` property
+    if(!res || res.code || res.message || res.error){
+      var errMsg = (res&&(res.message||res.error||res.hint)) || 'Unknown error';
+      msg.style.color='#ff8a7a';
+      msg.textContent='❌ '+errMsg;
+      showToast('❌ Trap failed: '+errMsg);
+      return;
+    }
     msg.style.color='#5ddb8a';
     msg.textContent='✅ Trap placed — live on driver map!';
     // Clear fields
