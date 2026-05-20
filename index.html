@@ -5911,31 +5911,39 @@ function buildAIContext() {
     ctx.push('');
   }
 
-  // Nearby traps (live crowdsourced data)
-  var nearby = [];
+  // ALL active traps — always include the full list so the AI can answer
+  // questions about any named location (e.g. "Mponela") regardless of GPS.
+  // BUG FIX: filtering by hav(curLat||0,...) when curLat=null puts origin at
+  // 0°N 0°E (Atlantic Ocean), making every M1 trap >7000 km away and invisible.
+  var allTrapCtx = [];
   if (typeof traps !== 'undefined' && traps && traps.length) {
+    var hasGPS = !!(curLat && curLng);
     traps.forEach(function(t) {
       if (!t.lat || !t.lng) return;
-      var d = hav(curLat || 0, curLng || 0, t.lat, t.lng);
-      if (d < 120) {
-        nearby.push({
-          name:  t.name   || 'Unnamed location',
-          type:  t.trap_type || t.type || 'speed trap',
-          limit: t.limit_kmh || 50,
-          km:    t.km    || 0,
-          dist:  Math.round(d)
-        });
-      }
+      var d = hasGPS ? Math.round(hav(curLat, curLng, t.lat, t.lng)) : null;
+      allTrapCtx.push({
+        name:  t.name  || 'Unnamed location',
+        type:  t.trap_type || t.type || 'speed trap',
+        limit: t.limit_kmh || t.limit || 50,
+        km:    t.km   || 0,
+        dist:  d,
+        comm:  t.community ? 'community-reported' : 'pre-loaded'
+      });
     });
-    nearby.sort(function(a, b) { return a.dist - b.dist; });
+    if (hasGPS) {
+      allTrapCtx.sort(function(a, b) { return (a.dist||9999) - (b.dist||9999); });
+    } else {
+      allTrapCtx.sort(function(a, b) { return a.km - b.km; });
+    }
   }
-  if (nearby.length) {
-    ctx.push('ACTIVE COMMUNITY-REPORTED SPEED TRAPS (within 120km):');
-    nearby.forEach(function(t) {
-      ctx.push('- ' + t.name + ' [' + t.type + '] — ' + t.dist + ' km away, speed limit: ' + t.limit + ' km/h');
+  if (allTrapCtx.length) {
+    ctx.push('ALL ACTIVE SPEED TRAPS ON M1 (' + allTrapCtx.length + ' total' + (curLat ? ', sorted by distance from you' : ', sorted by km marker') + '):');
+    allTrapCtx.forEach(function(t) {
+      var distStr = (t.dist !== null) ? (', ' + t.dist + ' km from you') : '';
+      ctx.push('- ' + t.name + ' [' + t.type + '] at km ' + t.km + distStr + ', limit: ' + t.limit + ' km/h (' + t.comm + ')');
     });
   } else {
-    ctx.push('ACTIVE SPEED TRAPS: No community reports within 120 km of current location.');
+    ctx.push('ACTIVE SPEED TRAPS: None loaded yet.');
   }
   ctx.push('');
 
