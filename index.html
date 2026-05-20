@@ -2644,12 +2644,11 @@ function initRealtime(){
     ws.onerror=function(){ clearTimeout(_rtJoinTimer); realtimeConnected=false; updateChatStatus(); };
     ws.onclose=function(){
       clearTimeout(_rtJoinTimer); realtimeConnected=false; updateChatStatus();
-      // Don't reconnect when page is hidden AND user is not live — saves Supabase realtime quota
-      var delay = isLive() ? 3000 : 15000;
-      if(!document.hidden || isLive()) setTimeout(initRealtime, delay);
+      // Only reconnect if user is Live — Private users don't need a WS connection
+      if(isLive() && !document.hidden && isOnline) setTimeout(initRealtime, 3000);
     };
     channel=ws;
-  }catch(e){ console.warn('Realtime failed:',e.message); setTimeout(initRealtime,5000); }
+  }catch(e){ console.warn('Realtime failed:',e.message); if(isLive()) setTimeout(initRealtime,5000); }
 }
 var _lastBroadcastTs  = 0;
 var _lastBroadcastLat = null;
@@ -3714,7 +3713,9 @@ function launchApp(){
   registerServiceWorker();
   // Check initial online state
   if (!navigator.onLine) updateOfflineBar(false);
-  initRealtime();
+  // Only connect to Supabase Realtime if user is Live — saves connection quota
+  // Private mode users don't need a WebSocket (no chat, no seeing others)
+  if (isLive()) initRealtime();
   loadCommunityTraps();
   loadAdminLocations();
   setTimeout(loadChatHistory, 1500); // load after DOM + WS settle
@@ -6480,16 +6481,22 @@ function applyPrivacyMode(isPrivate) {
   var liveBtn      = document.getElementById('live-dot');
 
   if (isPrivate) {
+    // ── CLOSE WEBSOCKET — Private users don't need realtime ──
+    // This is the key quota-saving change: disconnect immediately when going Private
+    if (channel && (channel.readyState === 0 || channel.readyState === 1)) {
+      try { channel.close(); } catch(e){}
+    }
+    realtimeConnected = false;
+    channel = null;
+
     // Show privacy lock screen, hide drivers + chat (AI tab stays accessible)
     if(privScreen) privScreen.classList.add('show');
     if(driversTab) driversTab.style.display = 'none';
     if(chatPanel)  chatPanel.classList.remove('show');
     if(tabBar)     tabBar.style.display = 'none';
-    // Keep AI tab visible — it works offline/private too
+    // Keep AI tab visible — it works without a WebSocket
     var aiTab = document.getElementById('lpt-ai');
-    var aiPanel = document.getElementById('ai-panel');
-    if(aiTab)  { aiTab.style.display='flex'; }
-    if(aiPanel && aiPanel.classList.contains('show')) { /* keep showing if already on AI tab */ }
+    if(aiTab) { aiTab.style.display='flex'; }
     // Clear all other drivers from map and memory
     Object.keys(liveUsers).forEach(function(id){
       if(liveMarkers[id]){ map.removeLayer(liveMarkers[id]); delete liveMarkers[id]; }
@@ -6505,6 +6512,10 @@ function applyPrivacyMode(isPrivate) {
     if(chatInp){ chatInp.disabled=true; chatInp.placeholder='Go Live to use chat'; }
     if(chatBtn) chatBtn.disabled=true;
   } else {
+    // ── OPEN WEBSOCKET — User just went Live ──
+    if (isOnline && (!channel || channel.readyState === 3 || channel.readyState === 2)) {
+      initRealtime();
+    }
     // Show drivers + chat, hide privacy screen
     if(privScreen) privScreen.classList.remove('show');
     if(driversTab) driversTab.style.display = 'block';
@@ -6909,11 +6920,12 @@ function syncWakeLockDot() {
 document.addEventListener('visibilitychange', function() {
   if (document.visibilityState === 'visible') {
     if (isTracking && !wakeLockActive) requestWakeLock();
-    // Reconnect WebSocket when app comes back to foreground
-    if (!realtimeConnected && isOnline) initRealtime();
+    // Reconnect WebSocket when app comes back to foreground — only if Live
+    if (isLive() && !realtimeConnected && isOnline) initRealtime();
   } else {
-    // App backgrounded — close WS if user is not live (saves Supabase realtime quota)
-    if (!isLive() && channel && (channel.readyState === 0 || channel.readyState === 1)) {
+    // App backgrounded — always close WS for Private users, close for Live too
+    // (Live users will reconnect on foreground; saves idle connection slots)
+    if (channel && (channel.readyState === 0 || channel.readyState === 1)) {
       channel.close();
     }
   }
@@ -8152,9 +8164,10 @@ setInterval(function(){
 // but actually talking to nobody. Very sad. Very fixable.
 setInterval(function(){
   // readyState: 0=CONNECTING 1=OPEN 2=CLOSING 3=CLOSED
-  // Only intervene if CLOSED or CLOSING — leave CONNECTING alone
+  // Only reconnect if user is Live — Private users intentionally have no socket
+  if(!isLive() || !isOnline || document.hidden) return;
   if(!channel || channel.readyState === 3 || channel.readyState === 2) {
-    console.log('[WS] Health check: socket closed — reconnecting...');
+    console.log('[WS] Health check: socket closed — reconnecting (Live mode)...');
     realtimeConnected = false;
     initRealtime();
   }
