@@ -6293,19 +6293,7 @@ var DRIVING_LOCK_SPEED = 50; // km/h threshold
 var DRIVING_UNLOCK_SPEED = 30; // km/h to unlock (hysteresis)
 
 function updateDrivingLock(spd) {
-  if (localStorage.getItem('sg_sim_active') === '1') return; // never lock in sim mode
-  var shouldLock = spd >= DRIVING_LOCK_SPEED;
-  var shouldUnlock = spd < DRIVING_UNLOCK_SPEED;
-
-  if (shouldLock && !drivingLockActive) {
-    drivingLockActive = true;
-    document.body.classList.add('driving-lock');
-    closeLive();
-    closeSettings();
-  } else if (shouldUnlock && drivingLockActive) {
-    drivingLockActive = false;
-    document.body.classList.remove('driving-lock');
-  }
+  return; // distraction lock disabled
 }
 
 
