@@ -2844,8 +2844,11 @@ var simFrac      = 0;  // 0-1 fraction between simIdx and simIdx+1
 var simDir       = 1;  // 1 = N→S, -1 = S→N
 var SIM_TICK_MS  = 400;
 
+// True only when simMap is a real initialised Leaflet map (not the boolean fallback)
+function simIsRealMap(){ return simMap && typeof simMap === 'object' && !!simMap.removeLayer; }
+
 function simInit() {
-  if (simMap) { if(simMap.invalidateSize) simMap.invalidateSize(); return; }
+  if (simMap) { if(simIsRealMap()) simMap.invalidateSize(); return; }
 
   // Always populate the dropdown first — independent of map loading
   var sel = document.getElementById('sim-start');
@@ -3274,9 +3277,10 @@ function simRenderTrapList() {
 }
 
 function simRenderTrapMarkers() {
-  if(!simMap) return;
-  simTrapMarkers.forEach(function(m){ simMap.removeLayer(m); });
+  if(!simIsRealMap()) return;
+  simTrapMarkers.forEach(function(m){ try{ simMap.removeLayer(m); }catch(e){} });
   simTrapMarkers=[];
+  if(typeof L === 'undefined') return;
   simTraps.forEach(function(t){
     var em=t.type==='camera'?'📷':t.type==='checkpoint'?'🛡️':'🚔';
     var m=L.marker([t.lat,t.lng],{
