@@ -4,8 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pansewu Control Center</title>
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:-apple-system,'Segoe UI',Arial,sans-serif;background:#080c10;color:#fff;min-height:100vh}
@@ -2845,51 +2845,57 @@ var simDir       = 1;  // 1 = N→S, -1 = S→N
 var SIM_TICK_MS  = 400;
 
 function simInit() {
-  if (simMap) { simMap.invalidateSize(); return; }
+  if (simMap) { if(simMap.invalidateSize) simMap.invalidateSize(); return; }
 
-  simMap = L.map('sim-map', {zoomControl:true, attributionControl:false});
-  // Use Esri tiles — work globally including China (OSM is blocked by GFW)
-  var tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
-  var tileLayer = L.tileLayer(tileUrl, {className:'sim-tiles', maxZoom:18});
-  tileLayer.on('tileerror', function(){
-    // Esri also failing — fall back to CartoDB
-    simMap.eachLayer(function(l){ if(l._url) simMap.removeLayer(l); });
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-      {className:'sim-tiles', maxZoom:18}).addTo(simMap);
-  });
-  tileLayer.addTo(simMap);
-
-  // Route polyline
-  simPolyline = L.polyline(
-    SIM_ROUTE.map(function(w){ return [w[0],w[1]]; }),
-    {color:'#27ae60', weight:4, opacity:.75}
-  ).addTo(simMap);
-
-  // Waypoint dots
-  SIM_ROUTE.forEach(function(w){
-    L.circleMarker([w[0],w[1]], {radius:4, color:'#27ae60', fillColor:'#0e1820', fillOpacity:1, weight:2})
-      .bindTooltip(w[2]+' · km '+w[3], {direction:'right'}).addTo(simMap);
-  });
-
-  // Car marker
-  simMarker = L.marker([SIM_ROUTE[simIdx][0], SIM_ROUTE[simIdx][1]], {
-    icon: L.divIcon({
-      html:'<div style="background:#e74c3c;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(231,76,60,.8)"></div>',
-      className:'', iconAnchor:[8,8]
-    })
-  }).addTo(simMap);
-
-  simMap.fitBounds(simPolyline.getBounds(), {padding:[20,20]});
-
-  // Populate start dropdown
+  // Always populate the dropdown first — independent of map loading
   var sel = document.getElementById('sim-start');
   sel.innerHTML = '';
   SIM_ROUTE.forEach(function(w, i){
     var opt = document.createElement('option');
-    opt.value = i; opt.textContent = w[2]+' (km '+w[3]+')';
-    if(i===34) opt.selected = true;
+    opt.value = i; opt.textContent = w[2] + ' (km ' + w[3] + ')';
+    if(i === 34) opt.selected = true;
     sel.appendChild(opt);
   });
+
+  // Map init wrapped in try-catch — simulation works without it
+  try {
+    if(typeof L === 'undefined') throw new Error('Leaflet not loaded');
+    simMap = L.map('sim-map', {zoomControl:true, attributionControl:false});
+
+    // Esri tiles — work globally including China (unpkg/OSM blocked by GFW)
+    var tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+    var tileLayer = L.tileLayer(tileUrl, {className:'sim-tiles', maxZoom:18});
+    tileLayer.on('tileerror', function(){
+      simMap.eachLayer(function(l){ if(l._url) simMap.removeLayer(l); });
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+        {className:'sim-tiles', maxZoom:18}).addTo(simMap);
+    });
+    tileLayer.addTo(simMap);
+
+    simPolyline = L.polyline(
+      SIM_ROUTE.map(function(w){ return [w[0],w[1]]; }),
+      {color:'#27ae60', weight:4, opacity:.75}
+    ).addTo(simMap);
+
+    SIM_ROUTE.forEach(function(w){
+      L.circleMarker([w[0],w[1]], {radius:4, color:'#27ae60', fillColor:'#0e1820', fillOpacity:1, weight:2})
+        .bindTooltip(w[2]+' · km '+w[3], {direction:'right'}).addTo(simMap);
+    });
+
+    simMarker = L.marker([SIM_ROUTE[simIdx][0], SIM_ROUTE[simIdx][1]], {
+      icon: L.divIcon({
+        html:'<div style="background:#e74c3c;width:16px;height:16px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 10px rgba(231,76,60,.8)"></div>',
+        className:'', iconAnchor:[8,8]
+      })
+    }).addTo(simMap);
+
+    simMap.fitBounds(simPolyline.getBounds(), {padding:[20,20]});
+  } catch(e) {
+    // Map failed (CDN blocked) — show fallback message, simulation still works
+    var mapEl = document.getElementById('sim-map');
+    if(mapEl) mapEl.innerHTML = '<div style="height:100%;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;color:rgba(255,255,255,.3);font-size:12px"><span style="font-size:28px">🗺️</span><span>Map unavailable — CDN blocked or offline</span><span style="font-size:11px">Simulation still works — km + speed stats will update below</span></div>';
+    simMap = true; // prevent re-init attempts
+  }
 
   simUpdateStatus();
 }
@@ -3069,7 +3075,7 @@ function simTick() {
   localStorage.setItem('sg_sim_lng',   pos.lng.toFixed(6));
   localStorage.setItem('sg_sim_speed', spd.toString());
 
-  if(simMarker) simMarker.setLatLng([pos.lat, pos.lng]);
+  if(simMarker && simMarker.setLatLng) simMarker.setLatLng([pos.lat, pos.lng]);
   simCheckTrapProximity(pos.lat, pos.lng);
   simUpdateStatus(spd, pos);
 }
