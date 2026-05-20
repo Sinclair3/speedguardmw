@@ -2027,7 +2027,7 @@ body.night #sos-overlay{background:rgba(0,0,0,.97)}
   <div id="ai-panel">
     <!-- Header -->
     <div class="ai-hdr-bar">
-      <span class="ai-model-badge">🤖 Pansewu AI · Live Context</span>
+      <span class="ai-model-badge">🤖 Pansewu AI · Llama 3.1</span>
       <button class="btn-ai-clear" onclick="clearAIChat()" title="Clear conversation">🗑 Clear</button>
     </div>
     <!-- Messages -->
@@ -5866,7 +5866,7 @@ function switchLiveTab(tab) {
 // Mobile crowdsensing (Hu et al. 2015) motivates anomaly-aware
 // data quality filtering before AI context injection.
 // ═══════════════════════════════════════════════════════
-var AI_MODEL    = 'llama3-8b-8192';
+var AI_MODEL    = 'llama-3.1-8b-instant';
 var _aiHistory  = [];   // conversation turns for multi-turn context
 var _aiLoading  = false;
 
