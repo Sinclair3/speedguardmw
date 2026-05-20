@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pansewu — System Documentation</title>
+<style>
+  /* ── Print & Screen base ── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --green:   #27ae60;
+    --dkgreen: #1a6b3a;
+    --navy:    #0a0f14;
+    --slate:   #1e2a38;
+    --text:    #1a1a2e;
+    --muted:   #64748b;
+    --border:  #e2e8f0;
+    --accent:  #0d6efd;
+  }
+
+  body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 10.5pt;
+    line-height: 1.7;
+    color: var(--text);
+    background: #fff;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  /* ── COVER PAGE ── */
+  .cover {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 60px 0;
+    page-break-after: always;
+    border-bottom: 4px solid var(--green);
+  }
+  .cover-flag {
+    display: flex;
+    flex-direction: column;
+    width: 60px;
+    height: 36px;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 32px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.15);
+  }
+  .cover-flag div { flex: 1; }
+  .cover-eyebrow {
+    font-size: 10pt;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .12em;
+    color: var(--green);
+    margin-bottom: 12px;
+  }
+  .cover-title {
+    font-size: 38pt;
+    font-weight: 900;
+    color: var(--navy);
+    line-height: 1.05;
+    margin-bottom: 8px;
+    letter-spacing: -.02em;
+  }
+  .cover-subtitle {
+    font-size: 14pt;
+    color: var(--muted);
+    margin-bottom: 40px;
+    font-weight: 400;
+  }
+  .cover-meta {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px 32px;
+    margin-top: 40px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    width: 100%;
+    max-width: 480px;
+  }
+  .cover-meta dt { font-size: 9pt; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
+  .cover-meta dd { font-size: 10.5pt; font-weight: 600; color: var(--text); margin-bottom: 8px; }
+
+  /* ── TABLE OF CONTENTS ── */
+  .toc { page-break-after: always; padding: 48px 0; }
+  .toc h2 { font-size: 22pt; font-weight: 800; margin-bottom: 24px; color: var(--navy); }
+  .toc ol { list-style: none; counter-reset: toc; }
+  .toc > ol > li { counter-increment: toc; margin-bottom: 10px; }
+  .toc-item {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    font-size: 11pt;
+    font-weight: 600;
+    color: var(--text);
+  }
+  .toc-item::before { content: counter(toc) "."; color: var(--green); font-weight: 800; min-width: 20px; }
+  .toc-dots { flex: 1; border-bottom: 1px dotted #cbd5e1; margin: 0 4px; }
+  .toc-page { font-size: 10pt; color: var(--muted); font-weight: 400; }
+  .toc-sub { list-style: none; margin: 4px 0 4px 28px; }
+  .toc-sub li { font-size: 10pt; color: var(--muted); font-weight: 400; margin-bottom: 3px; padding-left: 12px; border-left: 2px solid var(--border); }
+
+  /* ── SECTION HEADINGS ── */
+  .section { padding: 36px 0 20px; }
+  .section:not(:first-child) { page-break-before: always; }
+  .section-num {
+    font-size: 9pt; font-weight: 800; text-transform: uppercase;
+    letter-spacing: .1em; color: var(--green); margin-bottom: 4px;
+  }
+  h2 { font-size: 22pt; font-weight: 900; color: var(--navy); margin-bottom: 4px; letter-spacing: -.01em; }
+  h3 { font-size: 13pt; font-weight: 800; color: var(--navy); margin: 28px 0 10px; padding-bottom: 6px; border-bottom: 2px solid var(--green); }
+  h4 { font-size: 11pt; font-weight: 700; color: var(--text); margin: 20px 0 6px; }
+  .section-intro { font-size: 11pt; color: var(--muted); margin-bottom: 24px; line-height: 1.8; }
+
+  p { margin-bottom: 12px; }
+  ul, ol { margin: 8px 0 14px 20px; }
+  li { margin-bottom: 4px; }
+
+  /* ── TABLES ── */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 9.5pt; }
+  th { background: var(--navy); color: #fff; padding: 9px 12px; text-align: left; font-weight: 700; font-size: 9pt; text-transform: uppercase; letter-spacing: .05em; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: #f8fafc; }
+  td:first-child { font-weight: 600; }
+
+  /* ── CODE BLOCKS ── */
+  pre {
+    background: #0f172a;
+    color: #e2e8f0;
+    border-radius: 8px;
+    padding: 16px 18px;
+    font-size: 8.5pt;
+    line-height: 1.6;
+    overflow-x: auto;
+    margin: 12px 0 20px;
+    font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
+  }
+  code {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-radius: 4px;
+    padding: 1px 5px;
+    font-size: 8.8pt;
+    font-family: 'Cascadia Code','Fira Code','Consolas',monospace;
+  }
+  pre code { background: none; color: inherit; padding: 0; font-size: inherit; }
+  .kw { color: #7dd3fc; }
+  .str { color: #86efac; }
+  .cm { color: #64748b; font-style: italic; }
+  .fn { color: #fbbf24; }
+
+  /* ── CALLOUT BOXES ── */
+  .callout {
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 16px 0;
+    font-size: 10pt;
+    line-height: 1.7;
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+  .callout-icon { font-size: 16pt; flex-shrink: 0; margin-top: 1px; }
+  .callout.info    { background: #eff6ff; border-left: 4px solid #3b82f6; }
+  .callout.warning { background: #fffbeb; border-left: 4px solid #f59e0b; }
+  .callout.danger  { background: #fef2f2; border-left: 4px solid #ef4444; }
+  .callout.success { background: #f0fdf4; border-left: 4px solid #22c55e; }
+
+  /* ── ARCHITECTURE DIAGRAM ── */
+  .arch {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    margin: 20px 0;
+    background: #f8fafc;
+    font-size: 9.5pt;
+    font-family: 'Cascadia Code','Consolas',monospace;
+    line-height: 1.9;
+    color: #1e293b;
+  }
+  .arch-green { color: var(--dkgreen); font-weight: 700; }
+  .arch-blue  { color: #0369a1; font-weight: 700; }
+  .arch-red   { color: #b91c1c; font-weight: 700; }
+  .arch-grey  { color: var(--muted); }
+
+  /* ── KEY-VALUE LIST ── */
+  .kv { display: grid; grid-template-columns: 200px 1fr; gap: 4px 16px; margin: 12px 0 20px; }
+  .kv dt { font-weight: 700; font-size: 9.5pt; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; padding-top: 3px; }
+  .kv dd { font-size: 10pt; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+
+  /* ── BADGE ── */
+  .badge {
+    display: inline-block;
+    font-size: 8pt;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+  }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-blue  { background: #dbeafe; color: #1e40af; }
+  .badge-orange{ background: #fff7ed; color: #9a3412; }
+  .badge-grey  { background: #f1f5f9; color: #475569; }
+
+  /* ── FOOTER ── */
+  .page-footer {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 8.5pt;
+    color: var(--muted);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  /* ── PRINT RULES ── */
+  @media print {
+    body { font-size: 10pt; padding: 0; max-width: 100%; }
+    .cover { min-height: auto; padding: 80px 0 60px; }
+    .no-print { display: none; }
+    h3, h4 { page-break-after: avoid; }
+    pre, table { page-break-inside: avoid; }
+    .section { page-break-before: always; padding-top: 0; }
+  }
+
+  /* ── SCREEN PRINT BUTTON ── */
+  .print-btn {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--green); color: #fff;
+    border: none; border-radius: 50px;
+    padding: 12px 24px; font-size: 13px; font-weight: 700;
+    cursor: pointer; box-shadow: 0 4px 16px rgba(39,174,96,.4);
+    z-index: 999;
+  }
+  .print-btn:hover { background: var(--dkgreen); }
+  @media print { .print-btn { display: none; } }
+</style>
+</head>
+<body>
+
+<button class="print-btn no-print" onclick="window.print()">🖨️ Save as PDF</button>
+
+<!-- ══════════════════════════════════════════
+     COVER
+══════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-flag">
+    <div style="background:#000"></div>
+    <div style="background:#d21034"></div>
+    <div style="background:#339e35"></div>
+  </div>
+  <div class="cover-eyebrow">Technical System Documentation</div>
+  <div class="cover-title">Pansewu</div>
+  <div class="cover-subtitle">M1 Road Safety Progressive Web Application<br>Lilongwe — Blantyre Corridor, Malawi</div>
+
+  <dl class="cover-meta">
+    <dt>Version</dt>        <dd>1.0 — May 2026</dd>
+    <dt>Platform</dt>       <dd>Progressive Web App (PWA)</dd>
+    <dt>Author</dt>         <dd>Marvin Sinclair</dd>
+    <dt>Organisation</dt>   <dd>Independent / Open Source</dd>
+    <dt>Repository</dt>     <dd>github.com/Sinclair3/speedguardmw</dd>
+    <dt>Live URL</dt>       <dd>sinclair3.github.io/speedguardmw</dd>
+    <dt>Classification</dt> <dd>Public — No confidential data</dd>
+    <dt>Status</dt>         <dd><span class="badge badge-green">Production</span></dd>
+  </dl>
+</div>
+
+<!-- ══════════════════════════════════════════
+     TABLE OF CONTENTS
+══════════════════════════════════════════ -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+  <ol>
+    <li>
+      <div class="toc-item">System Overview <span class="toc-dots"></span> <span class="toc-page">3</span></div>
+      <ul class="toc-sub">
+        <li>Purpose &amp; Problem Statement</li>
+        <li>Target Users</li>
+        <li>Key Features Summary</li>
+      </ul>
+    </li>
+    <li>
+      <div class="toc-item">Technology Stack <span class="toc-dots"></span> <span class="toc-page">4</span></div>
+      <ul class="toc-sub"><li>Frontend</li><li>Backend</li><li>Infrastructure</li><li>External APIs</li></ul>
+    </li>
+    <li>
+      <div class="toc-item">System Architecture <span class="toc-dots"></span> <span class="toc-page">5</span></div>
+      <ul class="toc-sub"><li>High-Level Diagram</li><li>Data Flow</li><li>Real-Time Layer</li></ul>
+    </li>
+    <li>
+      <div class="toc-item">Database Schema <span class="toc-dots"></span> <span class="toc-page">6</span></div>
+      <ul class="toc-sub"><li>Tables</li><li>Row Level Security</li><li>Edge Functions</li></ul>
+    </li>
+    <li>
+      <div class="toc-item">Configuration Reference <span class="toc-dots"></span> <span class="toc-page">7</span></div>
+      <ul class="toc-sub"><li>Environment Variables</li><li>LocalStorage Keys</li><li>App Constants</li></ul>
+    </li>
+    <li>
+      <div class="toc-item">Core Features — Technical Detail <span class="toc-dots"></span> <span class="toc-page">9</span></div>
+      <ul class="toc-sub"><li>GPS &amp; Speed Tracking</li><li>Speed Trap System</li><li>Live Chat</li><li>SOS</li><li>Push Notifications</li><li>Safe Driver Score</li></ul>
+    </li>
+    <li>
+      <div class="toc-item">Admin Panel <span class="toc-dots"></span> <span class="toc-page">11</span></div>
+    </li>
+    <li>
+      <div class="toc-item">Deployment &amp; CI/CD <span class="toc-dots"></span> <span class="toc-page">12</span></div>
+    </li>
+    <li>
+      <div class="toc-item">Security Considerations <span class="toc-dots"></span> <span class="toc-page">13</span></div>
+    </li>
+    <li>
+      <div class="toc-item">Known Limitations &amp; Future Work <span class="toc-dots"></span> <span class="toc-page">14</span></div>
+    </li>
+  </ol>
+</div>
+
+<!-- ══════════════════════════════════════════
+     1. SYSTEM OVERVIEW
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 1</div>
+  <h2>System Overview</h2>
+  <p class="section-intro">Pansewu (Chichewa: <em>"on the road"</em>) is a free, browser-based road safety application purpose-built for the M1 highway in Malawi — the 306 km national trunk road connecting Karonga in the north to Nsanje in the south, passing through Lilongwe and Blantyre.</p>
+
+  <h3>1.1 Purpose &amp; Problem Statement</h3>
+  <p>The M1 corridor has one of the highest road traffic accident rates in sub-Saharan Africa. Drivers face:</p>
+  <ul>
+    <li>Unannounced mobile speed traps and police checkpoints</li>
+    <li>No real-time visibility of road hazards ahead</li>
+    <li>Limited access to emergency services or nearest hospital locations</li>
+    <li>No coordinated communication between drivers on the route</li>
+  </ul>
+  <p>Pansewu addresses these gaps through crowd-sourced hazard reporting, live GPS speed monitoring, and a regional driver communication channel — all delivered as a zero-install PWA that works on any smartphone.</p>
+
+  <h3>1.2 Target Users</h3>
+  <table>
+    <tr><th>User Type</th><th>Description</th><th>Primary Use</th></tr>
+    <tr><td>Long-distance drivers</td><td>Truckers, minibus operators, private travellers on the M1</td><td>Speed monitoring, trap alerts, navigation</td></tr>
+    <tr><td>Daily commuters</td><td>Lilongwe–Blantyre corridor regular drivers</td><td>Quick trap check, regional chat</td></tr>
+    <tr><td>Emergency responders</td><td>Ambulance, police, breakdown services</td><td>Location sharing, SOS contact</td></tr>
+    <tr><td>System administrator</td><td>Developer / Marvin Sinclair</td><td>Admin panel, data moderation, simulator</td></tr>
+  </table>
+
+  <h3>1.3 Key Features Summary</h3>
+  <table>
+    <tr><th>Feature</th><th>Description</th><th>Status</th></tr>
+    <tr><td>GPS Speed Monitor</td><td>Real-time speed display with colour-coded limit warnings</td><td><span class="badge badge-green">Live</span></td></tr>
+    <tr><td>Speed Trap Alerts</td><td>Crowd-sourced + hardcoded trap proximity alerts with voice</td><td><span class="badge badge-green">Live</span></td></tr>
+    <tr><td>Trap Reporting</td><td>Community submission with 3-vote verification system</td><td><span class="badge badge-green">Live</span></td></tr>
+    <tr><td>Regional Chat</td><td>Live driver-to-driver messaging in North/Central/South zones</td><td><span class="badge badge-green">Live</span></td></tr>
+    <tr><td>SOS Emergency</td><td>One-tap emergency call to saved contact with location</td><td><span class="badge badge-green">Live</span></td></tr>
+    <tr><td>Push Notifications</td><td>VAPID Web Push alerts for verified traps, no app required</td><td><span class="badge badge-green">Live</span></td></tr>
+    <tr><td>Road Services</td><td>Nearest fuel stations, hospitals, police, breakdown contacts</td><td><span class="badge badge-green">Live</span></td></tr>
+    <tr><td>Safe Driver Score</td><td>Gamified scoring based on speed compliance and contributions</td><td><span class="badge badge-green">Live</span></td></tr>
+    <tr><td>Trip History</td><td>Local trip log with CSV export</td><td><span class="badge badge-green">Live</span></td></tr>
+    <tr><td>Offline Map</td><td>Base map tiles cached for offline viewing</td><td><span class="badge badge-green">Live</span></td></tr>
+    <tr><td>Night Mode</td><td>Auto dark theme based on time of day or manual toggle</td><td><span class="badge badge-green">Live</span></td></tr>
+    <tr><td>Admin Panel</td><td>Route simulator, trap management, push broadcast</td><td><span class="badge badge-green">Live</span></td></tr>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════
+     2. TECHNOLOGY STACK
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 2</div>
+  <h2>Technology Stack</h2>
+  <p class="section-intro">Pansewu is intentionally dependency-light. The entire application ships as plain HTML/CSS/JavaScript with zero build tools, zero npm, and zero bundlers. This keeps deployment trivially simple and eliminates supply-chain risk.</p>
+
+  <h3>2.1 Frontend</h3>
+  <table>
+    <tr><th>Technology</th><th>Version</th><th>Role</th><th>Notes</th></tr>
+    <tr><td>HTML5</td><td>—</td><td>Application shell</td><td>Single-file architecture — entire app in index.html</td></tr>
+    <tr><td>CSS3</td><td>—</td><td>Styling &amp; animations</td><td>Inline in index.html; no preprocessor</td></tr>
+    <tr><td>Vanilla JavaScript</td><td>ES5/ES6</td><td>All app logic</td><td>No framework, no bundler</td></tr>
+    <tr><td>Leaflet.js</td><td>1.9.x (CDN)</td><td>Interactive map</td><td>OpenStreetMap tiles via CDN</td></tr>
+    <tr><td>Web Push API</td><td>Browser native</td><td>Push notifications</td><td>VAPID, no Firebase</td></tr>
+    <tr><td>Service Worker</td><td>Browser native</td><td>Offline support &amp; push</td><td>sw.js registered on load</td></tr>
+    <tr><td>Web Speech API</td><td>Browser native</td><td>Voice alerts</td><td>SpeechSynthesis — "Speed trap in 800 metres"</td></tr>
+    <tr><td>Geolocation API</td><td>Browser native</td><td>GPS tracking</td><td>watchPosition() with high accuracy</td></tr>
+    <tr><td>Web Audio API</td><td>Browser native</td><td>Alert tones</td><td>Procedurally generated warning/danger/critical tones</td></tr>
+    <tr><td>PWA Manifest</td><td>manifest.json</td><td>Install to home screen</td><td>Standalone display, Malawi flag icon</td></tr>
+  </table>
+
+  <h3>2.2 Backend — Supabase</h3>
+  <table>
+    <tr><th>Service</th><th>Supabase Product</th><th>Purpose</th></tr>
+    <tr><td>Database</td><td>PostgreSQL (managed)</td><td>Traps, chat history, push subscriptions, notifications</td></tr>
+    <tr><td>REST API</td><td>PostgREST (auto-generated)</td><td>CRUD operations via HTTP — no custom API server</td></tr>
+    <tr><td>Real-time</td><td>Supabase Realtime (WebSocket)</td><td>Live driver positions, live chat broadcast</td></tr>
+    <tr><td>Edge Functions</td><td>Deno-based serverless</td><td>VAPID push notification dispatcher (notify-trap)</td></tr>
+    <tr><td>Row Level Security</td><td>PostgreSQL RLS</td><td>Protects data — anon key cannot modify other users' data</td></tr>
+  </table>
+
+  <div class="callout info">
+    <span class="callout-icon">ℹ️</span>
+    <div>Supabase is self-hostable on a VPS if the hosted plan ever needs to be replaced. The application uses only standard PostgreSQL features — no Supabase-proprietary extensions that would lock the data in.</div>
+  </div>
+
+  <h3>2.3 Infrastructure</h3>
+  <table>
+    <tr><th>Component</th><th>Provider</th><th>Cost</th><th>Notes</th></tr>
+    <tr><td>Static hosting</td><td>GitHub Pages</td><td>Free</td><td>Auto-deployed on push to main via GitHub Actions</td></tr>
+    <tr><td>Database + API</td><td>Supabase (Free tier)</td><td>Free</td><td>500 MB DB, 2 GB bandwidth, 500K Edge Function invocations/month</td></tr>
+    <tr><td>Map tiles</td><td>OpenStreetMap / Leaflet CDN</td><td>Free</td><td>No API key required</td></tr>
+    <tr><td>Domain</td><td>GitHub Pages subdomain</td><td>Free</td><td>sinclair3.github.io/speedguardmw</td></tr>
+  </table>
+
+  <h3>2.4 External APIs &amp; CDN Dependencies</h3>
+  <table>
+    <tr><th>Library/API</th><th>Loaded From</th><th>Fallback?</th></tr>
+    <tr><td>Leaflet.js</td><td>unpkg.com CDN</td><td>No — map requires CDN</td></tr>
+    <tr><td>Supabase JS client</td><td>Not used — raw fetch() calls</td><td>N/A</td></tr>
+    <tr><td>OpenStreetMap tiles</td><td>tile.openstreetmap.org</td><td>Cached by service worker</td></tr>
+    <tr><td>OpenWeatherMap</td><td>api.openweathermap.org</td><td>Degrades gracefully if offline</td></tr>
+    <tr><td>Web Push (VAPID)</td><td>Browser push service (FCM/Mozilla)</td><td>Skipped if push not supported</td></tr>
+  </table>
+</div>
+
+<!-- ══════════════════════════════════════════
+     3. SYSTEM ARCHITECTURE
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 3</div>
+  <h2>System Architecture</h2>
+
+  <h3>3.1 High-Level Architecture</h3>
+  <div class="arch">
+<span class="arch-grey">┌─────────────────────────────────────────────────────────────────┐</span>
+<span class="arch-grey">│                        USER DEVICES                             │</span>
+<span class="arch-grey">│</span>                                                                  <span class="arch-grey">│</span>
+<span class="arch-grey">│</span>   <span class="arch-green">[ index.html ]</span>          <span class="arch-blue">[ admin.html ]</span>      <span class="arch-grey">[ sw.js ]</span>          <span class="arch-grey">│</span>
+<span class="arch-grey">│</span>   Main driver app          Admin panel         Service Worker     <span class="arch-grey">│</span>
+<span class="arch-grey">│</span>   GPS · Map · Chat         Simulator · Mgmt    Cache · Push       <span class="arch-grey">│</span>
+<span class="arch-grey">│</span>                                                                   <span class="arch-grey">│</span>
+<span class="arch-grey">└──────────────────────────────┬──────────────────────────────────┘</span>
+                               <span class="arch-grey">│  HTTPS</span>
+              <span class="arch-grey">┌───────────────┴────────────────────┐</span>
+              <span class="arch-grey">│         GITHUB PAGES               │</span>
+              <span class="arch-grey">│    sinclair3.github.io/speedguardmw│</span>
+              <span class="arch-grey">│    Static file serving — CDN edge  │</span>
+              <span class="arch-grey">└───────────────┬────────────────────┘</span>
+                              <span class="arch-grey">│</span>
+         <span class="arch-grey">┌────────────────┴───────────────────────┐</span>
+         <span class="arch-grey">│            SUPABASE                    │</span>
+         <span class="arch-grey">│   ┌──────────┐  ┌──────────┐          │</span>
+         <span class="arch-grey">│   │PostgreSQL│  │Realtime  │          │</span>
+         <span class="arch-grey">│   │REST/RLS  │  │WebSocket │          │</span>
+         <span class="arch-grey">│   └────┬─────┘  └────┬─────┘          │</span>
+         <span class="arch-grey">│        │              │               │</span>
+         <span class="arch-grey">│   ┌────┴─────────────┴───────────┐   │</span>
+         <span class="arch-grey">│   │   Edge Function: notify-trap  │   │</span>
+         <span class="arch-grey">│   │   Deno · VAPID · Web Push     │   │</span>
+         <span class="arch-grey">│   └───────────────────────────────┘   │</span>
+         <span class="arch-grey">└────────────────────────────────────────┘</span>
+                              <span class="arch-grey">│  Web Push</span>
+              <span class="arch-grey">┌─────────────┴────────────────┐</span>
+              <span class="arch-grey">│  BROWSER PUSH SERVICES       │</span>
+              <span class="arch-grey">│  Google FCM / Mozilla / Apple│</span>
+              <span class="arch-grey">└──────────────────────────────┘</span>
+  </div>
+
+  <h3>3.2 Real-Time Data Flow</h3>
+  <p>All live features — driver positions, chat, trap votes — use a single Supabase Realtime channel (<code>m1_drivers</code>) via WebSocket broadcast. There is no polling loop for live data.</p>
+
+  <table>
+    <tr><th>Event</th><th>Direction</th><th>Channel</th><th>Payload</th></tr>
+    <tr><td>Driver position update</td><td>Device → All</td><td>m1_drivers broadcast</td><td>id, lat, lng, speed, zone, nickname</td></tr>
+    <tr><td>Chat message</td><td>Device → All</td><td>m1_drivers broadcast</td><td>type:chat, text, zone, nickname, replyText</td></tr>
+    <tr><td>Trap vote</td><td>Device → All</td><td>m1_drivers broadcast</td><td>type:vote, trapId, isYes</td></tr>
+    <tr><td>Trap verified push</td><td>Supabase DB → Edge Fn → Push Service → Device</td><td>Database webhook</td><td>yes_votes ≥ 3 triggers notify-trap</td></tr>
+  </table>
+
+  <h3>3.3 Offline Strategy</h3>
+  <p>The service worker (<code>sw.js</code>) provides a cache-first strategy for static assets. Map tiles are cached on first load. The following features work without internet:</p>
+  <ul>
+    <li>GPS speed display (device GPS only)</li>
+    <li>Hardcoded trap markers and road service locations</li>
+    <li>SOS call (direct <code>tel:</code> link — no data needed)</li>
+    <li>Map base tiles (served from cache)</li>
+    <li>All Settings, Score, and Trip History (localStorage)</li>
+  </ul>
+  <p>Community traps, live chat, driver positions, and push notifications require an active data connection.</p>
+</div>
+
+<!-- ══════════════════════════════════════════
+     4. DATABASE SCHEMA
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 4</div>
+  <h2>Database Schema</h2>
+  <p class="section-intro">All data is stored in a single Supabase PostgreSQL project at <code>mgoxhsnmjbzjuevwryxy.supabase.co</code>. There are four core tables and no user authentication — identity is handled by a random device ID stored in localStorage.</p>
+
+  <h3>4.1 Tables</h3>
+
+  <h4>sg_traps — Community-reported speed traps</h4>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>id</td><td>uuid (PK)</td><td>Auto-generated primary key</td></tr>
+    <tr><td>name</td><td>text</td><td>Location description entered by reporter</td></tr>
+    <tr><td>lat</td><td>float8</td><td>Latitude of reported trap</td></tr>
+    <tr><td>lng</td><td>float8</td><td>Longitude of reported trap</td></tr>
+    <tr><td>limit_kmh</td><td>int4</td><td>Speed limit at location (30/50/80)</td></tr>
+    <tr><td>type</td><td>text</td><td>mobile | checkpoint | roadblock | camera</td></tr>
+    <tr><td>km</td><td>int4</td><td>Approximate M1 kilometre position</td></tr>
+    <tr><td>yes_votes</td><td>int4</td><td>Confirmed votes (3 = verified)</td></tr>
+    <tr><td>no_votes</td><td>int4</td><td>Gone votes (3 = auto-deleted)</td></tr>
+    <tr><td>device_id</td><td>text</td><td>Reporter's anonymous device ID</td></tr>
+    <tr><td>last_notified</td><td>timestamptz</td><td>Last push notification sent (24h cooldown)</td></tr>
+    <tr><td>created_at</td><td>timestamptz</td><td>Auto-set on insert</td></tr>
+  </table>
+
+  <h4>sg_chat — Chat message history</h4>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>id</td><td>uuid (PK)</td><td>Auto-generated</td></tr>
+    <tr><td>msg_id</td><td>text</td><td>Client-side timestamp used as unique message ID</td></tr>
+    <tr><td>nickname</td><td>text</td><td>Driver's nickname at time of send</td></tr>
+    <tr><td>text</td><td>text</td><td>Message body (max 120 chars enforced client-side)</td></tr>
+    <tr><td>zone</td><td>text</td><td>north | central | south — GPS-assigned region</td></tr>
+    <tr><td>lat</td><td>float8</td><td>Sender location (rounded to 2dp for privacy)</td></tr>
+    <tr><td>lng</td><td>float8</td><td>Sender location (rounded to 2dp for privacy)</td></tr>
+    <tr><td>progress</td><td>int4</td><td>% progress along M1 (0–100)</td></tr>
+    <tr><td>reply_nick</td><td>text</td><td>Replied-to driver's nickname (nullable)</td></tr>
+    <tr><td>reply_text</td><td>text</td><td>Quoted message text (nullable)</td></tr>
+    <tr><td>created_at</td><td>timestamptz</td><td>Auto-set on insert</td></tr>
+  </table>
+
+  <div class="callout warning">
+    <span class="callout-icon">⚠️</span>
+    <div>Chat messages are kept for 2 hours in the database. A scheduled cleanup job or Supabase pg_cron task should be configured to delete rows older than 2 hours to prevent unbounded table growth.</div>
+  </div>
+
+  <h4>sg_push_subs — Web Push subscriptions</h4>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>id</td><td>uuid (PK)</td><td>Auto-generated</td></tr>
+    <tr><td>device_id</td><td>text</td><td>Anonymous device identifier</td></tr>
+    <tr><td>endpoint</td><td>text (unique)</td><td>Full Web Push endpoint URL from browser</td></tr>
+    <tr><td>p256dh</td><td>text</td><td>Public key for payload encryption</td></tr>
+    <tr><td>auth</td><td>text</td><td>Auth secret for payload encryption</td></tr>
+    <tr><td>zones</td><td>text[]</td><td>Regions to receive alerts (e.g. ["north","central"])</td></tr>
+    <tr><td>created_at</td><td>timestamptz</td><td>Auto-set on insert</td></tr>
+  </table>
+
+  <h4>sg_notifications — Notification content store</h4>
+  <table>
+    <tr><th>Column</th><th>Type</th><th>Description</th></tr>
+    <tr><td>id</td><td>uuid (PK)</td><td>Auto-generated</td></tr>
+    <tr><td>title</td><td>text</td><td>Push notification title</td></tr>
+    <tr><td>body</td><td>text</td><td>Push notification body text</td></tr>
+    <tr><td>zone</td><td>text</td><td>Target zone for the notification</td></tr>
+    <tr><td>created_at</td><td>timestamptz</td><td>Auto-set on insert</td></tr>
+  </table>
+  <p>The service worker reads the latest entry from this table on push wake-up since Web Push empty payloads are used (the actual content is fetched, not embedded in the push).</p>
+
+  <h3>4.2 Row Level Security (RLS)</h3>
+  <p>All tables have RLS enabled. The anon key used in the frontend can:</p>
+  <ul>
+    <li><strong>sg_traps</strong>: SELECT (all), INSERT (own device_id), UPDATE yes_votes/no_votes only, DELETE own rows only</li>
+    <li><strong>sg_chat</strong>: SELECT (last 2h, zone-filtered), INSERT (authenticated by anon key), no UPDATE or DELETE by others</li>
+    <li><strong>sg_push_subs</strong>: INSERT and UPDATE own device_id rows only, no SELECT of other devices</li>
+    <li><strong>sg_notifications</strong>: SELECT only (service worker reads, Edge Function writes with service role key)</li>
+  </ul>
+
+  <h3>4.3 Edge Function — notify-trap</h3>
+  <p>A Deno-based serverless function triggered by a Supabase Database Webhook when <code>sg_traps.yes_votes</code> reaches 3. It:</p>
+  <ol>
+    <li>Checks a 24-hour cooldown (<code>last_notified</code>) to prevent spam</li>
+    <li>Queries <code>sg_push_subs</code> for subscribers in the matching zone</li>
+    <li>Updates <code>last_notified</code> on the trap record</li>
+    <li>Inserts the notification text into <code>sg_notifications</code></li>
+    <li>Sends an empty Web Push to each subscriber endpoint using pure SubtleCrypto (no npm dependencies)</li>
+    <li>Removes stale subscriptions that return HTTP 410 Gone</li>
+  </ol>
+  <pre><code><span class="cm">// notify-trap invocation flow</span>
+DB Webhook (yes_votes = 3)
+  → Edge Function (Deno)
+    → Check cooldown
+    → Query sg_push_subs WHERE zones @> [zone]
+    → VAPID JWT (ES256 via SubtleCrypto)
+    → POST empty push to each endpoint
+    → INSERT into sg_notifications
+    → Device Service Worker wakes up
+    → SW fetches sg_notifications → shows notification</code></pre>
+</div>
+
+<!-- ══════════════════════════════════════════
+     5. CONFIGURATION REFERENCE
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 5</div>
+  <h2>Configuration Reference</h2>
+
+  <h3>5.1 Environment Variables (Edge Function)</h3>
+  <p>Set in the Supabase Dashboard → Project Settings → Edge Functions → Secrets.</p>
+  <table>
+    <tr><th>Variable</th><th>Required</th><th>Description</th></tr>
+    <tr><td>SUPABASE_URL</td><td>Yes</td><td>Project URL — e.g. https://xxxx.supabase.co</td></tr>
+    <tr><td>SUPABASE_SERVICE_ROLE_KEY</td><td>Yes</td><td>Service role key (never expose to client)</td></tr>
+    <tr><td>VAPID_PUBLIC_KEY</td><td>Yes</td><td>Base64url-encoded uncompressed EC public key (65 bytes)</td></tr>
+    <tr><td>VAPID_PRIVATE_KEY</td><td>Yes</td><td>Base64url-encoded raw EC private key (32 bytes)</td></tr>
+    <tr><td>VAPID_SUBJECT</td><td>No</td><td>Contact email for push service — default: mailto:admin@speedguardmw.com</td></tr>
+  </table>
+
+  <div class="callout danger">
+    <span class="callout-icon">🔒</span>
+    <div><strong>Never commit VAPID_PRIVATE_KEY or SUPABASE_SERVICE_ROLE_KEY to the repository.</strong> These are server-side only. The VAPID_PUBLIC_KEY is safe to embed in the frontend.</div>
+  </div>
+
+  <h3>5.2 Frontend Constants (index.html)</h3>
+  <p>Hardcoded in the JS block near line 2000 of index.html.</p>
+  <table>
+    <tr><th>Constant</th><th>Value</th><th>Description</th></tr>
+    <tr><td>SUPA_URL</td><td>https://mgoxhsnmjbzjuevwryxy.supabase.co</td><td>Supabase project REST endpoint</td></tr>
+    <tr><td>SUPA_KEY</td><td>sb_publishable_…</td><td>Anon key — safe to be public; RLS enforces access control</td></tr>
+    <tr><td>VAPID_PUBLIC_KEY</td><td>BLIzF0qw…</td><td>VAPID public key for push subscription</td></tr>
+    <tr><td>VOTES_TO_VERIFY</td><td>3</td><td>Confirmations needed before a trap is marked verified</td></tr>
+    <tr><td>VOTES_TO_REMOVE</td><td>3</td><td>Rejections needed before a community trap is auto-deleted</td></tr>
+    <tr><td>EXPIRY_ALL_COMMUNITY</td><td>2 hours (ms)</td><td>All community trap reports expire after 2 hours</td></tr>
+    <tr><td>CHAT_EXPIRY</td><td>2 hours (ms)</td><td>Chat messages removed from in-memory store after 2 hours</td></tr>
+    <tr><td>MAX_CHAT_MSGS</td><td>60</td><td>Maximum messages kept in UI before trimming oldest</td></tr>
+    <tr><td>TRAP_ALERT_KM</td><td>2.0 km</td><td>Distance at which proximity alert triggers</td></tr>
+  </table>
+
+  <h3>5.3 localStorage Keys</h3>
+  <p>All user preferences and device state are stored in the browser's <code>localStorage</code> under these keys. No personal data is sent to a server unless the user explicitly goes live.</p>
+  <table>
+    <tr><th>Key</th><th>Type</th><th>Description</th></tr>
+    <tr><td>sg_id</td><td>string (UUID)</td><td>Anonymous device identifier — generated once, never changes</td></tr>
+    <tr><td>sg_nick</td><td>string</td><td>Driver's chosen nickname</td></tr>
+    <tr><td>sg_sos</td><td>JSON</td><td>Emergency contact: {name, phone}</td></tr>
+    <tr><td>sg_terms</td><td>"1"</td><td>Terms acceptance flag</td></tr>
+    <tr><td>sg_audio</td><td>"1"/"0"</td><td>Voice alerts enabled state</td></tr>
+    <tr><td>sg_night</td><td>string</td><td>Night mode: "manual-on", "manual-off", or "" (auto)</td></tr>
+    <tr><td>sg_chat_region</td><td>string</td><td>Last selected chat tab: north/central/south/all</td></tr>
+    <tr><td>sg_voted</td><td>JSON</td><td>Map of trapId → "yes"/"no" (prevents double-voting)</td></tr>
+    <tr><td>sg_score</td><td>number</td><td>Safe driver score total</td></tr>
+    <tr><td>sg_score_pings</td><td>number</td><td>GPS pings within speed limit (for score)</td></tr>
+    <tr><td>sg_score_over</td><td>number</td><td>GPS pings over speed limit (for score)</td></tr>
+    <tr><td>sg_score_trips</td><td>number</td><td>Total trips completed</td></tr>
+    <tr><td>sg_trip_history</td><td>JSON[]</td><td>Array of trip records {date, km, duration, avgSpeed}</td></tr>
+    <tr><td>sg_set_fuel</td><td>"1"/"0"</td><td>Map layer toggle — fuel stations</td></tr>
+    <tr><td>sg_set_police</td><td>"1"/"0"</td><td>Map layer toggle — police checkpoints (default ON)</td></tr>
+    <tr><td>sg_set_hospitals</td><td>"1"/"0"</td><td>Map layer toggle — hospitals (default ON)</td></tr>
+    <tr><td>sg_set_breakdown</td><td>"1"/"0"</td><td>Map layer toggle — breakdown services (default OFF)</td></tr>
+    <tr><td>sg_set_traps</td><td>"1"/"0"</td><td>Map layer toggle — community traps</td></tr>
+    <tr><td>sg_set_live</td><td>"1"/"0"</td><td>Show live drivers on map</td></tr>
+    <tr><td>sg_mute_chat</td><td>"1"/"0"</td><td>Mute chat toast notifications</td></tr>
+    <tr><td>sg_vibration</td><td>"1"/"0"</td><td>Haptic feedback on alerts</td></tr>
+    <tr><td>sg_set_weather</td><td>"1"/"0"</td><td>Weather layer on map</td></tr>
+    <tr><td>sg_sim_active</td><td>"1"/"0"</td><td>Admin sim mode active flag (written by admin.html)</td></tr>
+    <tr><td>sg_sim_lat/lng/speed</td><td>float</td><td>Simulated GPS values (written by admin.html, read by index.html)</td></tr>
+    <tr><td>sg_last_log</td><td>timestamp (ms)</td><td>Last time driver position was sent to Supabase</td></tr>
+  </table>
+
+  <h3>5.4 PWA Manifest (manifest.json)</h3>
+  <dl class="kv">
+    <dt>name</dt>            <dd>SpeedGuard Malawi</dd>
+    <dt>short_name</dt>      <dd>SpeedGuard</dd>
+    <dt>start_url</dt>       <dd>./index.html</dd>
+    <dt>display</dt>         <dd>standalone (no browser chrome)</dd>
+    <dt>orientation</dt>     <dd>portrait-primary</dd>
+    <dt>theme_color</dt>     <dd>#0a0f14 (deep navy)</dd>
+    <dt>background_color</dt><dd>#0a0f14</dd>
+    <dt>categories</dt>      <dd>navigation, utilities</dd>
+    <dt>Icon format</dt>     <dd>SVG inline data-URI (Malawi flag colours + shield emoji)</dd>
+  </dl>
+</div>
+
+<!-- ══════════════════════════════════════════
+     6. CORE FEATURES — TECHNICAL DETAIL
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 6</div>
+  <h2>Core Features — Technical Detail</h2>
+
+  <h3>6.1 GPS &amp; Speed Tracking</h3>
+  <p>GPS is acquired via the browser's <code>navigator.geolocation.watchPosition()</code> API with <code>enableHighAccuracy: true</code>. Position updates call <code>updateUI(lat, lng, speed)</code> which:</p>
+  <ul>
+    <li>Updates the speed display with colour coding (green/yellow/red)</li>
+    <li>Moves the map marker and re-centres if auto-follow is on</li>
+    <li>Calculates trip progress using <code>latProg(lat)</code> — a linear interpolation of the M1's latitude range</li>
+    <li>Checks proximity to all known traps via Haversine distance (<code>hav()</code>)</li>
+    <li>Updates the safe driver score (1 point per 10s within limit, -2 per 10s over)</li>
+    <li>Broadcasts position to Supabase Realtime channel (throttled to once per 5s)</li>
+  </ul>
+
+  <h4>Zone Detection</h4>
+  <p>The M1 is divided into three zones based on kilometre position (derived from latitude):</p>
+  <table>
+    <tr><th>Zone</th><th>Km Range</th><th>Coverage</th></tr>
+    <tr><td>North</td><td>0 – 399 km</td><td>Kasumulu Border → Nkhotakota</td></tr>
+    <tr><td>Central</td><td>400 – 699 km</td><td>Nkhotakota → Lilongwe → Dedza</td></tr>
+    <tr><td>South</td><td>700 – 1140 km</td><td>Dedza → Blantyre → Nsanje</td></tr>
+  </table>
+
+  <h3>6.2 Speed Trap System</h3>
+  <p>Two types of traps exist in the system:</p>
+
+  <h4>Hardcoded Traps</h4>
+  <p>Defined in the <code>var traps = [...]</code> array in index.html. These are permanent, verified locations (toll gates, known checkpoints). They are never deleted by voting and are always shown on the map. Each entry has: <code>id, name, lat, lng, limit, type, subtype, km, verified</code>.</p>
+
+  <h4>Community Traps</h4>
+  <p>Submitted by drivers via the <strong>+ Trap</strong> button, stored in <code>sg_traps</code> on Supabase. Lifecycle:</p>
+  <ol>
+    <li>Driver reports trap → POST to <code>sg_traps</code> with yes_votes=0</li>
+    <li>Other drivers vote 👍 → yes_votes increments via PATCH</li>
+    <li>At yes_votes = 3 → trap rendered as "verified", push notification triggered</li>
+    <li>At no_votes = 3 → trap auto-deleted from Supabase and removed from map</li>
+    <li>All community traps expire after 2 hours regardless of vote count</li>
+  </ol>
+
+  <h3>6.3 Regional Chat</h3>
+  <p>Chat operates over a Supabase Realtime WebSocket channel (<code>m1_drivers</code>) using the broadcast mode. Key design decisions:</p>
+  <ul>
+    <li><strong>No server-side zone filtering</strong> — all messages go to all connected clients; zone filtering happens client-side in <code>receiveChatMsg()</code></li>
+    <li><strong>Outgoing zone stamping</strong> — the sender's active region tab (<code>chatRegionTab</code>) is stamped on outgoing messages. If on "All M1" with no GPS, sending is blocked</li>
+    <li><strong>History</strong> — last 50 messages from the past 2 hours fetched from <code>sg_chat</code> on open, filtered by zone</li>
+    <li><strong>Self-exclusion</strong> — device ID checked on receive to prevent echo (<code>if(pl.id === myId) return</code>)</li>
+    <li><strong>Mentions</strong> — <code>@nickname</code> parsed client-side; mentioned driver gets stronger visual + audio notification</li>
+    <li><strong>Deletion</strong> — broadcast delete event marks message as deleted on all devices simultaneously</li>
+  </ul>
+
+  <h3>6.4 SOS Emergency System</h3>
+  <p>The SOS button is a direct <code>tel:</code> link requiring no internet. Flow:</p>
+  <ol>
+    <li>User taps 🆘 SOS → confirmation modal shown (prevents accidental trigger)</li>
+    <li>On confirm → <code>window.location.href = 'tel:' + sosContact.phone</code></li>
+    <li>Device dials the saved emergency contact</li>
+    <li>App displays current GPS coordinates for verbal reporting</li>
+  </ol>
+  <p>Contact is stored in <code>sg_sos</code> localStorage. No server is involved — works completely offline.</p>
+
+  <h3>6.5 Push Notifications</h3>
+  <p>Uses the standard Web Push API with VAPID (Voluntary Application Server Identification) authentication. No Firebase or third-party push service.</p>
+  <ol>
+    <li>User grants notification permission in browser</li>
+    <li>App calls <code>registration.pushManager.subscribe({userVisibleOnly:true, applicationServerKey:VAPID_PUBLIC_KEY})</code></li>
+    <li>Subscription (endpoint + keys) saved to <code>sg_push_subs</code> with selected zones</li>
+    <li>When a trap reaches 3 yes_votes, a Supabase Database Webhook fires <code>notify-trap</code></li>
+    <li>Edge Function sends an <strong>empty</strong> push (no encrypted payload) to save bandwidth</li>
+    <li>Service worker wakes up, fetches latest entry from <code>sg_notifications</code>, shows the notification</li>
+  </ol>
+
+  <h3>6.6 Safe Driver Score</h3>
+  <p>A gamified scoring system tracked entirely in localStorage — no server-side score storage.</p>
+  <table>
+    <tr><th>Action</th><th>Points</th></tr>
+    <tr><td>10 seconds driving within speed limit</td><td>+1</td></tr>
+    <tr><td>10 seconds driving over speed limit</td><td>-2</td></tr>
+    <tr><td>Submitting a trap report</td><td>+5</td></tr>
+    <tr><td>Your trap gets verified (3 votes)</td><td>+10</td></tr>
+    <tr><td>Voting on a trap (yes or no)</td><td>+2</td></tr>
+    <tr><td>Completing a trip with destination</td><td>+15</td></tr>
+  </table>
+  <p>Score tier badges: 🥇 Gold (≥500), 🥈 Silver (≥200), 🥉 Bronze (&lt;200).</p>
+</div>
+
+<!-- ══════════════════════════════════════════
+     7. ADMIN PANEL
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 7</div>
+  <h2>Admin Panel</h2>
+  <p class="section-intro">The admin panel (<code>admin.html</code>) is a separate page accessible only by the developer. It is not linked from the main app and has no authentication — security relies on obscurity of the URL. A proper authentication layer should be added before any public disclosure of the admin URL.</p>
+
+  <h3>7.1 Features</h3>
+  <table>
+    <tr><th>Feature</th><th>Description</th></tr>
+    <tr><td>Route Simulator</td><td>Simulates a car driving the full M1 from north to south (or reverse). Writes GPS coordinates to localStorage every 400ms. The main app polls localStorage to update its UI — allowing full end-to-end testing without physical travel.</td></tr>
+    <tr><td>Live Trap Management</td><td>View all community traps in Supabase; delete, verify, or reset vote counts</td></tr>
+    <tr><td>Push Broadcast</td><td>Send a manual push notification to all subscribers in a selected zone</td></tr>
+    <tr><td>Driver Monitor</td><td>See all currently live drivers with nickname, speed, and position</td></tr>
+    <tr><td>Chat Monitor</td><td>Read all chat messages across all regions</td></tr>
+  </table>
+
+  <h3>7.2 Route Simulator — SIM_ROUTE</h3>
+  <p>The simulator uses a <code>SIM_ROUTE</code> array of waypoints covering the full M1. Each waypoint is <code>[lat, lng, name, km]</code>. There are 56 waypoints from Kasumulu Border (0 km) to Nsanje (1140 km). The simulator interpolates between waypoints at a configurable speed (20–120 km/h).</p>
+
+  <h4>Key simulator variables</h4>
+  <dl class="kv">
+    <dt>simIdx</dt>         <dd>Current waypoint index — default 34 (Lilongwe)</dd>
+    <dt>simFrac</dt>        <dd>0–1 fraction of progress between simIdx and next waypoint</dd>
+    <dt>simDir</dt>         <dd>1 = northbound→south, -1 = south→north</dd>
+    <dt>SIM_TICK_MS</dt>    <dd>400ms — position update interval</dd>
+    <dt>SIM_ROUTE length</dt><dd>56 waypoints</dd>
+  </dl>
+
+  <h3>7.3 Admin Access</h3>
+  <div class="callout warning">
+    <span class="callout-icon">⚠️</span>
+    <div>The admin panel has no login screen. Access is controlled only by knowing the URL. For production hardening, add HTTP Basic Auth at the GitHub Pages level or restrict via a Cloudflare Access policy in front of the domain.</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     8. DEPLOYMENT & CI/CD
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 8</div>
+  <h2>Deployment &amp; CI/CD</h2>
+
+  <h3>8.1 GitHub Pages Deployment</h3>
+  <p>The application deploys automatically via GitHub Actions on every push to <code>main</code>. The workflow (<code>.github/workflows/static.yml</code>) uses the standard GitHub Pages deploy action with no build step — the repository contents are served as-is.</p>
+
+  <pre><code><span class="cm"># Deployment trigger</span>
+git add index.html admin.html
+git commit -m <span class="str">"feat: description"</span>
+git push origin main
+<span class="cm"># → GitHub Actions → Deploy to Pages → Live in ~30 seconds</span></code></pre>
+
+  <h3>8.2 Deployment Checklist</h3>
+  <table>
+    <tr><th>Step</th><th>Action</th><th>Tool</th></tr>
+    <tr><td>1</td><td>Always fetch before push to prevent lock errors</td><td><code>git fetch --all && git push origin main</code></td></tr>
+    <tr><td>2</td><td>Verify GitHub Actions workflow passed</td><td>GitHub → Actions tab</td></tr>
+    <tr><td>3</td><td>Test on mobile immediately after deploy</td><td>Browser on phone</td></tr>
+    <tr><td>4</td><td>Check Supabase Edge Function logs if push not working</td><td>Supabase Dashboard → Edge Functions → Logs</td></tr>
+  </table>
+
+  <h3>8.3 Supabase Edge Function Deployment</h3>
+  <pre><code><span class="cm"># Deploy notify-trap Edge Function</span>
+supabase functions deploy notify-trap --project-ref mgoxhsnmjbzjuevwryxy
+
+<span class="cm"># Set secrets</span>
+supabase secrets set VAPID_PUBLIC_KEY=<span class="str">"..."</span>
+supabase secrets set VAPID_PRIVATE_KEY=<span class="str">"..."</span>
+supabase secrets set VAPID_SUBJECT=<span class="str">"mailto:admin@speedguardmw.com"</span></code></pre>
+
+  <h3>8.4 Database Webhook Setup</h3>
+  <p>In Supabase Dashboard → Database → Webhooks, create a webhook on the <code>sg_traps</code> table for the <code>UPDATE</code> event that fires the <code>notify-trap</code> Edge Function URL when <code>yes_votes</code> changes.</p>
+</div>
+
+<!-- ══════════════════════════════════════════
+     9. SECURITY CONSIDERATIONS
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 9</div>
+  <h2>Security Considerations</h2>
+
+  <h3>9.1 Credential Exposure</h3>
+  <table>
+    <tr><th>Credential</th><th>In Frontend?</th><th>Risk Level</th><th>Mitigation</th></tr>
+    <tr><td>SUPA_KEY (anon)</td><td>Yes</td><td>Low</td><td>Anon key is publishable; RLS policies restrict all access</td></tr>
+    <tr><td>VAPID_PUBLIC_KEY</td><td>Yes</td><td>None</td><td>Public by design — required for push subscription</td></tr>
+    <tr><td>VAPID_PRIVATE_KEY</td><td>No (Edge Fn only)</td><td>High if leaked</td><td>Never committed to repo; stored in Supabase secrets</td></tr>
+    <tr><td>Service Role Key</td><td>No (Edge Fn only)</td><td>Critical if leaked</td><td>Never committed to repo; stored in Supabase secrets</td></tr>
+  </table>
+
+  <h3>9.2 Privacy</h3>
+  <ul>
+    <li><strong>No user accounts</strong> — identity is a random UUID in localStorage; nothing is linked to a real person</li>
+    <li><strong>Location rounding</strong> — chat messages only store lat/lng rounded to 2 decimal places (~1 km precision)</li>
+    <li><strong>Driver positions</strong> — sent to Realtime channel but not persisted to database</li>
+    <li><strong>Chat history</strong> — deleted after 2 hours; no long-term message storage</li>
+    <li><strong>No cookies</strong> — all state in localStorage; no tracking</li>
+  </ul>
+
+  <h3>9.3 Content Security</h3>
+  <ul>
+    <li>Chat input is escaped via <code>escChat()</code> before DOM insertion to prevent XSS</li>
+    <li>All Supabase API calls use parameterised query strings — no raw SQL from client</li>
+    <li>Trap submission rate is limited implicitly by the vote system — a single device cannot verify its own report</li>
+  </ul>
+
+  <h3>9.4 Known Security Gaps</h3>
+  <div class="callout danger">
+    <span class="callout-icon">🔒</span>
+    <div>
+      <strong>Admin panel is unauthenticated.</strong> Anyone with the URL can access admin.html. This should be addressed before the URL becomes publicly known.<br><br>
+      <strong>No rate limiting on trap reports.</strong> A malicious device could flood sg_traps with fake reports. Consider adding a Supabase RLS policy limiting inserts per device_id per hour.
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     10. KNOWN LIMITATIONS & FUTURE WORK
+══════════════════════════════════════════ -->
+<div class="section">
+  <div class="section-num">Section 10</div>
+  <h2>Known Limitations &amp; Future Work</h2>
+
+  <h3>10.1 Current Limitations</h3>
+  <table>
+    <tr><th>Limitation</th><th>Impact</th><th>Workaround</th></tr>
+    <tr><td>iOS push notifications require iOS 16.4+ and "Add to Home Screen"</td><td>Older iPhones won't receive push alerts</td><td>In-app toast shown as fallback</td></tr>
+    <tr><td>GPS accuracy varies by device and conditions</td><td>Speed readings can be noisy at low speeds</td><td>Speed smoothing applied; alerts only fire above 20 km/h</td></tr>
+    <tr><td>Trap coordinates are user-reported and approximate</td><td>Alerts may fire slightly early or late</td><td>2 km alert radius gives sufficient warning time</td></tr>
+    <tr><td>Road service data (breakdown, police) is unverified</td><td>Phone numbers and coordinates may be outdated</td><td>Marked as approximate; user advised to verify</td></tr>
+    <tr><td>Admin panel has no auth</td><td>Security risk if URL is shared</td><td>Keep URL private; add auth before public exposure</td></tr>
+    <tr><td>No server-side chat zone filtering</td><td>All messages traverse the wire regardless of zone</td><td>Client-side filter applied; performance impact is minimal at current scale</td></tr>
+  </table>
+
+  <h3>10.2 Planned Improvements</h3>
+  <ul>
+    <li>Custom app icon (shield + speedometer) at 192×192 and 512×512</li>
+    <li>Add Lumbadzi Junction waypoint to simulator (correct coordinates north of Lilongwe ~km 530)</li>
+    <li>Admin panel authentication (HTTP Basic Auth or Cloudflare Access)</li>
+    <li>Supabase pg_cron job for automatic chat message expiry cleanup</li>
+    <li>Rate limiting on trap submission (RLS policy: max 5 inserts per device per hour)</li>
+    <li>Verified police station coordinates (current data is approximate)</li>
+    <li>Expansion beyond M1 to M2 (Lilongwe–Mchinji) and S127 (Blantyre–Zomba)</li>
+  </ul>
+
+  <div class="page-footer">
+    <span>Pansewu — System Documentation v1.0 — May 2026</span>
+    <span>Marvin Sinclair · github.com/Sinclair3/speedguardmw</span>
+  </div>
+</div>
+
+</body>
+</html>

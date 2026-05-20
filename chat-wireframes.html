@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Chat Design Options — Pansewu</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#0a0f14;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#fff;padding:30px 16px 60px;min-height:100vh}
+
+  h1{text-align:center;font-size:18px;font-weight:800;color:rgba(255,255,255,.5);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px}
+  .subtitle{text-align:center;font-size:13px;color:rgba(255,255,255,.28);margin-bottom:36px}
+
+  .options{display:flex;flex-wrap:wrap;gap:32px;justify-content:center;align-items:flex-start}
+
+  /* ── Phone shell ── */
+  .option{display:flex;flex-direction:column;align-items:center;gap:14px;max-width:280px}
+  .option-label{font-size:13px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:rgba(255,255,255,.45);text-align:center}
+  .option-desc{font-size:12px;color:rgba(255,255,255,.3);text-align:center;line-height:1.6;max-width:240px}
+  .phone{width:260px;height:520px;border-radius:36px;border:2px solid rgba(255,255,255,.12);background:#111820;overflow:hidden;display:flex;flex-direction:column;box-shadow:0 20px 60px rgba(0,0,0,.6);position:relative;flex-shrink:0}
+  .phone-notch{height:28px;background:#111820;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .phone-notch-pill{width:80px;height:8px;background:rgba(255,255,255,.08);border-radius:4px}
+
+  /* ── Shared header ── */
+  .ch-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
+  .ch-back{font-size:18px;color:rgba(255,255,255,.5);cursor:pointer;line-height:1}
+  .ch-hdr-info{flex:1}
+  .ch-hdr-title{font-size:14px;font-weight:800;color:#fff}
+  .ch-hdr-sub{font-size:10px;color:rgba(255,255,255,.35);margin-top:1px}
+  .ch-hdr-icon{font-size:18px;opacity:.5}
+
+  /* ── Messages area ── */
+  .ch-msgs{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:0;padding:10px 10px;position:relative}
+
+  /* ── Input bar ── */
+  .ch-input{display:flex;align-items:center;gap:7px;padding:9px 12px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;background:rgba(10,15,20,.8)}
+  .ch-input-box{flex:1;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);border-radius:20px;padding:8px 12px;font-size:12px;color:rgba(255,255,255,.4)}
+  .ch-send{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1a6b3a,#27ae60);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+
+  /* ══════════════════════════════════════
+     OPTION A — WhatsApp style
+  ══════════════════════════════════════ */
+  .wa-msgs{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:6px;padding:10px 10px}
+  .wa-bubble{display:flex;flex-direction:column;max-width:78%}
+  .wa-bubble.other{align-self:flex-start}
+  .wa-bubble.mine{align-self:flex-end}
+  .wa-nick{font-size:9px;font-weight:700;margin-bottom:2px;padding-left:2px}
+  .wa-bubble.other .wa-nick{color:#5ddb8a}
+  .wa-bubble.mine .wa-nick{color:rgba(255,255,255,.5);text-align:right;padding-right:2px}
+  .wa-body{border-radius:12px;padding:7px 10px;font-size:12px;line-height:1.5;position:relative}
+  .wa-bubble.other .wa-body{background:#1e2a35;border:1px solid rgba(255,255,255,.08);border-radius:4px 12px 12px 12px}
+  .wa-bubble.mine .wa-body{background:rgba(39,174,96,.22);border:1px solid rgba(39,174,96,.3);border-radius:12px 4px 12px 12px}
+  .wa-meta{font-size:9px;color:rgba(255,255,255,.25);text-align:right;margin-top:3px}
+  .wa-bubble.other .wa-meta{text-align:left}
+  .wa-avatar{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;flex-shrink:0;margin-top:auto;margin-bottom:4px}
+  .wa-row{display:flex;gap:6px;align-items:flex-end}
+  .wa-row.mine{flex-direction:row-reverse}
+  .wa-system{text-align:center;font-size:10px;color:rgba(255,255,255,.25);font-style:italic;padding:6px 0}
+  .wa-region-tabs{display:flex;gap:6px;padding:8px 10px 6px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06)}
+  .wa-rtab{flex:1;text-align:center;font-size:10px;font-weight:700;padding:5px 4px;border-radius:20px;color:rgba(255,255,255,.35);background:rgba(255,255,255,.05)}
+  .wa-rtab.active{background:rgba(39,174,96,.18);color:#5ddb8a;border:1px solid rgba(39,174,96,.3)}
+
+  /* ══════════════════════════════════════
+     OPTION B — Telegram style
+  ══════════════════════════════════════ */
+  .tg-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;background:#1a2535;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
+  .tg-avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#2980b9,#3498db);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+  .tg-hdr-name{font-size:14px;font-weight:800;color:#fff}
+  .tg-hdr-sub{font-size:10px;color:rgba(255,255,255,.35)}
+  .tg-msgs{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:4px;padding:10px 10px;background:linear-gradient(180deg,#0e1820 0%,#0a1218 100%)}
+  .tg-bubble{max-width:80%;border-radius:12px;padding:7px 10px;font-size:12px;line-height:1.5;position:relative}
+  .tg-bubble.other{align-self:flex-start;background:#1e2c3a;border:1px solid rgba(255,255,255,.07)}
+  .tg-bubble.mine{align-self:flex-end;background:rgba(39,174,96,.2);border:1px solid rgba(39,174,96,.25)}
+  .tg-nick-row{font-size:9px;font-weight:800;margin-bottom:2px}
+  .tg-bubble.other .tg-nick-row{color:#5ddb8a}
+  .tg-bubble.mine .tg-nick-row{color:rgba(39,174,96,.7);text-align:right}
+  .tg-time{font-size:9px;color:rgba(255,255,255,.22);text-align:right;margin-top:2px}
+  .tg-bubble.other .tg-time{text-align:left}
+  .tg-region{display:flex;gap:5px;padding:8px 10px 6px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06)}
+  .tg-rtab{font-size:10px;font-weight:700;padding:4px 10px;border-radius:20px;color:rgba(255,255,255,.35);background:rgba(255,255,255,.05)}
+  .tg-rtab.north.active{background:rgba(52,152,219,.2);color:#7fb3d3;border:1px solid rgba(52,152,219,.3)}
+  .tg-rtab.central.active{background:rgba(243,156,18,.15);color:#f8c060;border:1px solid rgba(243,156,18,.3)}
+  .tg-rtab.south.active{background:rgba(231,76,60,.15);color:#ff8a7a;border:1px solid rgba(231,76,60,.3)}
+  .tg-system{text-align:center;font-size:9px;color:rgba(255,255,255,.22);font-style:italic;padding:4px 0;background:rgba(255,255,255,.04);border-radius:8px;margin:4px 0}
+  .tg-reply-bar{background:rgba(0,0,0,.3);border-left:3px solid #5ddb8a;padding:5px 10px;margin-bottom:4px;border-radius:0 8px 8px 0;flex-shrink:0}
+  .tg-reply-nick{font-size:9px;font-weight:800;color:#5ddb8a}
+  .tg-reply-text{font-size:10px;color:rgba(255,255,255,.4)}
+  .tg-input{display:flex;align-items:center;gap:7px;padding:8px 10px;border-top:1px solid rgba(255,255,255,.07);flex-shrink:0;background:#1a2535}
+  .tg-input-box{flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:7px 12px;font-size:12px;color:rgba(255,255,255,.35)}
+  .tg-send{width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1a6b3a,#27ae60);display:flex;align-items:center;justify-content:center;font-size:13px;flex-shrink:0}
+
+  /* ══════════════════════════════════════
+     OPTION C — Feed / Twitter style
+  ══════════════════════════════════════ */
+  .fd-hdr{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid rgba(255,255,255,.07);flex-shrink:0}
+  .fd-region{display:flex;gap:5px;padding:8px 10px;flex-shrink:0;border-bottom:1px solid rgba(255,255,255,.06);background:rgba(255,255,255,.02)}
+  .fd-rtab{font-size:10px;font-weight:700;padding:4px 9px;border-radius:20px;color:rgba(255,255,255,.35);background:rgba(255,255,255,.05)}
+  .fd-rtab.active{background:rgba(39,174,96,.15);color:#5ddb8a;border:1px solid rgba(39,174,96,.25)}
+  .fd-msgs{flex:1;overflow:hidden;display:flex;flex-direction:column;gap:1px;padding:0}
+  .fd-card{display:flex;gap:9px;padding:9px 12px;border-bottom:1px solid rgba(255,255,255,.05)}
+  .fd-card.mine{background:rgba(39,174,96,.04)}
+  .fd-av{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;margin-top:1px}
+  .fd-content{flex:1;min-width:0}
+  .fd-meta{display:flex;align-items:baseline;gap:6px;margin-bottom:3px}
+  .fd-name{font-size:12px;font-weight:800;color:#fff}
+  .fd-badge{font-size:9px;color:rgba(255,255,255,.3);background:rgba(255,255,255,.07);padding:1px 5px;border-radius:4px}
+  .fd-time{font-size:9px;color:rgba(255,255,255,.25);margin-left:auto}
+  .fd-text{font-size:12px;color:rgba(255,255,255,.75);line-height:1.5}
+  .fd-zone{font-size:9px;color:rgba(255,255,255,.25);margin-top:3px}
+  .fd-input{display:flex;align-items:center;gap:7px;padding:9px 12px;border-top:1px solid rgba(255,255,255,.08);flex-shrink:0;background:rgba(10,15,20,.9)}
+  .fd-input-box{flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.1);border-radius:20px;padding:8px 12px;font-size:12px;color:rgba(255,255,255,.35)}
+  .fd-send{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1a6b3a,#27ae60);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+
+  /* choice pill */
+  .choice-btn{margin-top:8px;padding:8px 22px;border-radius:20px;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.6);font-size:12px;font-weight:700;cursor:pointer;transition:.2s}
+  .choice-btn:hover{background:rgba(39,174,96,.15);border-color:rgba(39,174,96,.4);color:#5ddb8a}
+</style>
+</head>
+<body>
+
+<h1>Chat Design Options</h1>
+<p class="subtitle">Three visual directions for the Pansewu Road Chat — pick your favourite</p>
+
+<div class="options">
+
+  <!-- ══ OPTION A: WhatsApp ══ -->
+  <div class="option">
+    <div class="option-label">Option A — WhatsApp Style</div>
+    <div class="phone">
+      <div class="phone-notch"><div class="phone-notch-pill"></div></div>
+      <!-- Header -->
+      <div class="ch-hdr">
+        <div class="ch-back">←</div>
+        <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1a6b3a,#27ae60);display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0">🛣️</div>
+        <div class="ch-hdr-info">
+          <div class="ch-hdr-title">M1 Road Chat</div>
+          <div class="ch-hdr-sub">4 drivers online</div>
+        </div>
+        <div class="ch-hdr-icon">🔊</div>
+      </div>
+      <!-- Region pill tabs -->
+      <div class="wa-region-tabs">
+        <div class="wa-rtab active">North</div>
+        <div class="wa-rtab">Central</div>
+        <div class="wa-rtab">South</div>
+        <div class="wa-rtab">All M1</div>
+      </div>
+      <!-- Messages -->
+      <div class="wa-msgs">
+        <div class="wa-system">💬 Messages expire after 2 hours</div>
+        <!-- Other message -->
+        <div class="wa-row other">
+          <div class="wa-avatar" style="background:#2980b9">TK</div>
+          <div class="wa-bubble other">
+            <div class="wa-nick">TrevorK</div>
+            <div class="wa-body">Speed trap just before Kasungu — unmarked car 🚨</div>
+            <div class="wa-meta">12:34</div>
+          </div>
+        </div>
+        <!-- Another other -->
+        <div class="wa-row other">
+          <div class="wa-avatar" style="background:#8e44ad">SN</div>
+          <div class="wa-bubble other">
+            <div class="wa-nick">Saidi_Nkosi</div>
+            <div class="wa-body">Confirmed, passed it 5 min ago 👍</div>
+            <div class="wa-meta">12:35</div>
+          </div>
+        </div>
+        <!-- My message -->
+        <div class="wa-row mine">
+          <div class="wa-avatar" style="background:#1a6b3a">MV</div>
+          <div class="wa-bubble mine">
+            <div class="wa-nick">You</div>
+            <div class="wa-body">Thanks! Slowing down now 🙏</div>
+            <div class="wa-meta">12:36 ✓✓</div>
+          </div>
+        </div>
+        <!-- Other with reply -->
+        <div class="wa-row other">
+          <div class="wa-avatar" style="background:#e67e22">BM</div>
+          <div class="wa-bubble other">
+            <div class="wa-nick">BlessM</div>
+            <div style="background:rgba(255,255,255,.06);border-left:3px solid #5ddb8a;padding:4px 7px;border-radius:0 6px 6px 0;margin-bottom:4px;font-size:10px;color:rgba(255,255,255,.45)">↩ Thanks! Slowing down...</div>
+            <div class="wa-body">Safe travels everyone ✌️</div>
+            <div class="wa-meta">12:37</div>
+          </div>
+        </div>
+      </div>
+      <!-- Input -->
+      <div class="ch-input">
+        <div class="ch-input-box">Message North region...</div>
+        <div class="ch-send">➤</div>
+      </div>
+    </div>
+    <div class="option-desc">Familiar bubble layout with avatar initials, bubble tails, reply threading, and region pills. Green for your messages, dark for others.</div>
+  </div>
+
+  <!-- ══ OPTION B: Telegram ══ -->
+  <div class="option">
+    <div class="option-label">Option B — Telegram Style</div>
+    <div class="phone">
+      <div class="phone-notch"><div class="phone-notch-pill"></div></div>
+      <!-- Header with avatar -->
+      <div class="tg-hdr">
+        <div class="ch-back" style="color:rgba(255,255,255,.5)">←</div>
+        <div class="tg-avatar">🛣️</div>
+        <div>
+          <div class="tg-hdr-name">M1 Chat</div>
+          <div class="tg-hdr-sub">Central Region · 4 online</div>
+        </div>
+        <div style="margin-left:auto;font-size:16px;opacity:.4">⋮</div>
+      </div>
+      <!-- Region pills -->
+      <div class="tg-region">
+        <div class="tg-rtab north">North</div>
+        <div class="tg-rtab central active">Central</div>
+        <div class="tg-rtab south">South</div>
+        <div class="tg-rtab" style="margin-left:auto">All</div>
+      </div>
+      <!-- Messages -->
+      <div class="tg-msgs">
+        <div class="tg-system">Today · May 16</div>
+        <div class="tg-bubble other">
+          <div class="tg-nick-row">🟡 CentralDriver</div>
+          Police checkpoint at Dowa junction — 80 km/h zone
+          <div class="tg-time">08:12</div>
+        </div>
+        <div class="tg-bubble other">
+          <div class="tg-nick-row" style="color:#e67e22">🟠 MponelaMike</div>
+          Road works near Mponela — single lane 🚧
+          <div class="tg-time">09:45</div>
+        </div>
+        <!-- Reply bar -->
+        <div class="tg-reply-bar">
+          <div class="tg-reply-nick">↩ MponelaMike</div>
+          <div class="tg-reply-text">Road works near Mponela...</div>
+        </div>
+        <div class="tg-bubble mine">
+          <div class="tg-nick-row">You</div>
+          Still there? Just left Lilongwe
+          <div class="tg-time">10:02 ✓</div>
+        </div>
+        <div class="tg-bubble other">
+          <div class="tg-nick-row">🟡 CentralDriver</div>
+          Yes still ongoing, take it slow
+          <div class="tg-time">10:04</div>
+        </div>
+      </div>
+      <!-- Reply preview bar -->
+      <div style="display:flex;align-items:center;background:rgba(0,0,0,.3);border-top:1px solid rgba(255,255,255,.06);padding:5px 12px;flex-shrink:0">
+        <div style="border-left:3px solid #5ddb8a;padding-left:8px;flex:1">
+          <div style="font-size:9px;font-weight:800;color:#5ddb8a">↩ CentralDriver</div>
+          <div style="font-size:10px;color:rgba(255,255,255,.38)">Yes still ongoing...</div>
+        </div>
+        <div style="color:rgba(255,255,255,.3);font-size:16px">✕</div>
+      </div>
+      <!-- Input -->
+      <div class="tg-input">
+        <div class="tg-input-box">Reply...</div>
+        <div class="tg-send">➤</div>
+      </div>
+    </div>
+    <div class="option-desc">Rounded bubbles, coloured nicknames, region pills at the top. Cleaner and more modern — no bubble tails. Familiar to Telegram users.</div>
+  </div>
+
+  <!-- ══ OPTION C: Feed ══ -->
+  <div class="option">
+    <div class="option-label">Option C — Live Feed Style</div>
+    <div class="phone">
+      <div class="phone-notch"><div class="phone-notch-pill"></div></div>
+      <!-- Header -->
+      <div class="fd-hdr">
+        <div class="ch-back">←</div>
+        <div class="ch-hdr-info">
+          <div class="ch-hdr-title">📡 M1 Live Feed</div>
+          <div class="ch-hdr-sub">4 drivers broadcasting</div>
+        </div>
+        <div class="ch-hdr-icon">🔊</div>
+      </div>
+      <!-- Region filter pills -->
+      <div class="fd-region">
+        <div class="fd-rtab active">All M1</div>
+        <div class="fd-rtab">North</div>
+        <div class="fd-rtab">Central</div>
+        <div class="fd-rtab">South</div>
+      </div>
+      <!-- Feed cards -->
+      <div class="fd-msgs">
+        <div class="fd-card">
+          <div class="fd-av" style="background:#2980b9">TK</div>
+          <div class="fd-content">
+            <div class="fd-meta">
+              <div class="fd-name">TrevorK</div>
+              <div class="fd-badge">North</div>
+              <div class="fd-time">12:34</div>
+            </div>
+            <div class="fd-text">Speed trap near Kasungu — unmarked police car 🚨 Slow down!</div>
+            <div class="fd-zone">📍 km 320 · 112 km/h</div>
+          </div>
+        </div>
+        <div class="fd-card">
+          <div class="fd-av" style="background:#8e44ad">SN</div>
+          <div class="fd-content">
+            <div class="fd-meta">
+              <div class="fd-name">Saidi_N</div>
+              <div class="fd-badge">North</div>
+              <div class="fd-time">12:35</div>
+            </div>
+            <div class="fd-text">Confirmed 👍 still there</div>
+            <div class="fd-zone">📍 km 315 · 94 km/h</div>
+          </div>
+        </div>
+        <div class="fd-card mine">
+          <div class="fd-av" style="background:#1a6b3a">ME</div>
+          <div class="fd-content">
+            <div class="fd-meta">
+              <div class="fd-name">You</div>
+              <div class="fd-badge" style="background:rgba(39,174,96,.15);color:#5ddb8a">North</div>
+              <div class="fd-time">12:36</div>
+            </div>
+            <div class="fd-text">Thanks — road works also near Chintheche 🚧</div>
+            <div class="fd-zone">📍 km 298 · 78 km/h</div>
+          </div>
+        </div>
+        <div class="fd-card">
+          <div class="fd-av" style="background:#e67e22">BM</div>
+          <div class="fd-content">
+            <div class="fd-meta">
+              <div class="fd-name">BlessM</div>
+              <div class="fd-badge">Central</div>
+              <div class="fd-time">12:37</div>
+            </div>
+            <div class="fd-text">All clear on the central section 🟢</div>
+            <div class="fd-zone">📍 km 502 · 88 km/h</div>
+          </div>
+        </div>
+      </div>
+      <!-- Input -->
+      <div class="fd-input">
+        <div class="fd-input-box">Post to M1 feed...</div>
+        <div class="fd-send">➤</div>
+      </div>
+    </div>
+    <div class="option-desc">Social feed layout — avatar, name, region badge, speed, and location on every post. No bubble alignment. Feels like a live radio log.</div>
+  </div>
+
+</div>
+
+<p style="text-align:center;margin-top:40px;font-size:12px;color:rgba(255,255,255,.2)">Pansewu Chat Wireframes · All layouts support replies, mentions, and region filtering</p>
+
+</body>
+</html>
