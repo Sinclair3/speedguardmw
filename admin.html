@@ -690,8 +690,13 @@ input[type=range].sim-range{width:100%;accent-color:#27ae60;cursor:pointer;heigh
         placeholder="e.g. Police checkpoint at Dedza — all vehicles being stopped..."></textarea>
       <div class="bc-row">
         <button class="btn-bc" onclick="sendBroadcast()">📢 Send to All Drivers</button>
-        <span id="bc-status" style="font-size:12px;color:rgba(255,255,255,.4)"></span>
+        <span id="bc-conn-dot" style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:20px;background:rgba(231,76,60,.12);border:1px solid rgba(231,76,60,.3);color:#ff7a7a">
+          <span style="width:7px;height:7px;border-radius:50%;background:#e74c3c;display:inline-block" id="bc-dot"></span>
+          <span id="bc-conn-lbl">Connecting…</span>
+        </span>
+        <button onclick="initBroadcast()" style="padding:5px 12px;border-radius:8px;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);color:rgba(255,255,255,.5);font-size:11px;font-weight:600;cursor:pointer" id="bc-retry-btn">↺ Retry</button>
       </div>
+      <span id="bc-status" style="font-size:12px;color:rgba(255,255,255,.4);display:block;margin-top:6px"></span>
     </div>
     <div style="font-size:13px;font-weight:600;color:rgba(255,255,255,.5);margin-bottom:10px">Recent Broadcasts (this session)</div>
     <div id="bc-history"></div>
@@ -1447,16 +1452,57 @@ function renderLiveDrivers() {
 }
 
 var wsAdmin=null;
+var _bcPendingMsg=null; // queued message waiting for connection
+
+function updateBcDot(){
+  var dot=document.getElementById('bc-dot');
+  var lbl=document.getElementById('bc-conn-lbl');
+  var wrap=document.getElementById('bc-conn-dot');
+  if(!dot||!lbl) return;
+  var state=wsAdmin?wsAdmin.readyState:3;
+  if(state===1){ // OPEN
+    dot.style.background='#27ae60';
+    lbl.textContent='Connected';
+    if(wrap){wrap.style.background='rgba(39,174,96,.1)';wrap.style.borderColor='rgba(39,174,96,.3)';wrap.style.color='#5ddb8a';}
+  } else if(state===0){ // CONNECTING
+    dot.style.background='#f39c12';
+    lbl.textContent='Connecting…';
+    if(wrap){wrap.style.background='rgba(243,156,18,.1)';wrap.style.borderColor='rgba(243,156,18,.3)';wrap.style.color='#f8c060';}
+  } else { // CLOSED / CLOSING
+    dot.style.background='#e74c3c';
+    lbl.textContent='Disconnected';
+    if(wrap){wrap.style.background='rgba(231,76,60,.1)';wrap.style.borderColor='rgba(231,76,60,.3)';wrap.style.color='#ff7a7a';}
+  }
+}
+setInterval(updateBcDot, 1500);
+
 function initBroadcast(){
   try{
+    if(wsAdmin&&wsAdmin.readyState<=1){ updateBcDot(); return; } // already open/connecting
     wsAdmin=new WebSocket(SUPA_URL.replace('https','wss')+
       '/realtime/v1/websocket?apikey='+SUPA_KEY+'&vsn=1.0.0');
+    updateBcDot();
     wsAdmin.onopen=function(){
       wsAdmin.send(JSON.stringify({topic:'realtime:m1_drivers',event:'phx_join',
         payload:{config:{broadcast:{self:true}}},ref:'admin1'}));
+      updateBcDot();
+      // Flush any queued message
+      if(_bcPendingMsg){
+        setTimeout(function(){
+          if(wsAdmin&&wsAdmin.readyState===1){
+            wsAdmin.send(_bcPendingMsg.payload);
+            showToast('📢 Sent (after reconnect)!');
+            _bcPendingMsg=null;
+          }
+        },600);
+      }
     };
-    wsAdmin.onclose=function(){if(!document.hidden) setTimeout(initBroadcast,5000);};
-  }catch(e){}
+    wsAdmin.onclose=function(){
+      updateBcDot();
+      if(!document.hidden) setTimeout(initBroadcast,5000);
+    };
+    wsAdmin.onerror=function(){ updateBcDot(); };
+  }catch(e){ updateBcDot(); }
 }
 document.addEventListener('visibilitychange',function(){
   var hidden=document.hidden;
@@ -1804,8 +1850,9 @@ function sendBroadcast(){
   var type=document.getElementById('bc-type').value;
   if(!msg){ showToast('❌ Enter a message first'); return; }
   var typeEmoji={info:'ℹ️',warning:'⚠️',alert:'🚨',clear:'✅'};
+  var payload=JSON.stringify({topic:'realtime:m1_drivers',event:'broadcast',payload:{type:'admin_broadcast',msgType:type,message:msg,from:'Admin',timestamp:new Date().toISOString()},ref:null});
   if(wsAdmin&&wsAdmin.readyState===1){
-    wsAdmin.send(JSON.stringify({topic:'realtime:m1_drivers',event:'broadcast',payload:{type:'admin_broadcast',msgType:type,message:msg,from:'Admin',timestamp:new Date().toISOString()},ref:null}));
+    wsAdmin.send(payload);
     bcHistory.unshift({type,message:msg,time:new Date().toLocaleTimeString()});
     var el=document.getElementById('bc-history'); el.innerHTML='';
     bcHistory.forEach(function(b){
@@ -1815,7 +1862,11 @@ function sendBroadcast(){
     });
     document.getElementById('bc-msg').value='';
     showToast('📢 Sent to '+Object.keys(liveDrivers).length+' driver(s)!');
-  } else { showToast('⚠️ Not connected — retrying...'); initBroadcast(); }
+  } else {
+    _bcPendingMsg={payload:payload,msg:msg,type:type};
+    showToast('⏳ Reconnecting — message queued, will auto-send…');
+    initBroadcast();
+  }
 }
 
 // ══════════════════════════════════════════════════════
@@ -2797,8 +2848,16 @@ function simInit() {
   if (simMap) { simMap.invalidateSize(); return; }
 
   simMap = L.map('sim-map', {zoomControl:true, attributionControl:false});
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {className:'sim-tiles'}).addTo(simMap);
+  // Use Esri tiles — work globally including China (OSM is blocked by GFW)
+  var tileUrl = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}';
+  var tileLayer = L.tileLayer(tileUrl, {className:'sim-tiles', maxZoom:18});
+  tileLayer.on('tileerror', function(){
+    // Esri also failing — fall back to CartoDB
+    simMap.eachLayer(function(l){ if(l._url) simMap.removeLayer(l); });
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+      {className:'sim-tiles', maxZoom:18}).addTo(simMap);
+  });
+  tileLayer.addTo(simMap);
 
   // Route polyline
   simPolyline = L.polyline(
