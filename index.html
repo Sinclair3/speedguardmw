@@ -2816,17 +2816,17 @@ var M1=[
 //   km: distance from Lilongwe along M1
 // ═══════════════════════════════════════════════════════
 var traps=[
-  {id:1,name:"Lilongwe Exit - Area 18",lat:-14.010,lng:33.825,limit:50,type:"mobile",km:28,verified:true},
-  {id:3,name:"Kalinyeke Toll Gate",lat:-14.110,lng:33.910,limit:50,type:"checkpoint",subtype:"toll",km:61,verified:true},
-  {id:4,name:"Dedza Town Entry",lat:-14.390,lng:34.110,limit:50,type:"mobile",km:83,verified:true},
-  {id:5,name:"Dedza - Moz Junction",lat:-14.510,lng:34.210,limit:80,type:"mobile",km:101,verified:true},
-  {id:6,name:"Ntcheu Town Centre",lat:-14.680,lng:34.380,limit:50,type:"camera",km:138,verified:true},
-  {id:7,name:"Chingeni Toll Gate",lat:-14.740,lng:34.420,limit:50,type:"checkpoint",subtype:"toll",km:156,verified:true},
-  {id:8,name:"Balaka Town",lat:-15.050,lng:34.950,limit:50,type:"mobile",km:187,verified:true},
-  {id:9,name:"Liwonde Junction",lat:-15.110,lng:35.020,limit:50,type:"mobile",km:211,verified:true},
-  {id:10,name:"Zomba Junction Camera",lat:-15.350,lng:34.920,limit:50,type:"camera",km:236,verified:true},
-  {id:11,name:"Limbe Urban Zone",lat:-15.550,lng:34.975,limit:50,type:"camera",km:266,verified:true},
-  {id:12,name:"Blantyre - Ginnery Corner",lat:-15.666,lng:35.000,limit:50,type:"checkpoint",km:288,verified:true}
+  {id:1,name:"Lilongwe Exit - Area 18",lat:-14.010,lng:33.825,limit:50,type:"mobile",km:572,verified:true},
+  {id:3,name:"Kalinyeke Toll Gate",lat:-14.110,lng:33.910,limit:50,type:"checkpoint",subtype:"toll",km:605,verified:true},
+  {id:4,name:"Dedza Town Entry",lat:-14.390,lng:34.110,limit:50,type:"mobile",km:648,verified:true},
+  {id:5,name:"Dedza - Moz Junction",lat:-14.510,lng:34.210,limit:80,type:"mobile",km:662,verified:true},
+  {id:6,name:"Ntcheu Town Centre",lat:-14.680,lng:34.380,limit:50,type:"camera",km:700,verified:true},
+  {id:7,name:"Chingeni Toll Gate",lat:-14.740,lng:34.420,limit:50,type:"checkpoint",subtype:"toll",km:718,verified:true},
+  {id:8,name:"Balaka Town",lat:-15.050,lng:34.950,limit:50,type:"mobile",km:762,verified:true},
+  {id:9,name:"Liwonde Junction",lat:-15.110,lng:35.020,limit:50,type:"mobile",km:780,verified:true},
+  {id:10,name:"Zomba Junction Camera",lat:-15.350,lng:34.920,limit:50,type:"camera",km:830,verified:true},
+  {id:11,name:"Limbe Urban Zone",lat:-15.550,lng:34.975,limit:50,type:"camera",km:910,verified:true},
+  {id:12,name:"Blantyre - Ginnery Corner",lat:-15.666,lng:35.000,limit:50,type:"checkpoint",km:900,verified:true}
 ];
 var nextTrapId=13;
 
@@ -5953,9 +5953,22 @@ function buildAIContext() {
   if (online > 0) ctx.push('LIVE DRIVERS CURRENTLY ON M1: ' + online + ' driver(s) broadcasting.');
   ctx.push('');
 
-  // M1 landmark reference table
-  ctx.push('M1 LANDMARK REFERENCE (km from Karonga/Songwe Border):');
-  ctx.push('Karonga=0, Chitipa jn=50, Rumphi=150, Mzuzu=230, Nkhata Bay jn=270, Mzimba=190, Kasungu=490, Lilongwe=570, Dedza=650, Ntcheu=700, Liwonde=780, Zomba=830, Blantyre=900, Limbe=910, Chikwawa=960');
+  // Warn about community traps with no km set
+  var noKmTraps = allTrapCtx.filter(function(t){ return !t.km || t.km === 0; });
+  if (noKmTraps.length) {
+    ctx.push('NOTE: ' + noKmTraps.length + ' community trap(s) have no km marker set (km=0). Their names are: ' + noKmTraps.map(function(t){ return t.name; }).join(', ') + '. Use their names and GPS coordinates for location reference, not km value.');
+    ctx.push('');
+  }
+
+  // M1 landmark reference — ALL km values measured from Karonga/Songwe Border (north) going south
+  ctx.push('M1 HIGHWAY LANDMARKS — km measured from Karonga/Songwe Border (northernmost point):');
+  ctx.push('NORTH END: Karonga/Songwe Border=0km');
+  ctx.push('NORTHERN REGION (0–400km): Karonga=0, Chitipa jn=50, Rumphi=150, Mzimba=190, Mzuzu=230, Nkhata Bay jn=270, Nkhotakota=370');
+  ctx.push('CENTRAL REGION (400–700km): Kasungu=490, Mponela=530, Lilongwe=570, Lilongwe Airport area=575, Area 18 Lilongwe=572, Kalinyeke=605, Dedza=648, Ntcheu=700');
+  ctx.push('SOUTHERN REGION (700–960km): Liwonde=780, Zomba jn=830, Blantyre=900, Limbe=910, Thyolo jn=930, Chikwawa=960');
+  ctx.push('SOUTH END: Chikwawa/Mozambique Border=960km');
+  ctx.push('');
+  ctx.push('DIRECTION GUIDE: Travelling NORTH = decreasing km numbers (towards Karonga). Travelling SOUTH = increasing km numbers (towards Chikwawa/Blantyre). Dowa is a town EAST of Mponela (off M1, branch road). Kasungu is north of Lilongwe at km 490.');
 
   return ctx.join('\n');
 }
