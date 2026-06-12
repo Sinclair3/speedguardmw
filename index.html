@@ -5889,22 +5889,84 @@ function saveAIKey() {
 }
 
 function renderAIPanel() {
-  var hasKey  = !!getAIKey();
+  // AI is always available — no key setup needed (edge function handles it)
   var setup   = document.getElementById('ai-setup');
   var msgs    = document.getElementById('ai-messages');
   var sugs    = document.getElementById('ai-sugs');
   var ibar    = document.getElementById('ai-ibar');
   var typing  = document.getElementById('ai-typing');
-  if(setup)  { if(hasKey) setup.classList.remove('show'); else setup.classList.add('show'); }
-  if(msgs)   msgs.style.display    = hasKey ? 'flex' : 'none';
-  if(sugs)   sugs.style.display    = hasKey ? 'flex' : 'none';
-  if(ibar)   ibar.style.display    = hasKey ? 'flex' : 'none';
+  if(setup)  setup.classList.remove('show');
+  if(msgs)   msgs.style.display    = 'flex';
+  if(sugs)   sugs.style.display    = 'flex';
+  if(ibar)   ibar.style.display    = 'flex';
   if(typing) typing.style.display  = 'none';
 }
+
+var MW_ROAD_REGS_2026 = [
+  'MALAWI ROAD TRAFFIC (PRESCRIBED OFFENCES & PENALTIES) REGULATIONS 2026 — Gazette 8 May 2026',
+  '',
+  'SPEED LIMITS & FINES (offence 151):',
+  'Combination/goods vehicles & buses >16 seats — speed limit 80 km/h:',
+  '  91-95 km/h → MK20,000 | 96-100 → MK30,000 | 101-105 → MK40,000 | 106-110 → MK50,000',
+  '  111-115 → MK60,000 | 116-120 → MK70,000 | 120+ → MK80,000',
+  '  3 violations in 6 months → MK90,000 + 12-month licence suspension',
+  'Private vehicles ≤16 seats — speed limit 90 km/h:',
+  '  101-105 km/h → MK20,000 | 106-110 → MK30,000 | 111-115 → MK40,000 | 116-120 → MK50,000',
+  '  121-125 → MK60,000 | 126-130 → MK70,000 | 130+ → MK80,000',
+  '  3 violations in 6 months → MK90,000 + 12-month suspension',
+  'Road sections with 100 km/h limit:',
+  '  111-115 → MK20,000 | 116-120 → MK30,000 | 121-125 → MK40,000 | 126-130 → MK50,000',
+  '  131-135 → MK60,000 | 136-140 → MK70,000 | 140+ → MK80,000',
+  'Road sections with 80 km/h limit:',
+  '  91-95 → MK20,000 | 96-100 → MK30,000 | 101-105 → MK40,000 | 106-110 → MK50,000',
+  '  111-115 → MK60,000 | 116-120 → MK70,000 | 120+ → MK80,000',
+  'Urban areas — speed limit 50 km/h:',
+  '  61-65 → MK20,000 | 66-70 → MK30,000 | 71-75 → MK40,000 | 76-80 → MK50,000',
+  '  81-85 → MK60,000 | 86-90 → MK70,000 | 90+ → MK80,000',
+  'Temporary speed limit zones — exceeding by: 10-15 km/h → MK20,000 | 15-20 → MK30,000 | 20-25 → MK40,000 | 25-30 → MK50,000 | 30-35 → MK60,000 | 35-40 → MK70,000 | 40+ → MK80,000',
+  '',
+  'KEY OFFENCES & FINES:',
+  'Driving under influence (DUI) — 0.08-0.1g/210L breath → MK40,000 | 0.11-0.13 → MK80,000 | 0.14-0.16 → MK120,000 | 0.17-0.2 → MK160,000 | above 0.2 → MK300,000 or 3 years imprisonment + 12-month suspension',
+  'Using phone/texting while driving → MK50,000',
+  'Failing to wear seatbelt → MK15,000 per passenger',
+  'Driving without a licence → MK200,000',
+  'No insurance (private vehicle) → MK100,000 + vehicle impounded until valid insurance produced',
+  'No insurance (PSV ≤16 seats) → MK400,000 | PSV 17-32 seats → MK500,000 | PSV >32 seats → MK800,000',
+  'No certificate of fitness / expired COF → MK50,000',
+  'Operating unroadworthy vehicle → MK50,000',
+  'Motorcycle without helmet → MK30,000',
+  'Failing to stop for traffic officer → MK100,000',
+  'Failing to yield to pedestrian at crossing → MK200,000',
+  'Driving without licence → MK200,000',
+  'No warning triangle / spare tyre / fire extinguisher → MK10,000 per missing item',
+  'Failing to obey road traffic sign → MK50,000',
+  'Parking obstruction/illegal parking → MK30,000',
+  'Driving on wrong side of road → MK50,000',
+  'Overloading/abnormal load without permit → MK500,000',
+  'Threatening a traffic officer → MK500,000',
+  'Impersonating a traffic officer → MK500,000',
+  'Organising street race without permission → MK500,000',
+  'No recording device (tachograph) → MK20,000',
+  'Carrying unauthorized passengers in goods vehicle → MK20,000 per passenger',
+  'Excessive driving hours (driver) → MK50,000 | (operator) → MK50,000-100,000',
+  '',
+  'LICENCE & REGISTRATION FEES (2026):',
+  'Driving licence (5 years) → MK30,000 | Renewal → MK30,000',
+  'Learner\'s licence → MK15,000 | Learner aptitude test → MK10,000',
+  'Driving test → MK15,000 | Professional driving permit (2 years) → MK25,000',
+  'First vehicle registration → MK50,000 | Duplicate registration cert → MK70,000',
+  'COF inspection (private ≤3.5t) → MK30,000 | COF token → MK10,000',
+  'Conversion of foreign licence → MK150,000',
+  'Uplifting suspended licence → MK100,000',
+  '',
+  'REGULATIONS SIGNED: J. Mhango, Minister of Transport and Public Works, 6 May 2026',
+].join('\n');
 
 function buildAIContext() {
   var ctx = [];
   ctx.push('You are Pansewu AI, a road safety assistant for Malawi\'s M1 Highway (Karonga/Songwe to Chikwawa, approx 1,140 km). Respond concisely and helpfully. Use specific km markers and place names. Prioritize safety advice. Do not add disclaimers.');
+  ctx.push('');
+  ctx.push(MW_ROAD_REGS_2026);
   ctx.push('');
 
   // Driver position & speed
@@ -5984,65 +6046,66 @@ function askAI(question) {
   sendAI();
 }
 
+var AI_EDGE_URL = 'https://mgoxhsnmjbzjuevwryxy.supabase.co/functions/v1/ai-chat';
+
 function sendAI() {
   if (_aiLoading) return;
   var inp = document.getElementById('ai-input');
   var q   = inp ? inp.value.trim() : '';
   if (!q) return;
 
-  if (!getAIKey()) { renderAIPanel(); return; }
-
   if (inp) inp.value = '';
   addAIMessage('user', q);
   _aiLoading = true;
 
-  var sendBtn = document.getElementById('btn-ai-send');
-  if (sendBtn) sendBtn.disabled = true;
+  var sendBtn  = document.getElementById('btn-ai-send');
   var typingEl = document.getElementById('ai-typing');
+  if (sendBtn)  sendBtn.disabled = true;
   if (typingEl) typingEl.classList.add('show');
   scrollAIToBottom();
 
-  // Build messages for Groq (system context + last 8 turns + new question)
   var messages = [{ role: 'system', content: buildAIContext() }];
   _aiHistory.slice(-8).forEach(function(m) { messages.push(m); });
   messages.push({ role: 'user', content: q });
   _aiHistory.push({ role: 'user', content: q });
 
-  fetch('https://api.groq.com/openai/v1/chat/completions', {
+  // Try edge function first; fall back to user's own key if set
+  var userKey = getAIKey();
+  var url     = AI_EDGE_URL;
+  var headers = { 'Content-Type': 'application/json' };
+
+  // If user has their own key, call Groq directly so edge function isn't needed
+  if (userKey && userKey.length > 10) {
+    url = 'https://api.groq.com/openai/v1/chat/completions';
+    headers['Authorization'] = 'Bearer ' + userKey;
+  }
+
+  fetch(url, {
     method: 'POST',
-    headers: {
-      'Authorization': 'Bearer ' + getAIKey(),
-      'Content-Type':  'application/json'
-    },
-    body: JSON.stringify({
-      model:       AI_MODEL,
-      messages:    messages,
-      max_tokens:  350,
-      temperature: 0.4
-    })
+    headers: headers,
+    body: JSON.stringify({ messages: messages, max_tokens: 512, temperature: 0.4 })
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
     if (typingEl) typingEl.classList.remove('show');
     _aiLoading = false;
     if (sendBtn) sendBtn.disabled = false;
-
     if (data.choices && data.choices[0] && data.choices[0].message) {
       var reply = data.choices[0].message.content.trim();
       addAIMessage('bot', reply);
       _aiHistory.push({ role: 'assistant', content: reply });
       if (_aiHistory.length > 20) _aiHistory = _aiHistory.slice(-16);
     } else if (data.error) {
-      addAIMessage('bot', '⚠️ API error: ' + (data.error.message || 'Check your Groq API key in settings.'));
+      addAIMessage('bot', '⚠️ ' + (data.error.message || 'AI error. Try again.'));
     } else {
-      addAIMessage('bot', '⚠️ No response from AI. Try again.');
+      addAIMessage('bot', '⚠️ No response. Try again.');
     }
   })
   .catch(function() {
     if (typingEl) typingEl.classList.remove('show');
     _aiLoading = false;
     if (sendBtn) sendBtn.disabled = false;
-    addAIMessage('bot', '⚠️ Could not reach Groq API. Check your internet connection.');
+    addAIMessage('bot', '⚠️ Could not reach AI. Check your connection.');
   });
 }
 
