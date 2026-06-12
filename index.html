@@ -9165,9 +9165,12 @@ function showNavBtn(show) {
       <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#0a2a14,#1a6b3a);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px">🛡️</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:800;margin-bottom:2px">Install Pansewu App</div>
-        <div style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.5">Open this page in Safari, tap the <strong style="color:#fff">Share</strong> button and select <strong style="color:#fff">Add to Home Screen</strong></div>
+        <div id="install-banner-msg" style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.5"></div>
       </div>
       <button onclick="dismissInstallBanner()" style="background:none;border:none;color:rgba(255,255,255,.3);font-size:20px;cursor:pointer;padding:4px;line-height:1;flex-shrink:0">✕</button>
+    </div>
+    <div id="install-action-btn" style="display:none;margin-top:12px">
+      <button onclick="triggerAndroidInstall()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,#1a6b3a,#27ae60);color:#fff;border:none;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 3px 14px rgba(39,174,96,.35)">Install App</button>
     </div>
   </div>
 </div>
@@ -9177,10 +9180,48 @@ function showNavBtn(show) {
   if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return;
   var dismissed = localStorage.getItem('installBannerDismissed');
   if(dismissed && Date.now() - parseInt(dismissed) < 3 * 24 * 60 * 60 * 1000) return;
-  setTimeout(function(){
-    var b = document.getElementById('install-banner');
-    if(b) b.style.display = 'block';
-  }, 2500);
+
+  var ua = navigator.userAgent;
+  var isIOS = /iphone|ipad|ipod/i.test(ua);
+  var isSafari = /safari/i.test(ua) && !/chrome|chromium|crios|fxios|edgios/i.test(ua);
+  var isChromeMobile = /chrome|chromium|crios/i.test(ua) && !/edg/i.test(ua);
+  var isFirefox = /firefox|fxios/i.test(ua);
+  var isEdge = /edg/i.test(ua);
+  var msg = document.getElementById('install-banner-msg');
+
+  if(isIOS && isSafari){
+    msg.innerHTML = 'Tap the <strong style="color:#fff">Share ⎙</strong> button at the bottom, then tap <strong style="color:#fff">Add to Home Screen</strong>';
+    show();
+  } else if(isChromeMobile){
+    window.addEventListener('beforeinstallprompt', function(e){
+      e.preventDefault();
+      window._installPrompt = e;
+      msg.textContent = 'Install the app for the best experience — works offline too.';
+      document.getElementById('install-action-btn').style.display = 'block';
+      show();
+    });
+    // Fallback instruction if prompt doesn't fire (e.g. iOS Chrome)
+    if(isIOS){
+      msg.innerHTML = 'Tap the <strong style="color:#fff">Share ⎙</strong> button, then tap <strong style="color:#fff">Add to Home Screen</strong>';
+      show();
+    }
+  } else if(isFirefox){
+    msg.innerHTML = 'Tap the <strong style="color:#fff">menu (⋮)</strong> and select <strong style="color:#fff">Install</strong> or <strong style="color:#fff">Add to Home Screen</strong>';
+    show();
+  } else if(isEdge){
+    msg.innerHTML = 'Tap the <strong style="color:#fff">menu (…)</strong> and select <strong style="color:#fff">Add to phone</strong>';
+    show();
+  } else {
+    msg.innerHTML = 'Tap your browser\'s menu and select <strong style="color:#fff">Add to Home Screen</strong> to install';
+    show();
+  }
+
+  function show(){
+    setTimeout(function(){
+      var b = document.getElementById('install-banner');
+      if(b) b.style.display = 'block';
+    }, 2500);
+  }
 })();
 
 function dismissInstallBanner(){
