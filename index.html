@@ -9165,72 +9165,22 @@ function showNavBtn(show) {
       <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#0a2a14,#1a6b3a);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:22px">🛡️</div>
       <div style="flex:1;min-width:0">
         <div style="font-size:14px;font-weight:800;margin-bottom:2px">Install Pansewu App</div>
-        <div id="install-banner-msg" style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.5"></div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.5">Open this page in Safari, tap the <strong style="color:#fff">Share</strong> button and select <strong style="color:#fff">Add to Home Screen</strong></div>
       </div>
       <button onclick="dismissInstallBanner()" style="background:none;border:none;color:rgba(255,255,255,.3);font-size:20px;cursor:pointer;padding:4px;line-height:1;flex-shrink:0">✕</button>
-    </div>
-    <!-- iOS steps -->
-    <div id="install-ios-steps" style="display:none;margin-top:12px;background:rgba(255,255,255,.04);border-radius:12px;padding:10px 12px">
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:7px">
-        <span style="background:rgba(39,174,96,.15);color:#27ae60;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">1</span>
-        <span style="font-size:12px;color:rgba(255,255,255,.65)">Tap the <strong style="color:#fff">Share</strong> button <span style="font-size:15px">⎙</span> at the bottom of Safari</span>
-      </div>
-      <div style="display:flex;align-items:center;gap:10px">
-        <span style="background:rgba(39,174,96,.15);color:#27ae60;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0">2</span>
-        <span style="font-size:12px;color:rgba(255,255,255,.65)">Scroll down and tap <strong style="color:#fff">Add to Home Screen</strong></span>
-      </div>
-    </div>
-    <!-- Android button -->
-    <div id="install-android-btn" style="display:none;margin-top:12px">
-      <button onclick="triggerAndroidInstall()" style="width:100%;padding:13px;border-radius:12px;background:linear-gradient(135deg,#1a6b3a,#27ae60);color:#fff;border:none;font-size:14px;font-weight:800;cursor:pointer;box-shadow:0 3px 14px rgba(39,174,96,.35)">Install App</button>
-    </div>
-    <!-- Non-Safari iOS note -->
-    <div id="install-other-ios" style="display:none;margin-top:12px;background:rgba(255,255,255,.04);border-radius:12px;padding:10px 12px">
-      <div style="font-size:12px;color:rgba(255,255,255,.55);line-height:1.6">Open this page in <strong style="color:#fff">Safari</strong> on your iPhone, then tap the Share button <span style="font-size:14px">⎙</span> and choose <strong style="color:#fff">Add to Home Screen</strong>.</div>
     </div>
   </div>
 </div>
 
 <script>
 (function(){
-  // Don't show if already running as installed PWA
   if(window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) return;
-  // Don't show if dismissed recently
   var dismissed = localStorage.getItem('installBannerDismissed');
   if(dismissed && Date.now() - parseInt(dismissed) < 3 * 24 * 60 * 60 * 1000) return;
-
-  var ua = navigator.userAgent;
-  var isIOS = /iphone|ipad|ipod/i.test(ua);
-  var isAndroid = /android/i.test(ua);
-  var isSafari = /safari/i.test(ua) && !/chrome|chromium|crios|fxios/i.test(ua);
-  var isChrome = /chrome|chromium/i.test(ua) && !/edg/i.test(ua);
-  var msg = document.getElementById('install-banner-msg');
-
-  if(isIOS && isSafari){
-    msg.textContent = 'Get the full app experience — works offline too.';
-    document.getElementById('install-ios-steps').style.display = 'block';
-    showBanner();
-  } else if(isIOS && !isSafari){
-    msg.textContent = 'Open in Safari to install this app.';
-    document.getElementById('install-other-ios').style.display = 'block';
-    showBanner();
-  } else if(isAndroid || isChrome){
-    window.addEventListener('beforeinstallprompt', function(e){
-      e.preventDefault();
-      window._installPrompt = e;
-      msg.textContent = 'Add to your home screen for the best experience.';
-      document.getElementById('install-android-btn').style.display = 'block';
-      showBanner();
-    });
-  }
-
-  function showBanner(){
-    // Show after a short delay so it doesn't clash with onboarding screens
-    setTimeout(function(){
-      var b = document.getElementById('install-banner');
-      if(b) b.style.display = 'block';
-    }, 2500);
-  }
+  setTimeout(function(){
+    var b = document.getElementById('install-banner');
+    if(b) b.style.display = 'block';
+  }, 2500);
 })();
 
 function dismissInstallBanner(){
