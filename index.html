@@ -9182,17 +9182,34 @@ function showNavBtn(show) {
   if(dismissed && Date.now() - parseInt(dismissed) < 3 * 24 * 60 * 60 * 1000) return;
 
   var ua = navigator.userAgent;
+  var isMobile = /iphone|ipad|ipod|android|mobile/i.test(ua);
   var isIOS = /iphone|ipad|ipod/i.test(ua);
   var isSafari = /safari/i.test(ua) && !/chrome|chromium|crios|fxios|edgios/i.test(ua);
-  var isChromeMobile = /chrome|chromium|crios/i.test(ua) && !/edg/i.test(ua);
+  var isChrome = /chrome|chromium|crios/i.test(ua) && !/edg/i.test(ua);
   var isFirefox = /firefox|fxios/i.test(ua);
   var isEdge = /edg/i.test(ua);
   var msg = document.getElementById('install-banner-msg');
 
+  if(!isMobile){
+    // Desktop: only show if browser fires the native install prompt (Chrome/Edge)
+    window.addEventListener('beforeinstallprompt', function(e){
+      e.preventDefault();
+      window._installPrompt = e;
+      msg.textContent = 'Install Pansewu as an app for the best experience.';
+      document.getElementById('install-action-btn').style.display = 'block';
+      show();
+    });
+    return; // no banner for desktop browsers that don't support PWA install
+  }
+
   if(isIOS && isSafari){
     msg.innerHTML = 'Tap the <strong style="color:#fff">Share ⎙</strong> button at the bottom, then tap <strong style="color:#fff">Add to Home Screen</strong>';
     show();
-  } else if(isChromeMobile){
+  } else if(isIOS && isChrome){
+    // iOS Chrome can't install PWAs — point to Safari
+    msg.innerHTML = 'To install, open this page in <strong style="color:#fff">Safari</strong>, tap Share ⎙ and select <strong style="color:#fff">Add to Home Screen</strong>';
+    show();
+  } else if(isChrome){
     window.addEventListener('beforeinstallprompt', function(e){
       e.preventDefault();
       window._installPrompt = e;
@@ -9200,11 +9217,6 @@ function showNavBtn(show) {
       document.getElementById('install-action-btn').style.display = 'block';
       show();
     });
-    // Fallback instruction if prompt doesn't fire (e.g. iOS Chrome)
-    if(isIOS){
-      msg.innerHTML = 'Tap the <strong style="color:#fff">Share ⎙</strong> button, then tap <strong style="color:#fff">Add to Home Screen</strong>';
-      show();
-    }
   } else if(isFirefox){
     msg.innerHTML = 'Tap the <strong style="color:#fff">menu (⋮)</strong> and select <strong style="color:#fff">Install</strong> or <strong style="color:#fff">Add to Home Screen</strong>';
     show();
@@ -9212,7 +9224,7 @@ function showNavBtn(show) {
     msg.innerHTML = 'Tap the <strong style="color:#fff">menu (…)</strong> and select <strong style="color:#fff">Add to phone</strong>';
     show();
   } else {
-    msg.innerHTML = 'Tap your browser\'s menu and select <strong style="color:#fff">Add to Home Screen</strong> to install';
+    msg.innerHTML = 'Tap your browser\'s menu and select <strong style="color:#fff">Add to Home Screen</strong>';
     show();
   }
 
