@@ -2405,12 +2405,17 @@ function renderRoadAlerts(rows) {
   bar.style.cssText = 'position:fixed;bottom:80px;left:0;right:0;z-index:800;pointer-events:none;padding:0 8px;display:flex;flex-direction:column;gap:4px;max-height:160px;overflow:hidden';
   var icons = {info:'ℹ️', warning:'⚠️', danger:'🚨'};
   var colors = {info:'rgba(41,128,185,.9)', warning:'rgba(180,100,10,.95)', danger:'rgba(180,30,30,.95)'};
-  bar.innerHTML = rows.map(function(r) {
+  var items = rows.map(function(r) {
     var km = r.km_from != null ? ' · km ' + r.km_from + (r.km_to ? '–' + r.km_to : '') : '';
-    return '<div style="background:' + (colors[r.type]||colors.info) + ';color:#fff;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;pointer-events:auto;display:flex;align-items:center;gap:8px">'
-      + (icons[r.type]||'📢') + ' ' + r.message + km + '</div>';
+    return '<div style="background:' + (colors[r.type]||colors.info) + ';color:#fff;padding:8px 14px;border-radius:10px;font-size:12px;font-weight:700;pointer-events:auto;display:flex;align-items:center;justify-content:space-between;gap:8px">'
+      + '<span>' + (icons[r.type]||'📢') + ' ' + r.message + km + '</span>'
+      + '<button onclick="this.closest(\'#road-alerts-bar\').remove();if(window._showInstallBanner)window._showInstallBanner();" style="background:rgba(0,0,0,.25);border:none;color:#fff;border-radius:6px;padding:2px 8px;cursor:pointer;font-size:11px;flex-shrink:0">✕</button>'
+      + '</div>';
   }).join('');
+  bar.innerHTML = items;
   document.body.appendChild(bar);
+  // Block the install banner until road alerts are dismissed
+  window._roadAlertsShowing = true;
 }
 
 function _applyTrapRows(rows){
@@ -9229,9 +9234,16 @@ function showNavBtn(show) {
   }
 
   function show(){
-    setTimeout(function(){
+    window._showInstallBanner = function(){
       var b = document.getElementById('install-banner');
       if(b) b.style.display = 'block';
+    };
+    // Wait for road alerts bar to be dismissed first; otherwise show after 2.5s
+    setTimeout(function(){
+      if(!window._roadAlertsShowing){
+        window._showInstallBanner();
+      }
+      // If road alerts are showing, _showInstallBanner will be called when they're dismissed
     }, 2500);
   }
 })();
