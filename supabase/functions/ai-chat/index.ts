@@ -1,7 +1,8 @@
-// Pansewu AI — Google Gemini proxy (server-side key, no user setup needed)
+// Pansewu AI — OpenRouter proxy (server-side key, no user setup needed)
 
-const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY")!;
-const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+const OPENROUTER_KEY = Deno.env.get("OPENROUTER_API_KEY")!;
+const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
+const AI_MODEL       = "google/gemma-4-26b-a4b-it:free";
 
 const CORS = {
   "Access-Control-Allow-Origin":  "*",
@@ -20,46 +21,30 @@ Deno.serve(async (req) => {
       return new Response("missing messages", { status: 400, headers: CORS });
     }
 
-    // Convert OpenAI-style messages to Gemini format
-    const systemMsg = body.messages.find((m: any) => m.role === "system");
-    const chatMsgs  = body.messages.filter((m: any) => m.role !== "system");
-
-    const contents = chatMsgs.map((m: any) => ({
-      role:  m.role === "assistant" ? "model" : "user",
-      parts: [{ text: m.content }],
-    }));
-
-    const geminiBody: any = {
-      contents,
-      generationConfig: {
-        maxOutputTokens: 512,
-        temperature:     0.4,
+    const res = await fetch(OPENROUTER_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_KEY}`,
+        "Content-Type":  "application/json",
+        "HTTP-Referer":  "https://sinclair3.github.io/speedguardmw",
+        "X-Title":       "Pansewu AI",
       },
-    };
-
-    if (systemMsg) {
-      geminiBody.systemInstruction = { parts: [{ text: systemMsg.content }] };
-    }
-
-    const res = await fetch(GEMINI_URL, {
-      method:  "POST",
-      headers: { "Content-Type": "application/json" },
-      body:    JSON.stringify(geminiBody),
+      body: JSON.stringify({
+        model:       AI_MODEL,
+        messages:    body.messages,
+        max_tokens:  512,
+        temperature: 0.4,
+      }),
     });
 
+    const data = await res.json();
+
     if (!res.ok) {
-      const err = await res.text();
-      console.error("Gemini error:", err);
-      return new Response(err, { status: res.status, headers: CORS });
+      console.error("OpenRouter error:", JSON.stringify(data));
+      return new Response(JSON.stringify(data), { status: res.status, headers: CORS });
     }
 
-    const data = await res.json();
-    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-
-    // Return in OpenAI-compatible shape so frontend needs no changes
-    return new Response(JSON.stringify({
-      choices: [{ message: { role: "assistant", content: text } }]
-    }), {
+    return new Response(JSON.stringify(data), {
       status: 200,
       headers: { ...CORS, "Content-Type": "application/json" },
     });
