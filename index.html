@@ -6069,21 +6069,14 @@ function sendAI() {
   messages.push({ role: 'user', content: q });
   _aiHistory.push({ role: 'user', content: q });
 
-  // Try edge function first; fall back to user's own key if set
-  var userKey = getAIKey();
-  var url     = AI_EDGE_URL;
-  var headers = { 'Content-Type': 'application/json' };
-
-  // If user has their own key, call Groq directly so edge function isn't needed
-  if (userKey && userKey.length > 10) {
-    url = 'https://api.groq.com/openai/v1/chat/completions';
-    headers['Authorization'] = 'Bearer ' + userKey;
-  }
-
-  fetch(url, {
+  fetch(AI_EDGE_URL, {
     method: 'POST',
-    headers: headers,
-    body: JSON.stringify({ messages: messages, max_tokens: 512, temperature: 0.4 })
+    headers: {
+      'Content-Type':  'application/json',
+      'Authorization': 'Bearer ' + SUPA_KEY,
+      'apikey':        SUPA_KEY
+    },
+    body: JSON.stringify({ messages: messages })
   })
   .then(function(r) { return r.json(); })
   .then(function(data) {
