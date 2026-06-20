@@ -1,9 +1,7 @@
-// Pansewu AI — Groq proxy (server-side key, no user setup needed)
-// Calls Groq chat completions and streams the response back.
+// Pansewu AI — Google Gemini proxy (server-side key, no user setup needed)
 
-const GROQ_API_KEY = Deno.env.get("GROQ_API_KEY")!;
-const GROQ_URL     = "https://api.groq.com/openai/v1/chat/completions";
-const AI_MODEL     = "llama-3.1-8b-instant";
+const GEMINI_API_KEY = Deno.env.get("GEMINI_API_KEY")!;
+const GEMINI_URL     = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
 const CORS = {
   "Access-Control-Allow-Origin":  "*",
@@ -22,28 +20,46 @@ Deno.serve(async (req) => {
       return new Response("missing messages", { status: 400, headers: CORS });
     }
 
-    const groqRes = await fetch(GROQ_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${GROQ_API_KEY}`,
-        "Content-Type":  "application/json",
-      },
-      body: JSON.stringify({
-        model:       AI_MODEL,
-        messages:    body.messages,
-        max_tokens:  512,
-        temperature: 0.4,
-      }),
-    });
+    // Convert OpenAI-style messages to Gemini format
+    const systemMsg = body.messages.find((m: any) => m.role === "system");
+    const chatMsgs  = body.messages.filter((m: any) => m.role !== "system");
 
-    if (!groqRes.ok) {
-      const err = await groqRes.text();
-      console.error("Groq error:", err);
-      return new Response(err, { status: groqRes.status, headers: CORS });
+    const contents = chatMsgs.map((m: any) => ({
+      role:  m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    }));
+
+    const geminiBody: any = {
+      contents,
+      generationConfig: {
+        maxOutputTokens: 512,
+        temperature:     0.4,
+      },
+    };
+
+    if (systemMsg) {
+      geminiBody.systemInstruction = { parts: [{ text: systemMsg.content }] };
     }
 
-    const data = await groqRes.json();
-    return new Response(JSON.stringify(data), {
+    const res = await fetch(GEMINI_URL, {
+      method:  "POST",
+      headers: { "Content-Type": "application/json" },
+      body:    JSON.stringify(geminiBody),
+    });
+
+    if (!res.ok) {
+      const err = await res.text();
+      console.error("Gemini error:", err);
+      return new Response(err, { status: res.status, headers: CORS });
+    }
+
+    const data = await res.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+
+    // Return in OpenAI-compatible shape so frontend needs no changes
+    return new Response(JSON.stringify({
+      choices: [{ message: { role: "assistant", content: text } }]
+    }), {
       status: 200,
       headers: { ...CORS, "Content-Type": "application/json" },
     });
