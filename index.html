@@ -6064,18 +6064,72 @@ function buildAIContext() {
   }
 
   // Nearest hospitals
-  if (typeof HOSPITALS !== 'undefined' && HOSPITALS && HOSPITALS.length) {
-    var hasGPS = !!(curLat && curLng);
-    var hospCtx = HOSPITALS.map(function(h) {
-      var d = hasGPS ? Math.round(hav(curLat, curLng, h.lat, h.lng)) : null;
-      return { name: h.name, km: h.km || 0, dist: d, type: h.type || '' };
+  if (typeof HOSPITALS_M1 !== 'undefined' && HOSPITALS_M1.length) {
+    var hasGPS2 = !!(curLat && curLng);
+    var hospCtx = HOSPITALS_M1.map(function(h) {
+      var d = hasGPS2 ? Math.round(hav(curLat, curLng, h.lat, h.lng)) : null;
+      return { name: h.name, km: h.km || 0, dist: d, type: h.type || '', phone: h.phone || '' };
     });
-    if (hasGPS) hospCtx.sort(function(a,b){ return (a.dist||9999)-(b.dist||9999); });
+    if (hasGPS2) hospCtx.sort(function(a,b){ return (a.dist||9999)-(b.dist||9999); });
     else hospCtx.sort(function(a,b){ return a.km - b.km; });
-    ctx.push('HOSPITALS/CLINICS NEAR M1 (' + hospCtx.length + ' total' + (hasGPS ? ', sorted by distance from you' : '') + '):');
+    ctx.push('HOSPITALS/CLINICS ON M1 (' + hospCtx.length + ' total' + (hasGPS2 ? ', sorted by distance from you' : '') + '):');
     hospCtx.slice(0, 10).forEach(function(h) {
       var distStr = h.dist !== null ? ', ' + h.dist + ' km from you' : '';
-      ctx.push('- ' + h.name + (h.type ? ' [' + h.type + ']' : '') + ' at km ' + h.km + distStr);
+      ctx.push('- ' + h.name + ' [' + h.type + '] at km ' + h.km + distStr + (h.phone ? ', ' + h.phone : ''));
+    });
+    ctx.push('');
+  }
+
+  // Police stations
+  if (typeof POLICE_STATIONS_M1 !== 'undefined' && POLICE_STATIONS_M1.length) {
+    var hasGPS3 = !!(curLat && curLng);
+    var polCtx = POLICE_STATIONS_M1.map(function(p) {
+      var d = hasGPS3 ? Math.round(hav(curLat, curLng, p.lat, p.lng)) : null;
+      return { name: p.name, km: p.km || 0, dist: d, phone: p.phone || '' };
+    });
+    if (hasGPS3) polCtx.sort(function(a,b){ return (a.dist||9999)-(b.dist||9999); });
+    else polCtx.sort(function(a,b){ return a.km - b.km; });
+    ctx.push('POLICE STATIONS ON M1 (' + polCtx.length + ' total' + (hasGPS3 ? ', sorted by distance from you' : '') + '):');
+    polCtx.forEach(function(p) {
+      var distStr = p.dist !== null ? ', ' + p.dist + ' km from you' : '';
+      ctx.push('- ' + p.name + ' at km ' + p.km + distStr + (p.phone ? ', ' + p.phone : ''));
+    });
+    ctx.push('');
+  }
+
+  // Toll gates (from traps array)
+  if (typeof traps !== 'undefined' && traps.length) {
+    var hasGPS4 = !!(curLat && curLng);
+    var tollCtx = traps.filter(function(t){ return t.subtype === 'toll' || (t.name && t.name.toLowerCase().includes('toll')); })
+      .map(function(t) {
+        var d = hasGPS4 ? Math.round(hav(curLat, curLng, t.lat, t.lng)) : null;
+        return { name: t.name, km: t.km || 0, dist: d };
+      });
+    if (tollCtx.length) {
+      if (hasGPS4) tollCtx.sort(function(a,b){ return (a.dist||9999)-(b.dist||9999); });
+      else tollCtx.sort(function(a,b){ return a.km - b.km; });
+      ctx.push('TOLL GATES ON M1:');
+      tollCtx.forEach(function(t) {
+        var distStr = t.dist !== null ? ', ' + t.dist + ' km from you' : '';
+        ctx.push('- ' + t.name + ' at km ' + t.km + distStr);
+      });
+      ctx.push('');
+    }
+  }
+
+  // Breakdown & towing services
+  if (typeof BREAKDOWN_M1 !== 'undefined' && BREAKDOWN_M1.length) {
+    var hasGPS5 = !!(curLat && curLng);
+    var bkCtx = BREAKDOWN_M1.map(function(b) {
+      var d = hasGPS5 ? Math.round(hav(curLat, curLng, b.lat, b.lng)) : null;
+      return { name: b.name, km: b.km || 0, dist: d, type: b.type || '', phone: b.phone || '' };
+    });
+    if (hasGPS5) bkCtx.sort(function(a,b){ return (a.dist||9999)-(b.dist||9999); });
+    else bkCtx.sort(function(a,b){ return a.km - b.km; });
+    ctx.push('BREAKDOWN / GARAGES / TOWING ON M1 (' + bkCtx.length + ' services' + (hasGPS5 ? ', sorted by distance from you' : '') + '):');
+    bkCtx.slice(0, 10).forEach(function(b) {
+      var distStr = b.dist !== null ? ', ' + b.dist + ' km from you' : '';
+      ctx.push('- ' + b.name + ' [' + b.type + '] at km ' + b.km + distStr + (b.phone ? ', ' + b.phone : ''));
     });
     ctx.push('');
   }
