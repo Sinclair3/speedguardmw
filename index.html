@@ -6036,6 +6036,49 @@ function buildAIContext() {
   ctx.push('SOUTH END: Chikwawa/Mozambique Border=960km');
   ctx.push('');
   ctx.push('DIRECTION GUIDE: Travelling NORTH = decreasing km numbers (towards Karonga). Travelling SOUTH = increasing km numbers (towards Chikwawa/Blantyre). Dowa is a town EAST of Mponela (off M1, branch road). Kasungu is north of Lilongwe at km 490.');
+  ctx.push('');
+
+  // GPS status — tell AI explicitly if GPS is off so it stops asking for location
+  if (curLat && curLng) {
+    ctx.push('GPS STATUS: ACTIVE — driver location is known. Do NOT ask the user for their location.');
+  } else {
+    ctx.push('GPS STATUS: OFF — driver location unknown. Ask the user to enable GPS in the app for precise distances, OR ask for a town/km marker.');
+  }
+  ctx.push('');
+
+  // Nearest fuel stations
+  if (typeof FUEL_STATIONS !== 'undefined' && FUEL_STATIONS.length) {
+    var hasGPS = !!(curLat && curLng);
+    var fuelCtx = FUEL_STATIONS.map(function(s) {
+      var d = hasGPS ? Math.round(hav(curLat, curLng, s.lat, s.lng)) : null;
+      return { name: s.name, brand: s.brand || '', km: s.km, dist: d, types: (s.types||[]).join('/'), note: s.note || '' };
+    });
+    if (hasGPS) fuelCtx.sort(function(a,b){ return (a.dist||9999)-(b.dist||9999); });
+    else fuelCtx.sort(function(a,b){ return a.km - b.km; });
+    ctx.push('FUEL STATIONS ON M1 (' + fuelCtx.length + ' total' + (hasGPS ? ', sorted by distance from you' : ', sorted by km') + '):');
+    fuelCtx.slice(0, 15).forEach(function(s) {
+      var distStr = s.dist !== null ? ', ' + s.dist + ' km from you' : '';
+      ctx.push('- ' + s.name + ' [' + s.types + '] at km ' + s.km + distStr + (s.note ? ' — ' + s.note : ''));
+    });
+    ctx.push('');
+  }
+
+  // Nearest hospitals
+  if (typeof HOSPITALS !== 'undefined' && HOSPITALS && HOSPITALS.length) {
+    var hasGPS = !!(curLat && curLng);
+    var hospCtx = HOSPITALS.map(function(h) {
+      var d = hasGPS ? Math.round(hav(curLat, curLng, h.lat, h.lng)) : null;
+      return { name: h.name, km: h.km || 0, dist: d, type: h.type || '' };
+    });
+    if (hasGPS) hospCtx.sort(function(a,b){ return (a.dist||9999)-(b.dist||9999); });
+    else hospCtx.sort(function(a,b){ return a.km - b.km; });
+    ctx.push('HOSPITALS/CLINICS NEAR M1 (' + hospCtx.length + ' total' + (hasGPS ? ', sorted by distance from you' : '') + '):');
+    hospCtx.slice(0, 10).forEach(function(h) {
+      var distStr = h.dist !== null ? ', ' + h.dist + ' km from you' : '';
+      ctx.push('- ' + h.name + (h.type ? ' [' + h.type + ']' : '') + ' at km ' + h.km + distStr);
+    });
+    ctx.push('');
+  }
 
   return ctx.join('\n');
 }
