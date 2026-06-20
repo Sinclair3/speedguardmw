@@ -6089,17 +6089,44 @@ function sendAI() {
       _aiHistory.push({ role: 'assistant', content: reply });
       if (_aiHistory.length > 20) _aiHistory = _aiHistory.slice(-16);
     } else if (data.error) {
-      addAIMessage('bot', '⚠️ ' + (data.error.message || 'AI error. Try again.'));
+      var errMsg = data.error.message || 'AI error. Try again.';
+      console.error('AI error:', JSON.stringify(data.error));
+      // Context too large — retry with just the question
+      if (errMsg.toLowerCase().includes('token') || errMsg.includes('413') || errMsg.includes('too long') || errMsg.includes('context')) {
+        _retryAISimple(q);
+      } else {
+        addAIMessage('bot', '⚠️ ' + errMsg);
+      }
     } else {
       addAIMessage('bot', '⚠️ No response. Try again.');
     }
   })
-  .catch(function() {
+  .catch(function(err) {
     if (typingEl) typingEl.classList.remove('show');
     _aiLoading = false;
     if (sendBtn) sendBtn.disabled = false;
+    console.error('AI fetch error:', err);
     addAIMessage('bot', '⚠️ Could not reach AI. Check your connection.');
   });
+}
+
+function _retryAISimple(question) {
+  // Retry with minimal context — just the question, no trap data
+  var minCtx = 'You are Pansewu AI, a road safety assistant for Malawi\'s M1 Highway. Answer concisely. ' + MW_ROAD_REGS_2026.slice(0, 1500);
+  fetch(AI_EDGE_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + SUPA_KEY, 'apikey': SUPA_KEY },
+    body: JSON.stringify({ messages: [{ role: 'system', content: minCtx }, { role: 'user', content: question }] })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.choices && data.choices[0] && data.choices[0].message) {
+      addAIMessage('bot', data.choices[0].message.content.trim());
+    } else {
+      addAIMessage('bot', '⚠️ ' + (data.error ? data.error.message : 'No response. Try again.'));
+    }
+  })
+  .catch(function() { addAIMessage('bot', '⚠️ Could not reach AI.'); });
 }
 
 function addAIMessage(role, text) {
